@@ -1,0 +1,161 @@
+/* ==========================================================================
+   SGE SegmentedTabs (A Geral do SGE)
+   Directives: AGENTS.md (Radius 10-12px, tactile :active scale 0.98, WCAG AA)
+   ========================================================================== */
+
+.sge-segmented-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--content-bg, #F1F5F9);
+  border: 1px solid var(--border, #CBD5E1);
+  padding: 4px;
+  border-radius: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  user-select: none;
+}
+
+.sge-segmented-tabs--sm {
+  padding: 3px;
+  border-radius: 10px;
+}
+
+.sge-segmented-tab {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  min-height: 38px;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease;
+}
+
+.sge-segmented-tabs--sm .sge-segmented-tab {
+  padding: 6px 10px;
+  font-size: 12.5px;
+  min-height: 32px;
+  border-radius: 7px;
+}
+
+.sge-segmented-tab:active {
+  transform: scale(0.98);
+  transition: transform 0.08s ease;
+}
+
+.sge-segmented-tab--active {
+  color: var(--accent, #017F7B) !important;
+  font-weight: 700;
+}
+
+/* Cápsula de fundo com Motion Spring (Framer Motion) */
+.sge-segmented-tab__indicator {
+  position: absolute;
+  inset: 0;
+  background: var(--card-bg, #FFFFFF);
+  border-radius: 9px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 1px 1px rgba(0, 0, 0, 0.04);
+  z-index: 1;
+}
+
+.sge-segmented-tabs--sm .sge-segmented-tab__indicator {
+  border-radius: 7px;
+}
+
+/* Conteúdo interno da aba (fica acima do indicador animado) */
+.sge-segmented-tab__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sge-segmented-tab__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sge-segmented-tab__label {
+  letter-spacing: -0.2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sge-segmented-tab__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #E2E8F0;
+  color: #475569;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sge-segmented-tab__badge--active {
+  background: #E6F4F3;
+  color: var(--accent, #017F7B);
+}
+
+/* Responsividade Ergonômica para Telas Estreitas (Anti-Corte) */
+@media (max-width: 414px) {
+  .sge-segmented-tab {
+    padding: 7px 6px;
+    font-size: 12px;
+  }
+
+  .sge-segmented-tab__content {
+    gap: 4px;
+  }
+
+  .sge-segmented-tab__icon svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+@media (max-width: 370px) {
+  .sge-segmented-tab {
+    padding: 6px 3px;
+    font-size: 11px;
+    min-height: 34px;
+  }
+
+  /* Em telas muito estreitas (< 370px), oculta os ícones para dar 100% de prioridade aos rótulos sem corte */
+  .sge-segmented-tab__icon {
+    display: none;
+  }
+
+  .sge-segmented-tab__badge {
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    font-size: 9.5px;
+  }
+}

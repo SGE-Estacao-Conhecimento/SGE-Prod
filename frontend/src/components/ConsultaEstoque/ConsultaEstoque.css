@@ -1,0 +1,173 @@
+/* Shared Panel Card styles (used by ConsultaEstoque & GerenciarUsuarios) */
+.panel-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Shared empty state for panels */
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 12px;
+  color: var(--text-muted);
+}
+
+.panel-empty svg {
+  opacity: 0.3;
+}
+
+.panel-empty span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+
+.panel-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.panel-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--content-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 5px 10px;
+  flex: 1;
+  margin-left: 10px;
+  transition: border-color 0.2s;
+}
+
+.panel-search:focus-within {
+  border-color: var(--accent);
+}
+
+.panel-search__input {
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-primary);
+  width: 100%;
+}
+
+.panel-search__input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Estoque list */
+.estoque-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.estoque-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--content-bg);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  transition: background 0.15s;
+}
+
+.estoque-item:hover {
+  background: #EEF1FE;
+}
+
+.estoque-item__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.estoque-item__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.estoque-item__nome {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.estoque-item__qtd {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.estoque-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 12px;
+}
+
+/* Panel icon button */
+.panel-btn-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.panel-btn-icon:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Panel link button */
+.panel-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+
+.panel-link-btn:hover {
+  opacity: 0.75;
+}

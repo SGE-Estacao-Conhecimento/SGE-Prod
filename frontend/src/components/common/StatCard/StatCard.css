@@ -1,0 +1,109 @@
+/* ==========================================================================
+   SGE StatCard (A Geral do SGE)
+   Directives: AGENTS.md (Radius 10-12px, tactile :active scale 0.98, WCAG AA)
+   ========================================================================== */
+
+.sge-stat-card {
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.sge-stat-card--clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sge-stat-card--clickable:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+.sge-stat-card--clickable:active {
+  transform: scale(0.98);
+  transition: transform 0.08s ease;
+}
+
+.sge-stat-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: #F1F5F9;
+  color: #475569;
+}
+
+.sge-stat-card__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.sge-stat-card__value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary, #0F172A);
+  letter-spacing: -0.3px;
+}
+
+.sge-stat-card__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #64748B);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Variantes de Cor */
+.sge-stat-card--accent .sge-stat-card__value {
+  color: var(--accent, #017F7B);
+}
+
+.sge-stat-card--warning {
+  border-color: #FED7AA;
+  background: #FFFDF8;
+}
+
+.sge-stat-card--warning .sge-stat-card__value {
+  color: #D97706;
+}
+
+.sge-stat-card--success {
+  border-color: #A7F3D0;
+  background: #F8FCF9;
+}
+
+.sge-stat-card--success .sge-stat-card__value {
+  color: #059669;
+}
+
+.sge-stat-card--danger {
+  border-color: #FECACA;
+  background: #FEF9F9;
+}
+
+.sge-stat-card--danger .sge-stat-card__value {
+  color: #DC2626;
+}

@@ -1,0 +1,43 @@
+.user-modal-container {
+  max-width: 540px;
+}
+
+.user-modal-icon {
+  background: rgba(74, 108, 247, 0.12);
+  color: var(--accent);
+}
+
+.user-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.form-help-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.user-status-toggle {
+  background: var(--border-light);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  margin-top: 6px;
+}
+
+@media (max-width: 560px) {
+  .user-form-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .span-2 {
+    grid-column: span 1;
+  }
+}

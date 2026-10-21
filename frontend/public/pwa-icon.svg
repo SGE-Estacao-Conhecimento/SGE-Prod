@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="128" fill="#017F7B"/>
+  <!-- Isometric Warehouse Box Icon -->
+  <g transform="translate(106, 116)" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Top Face -->
+    <polygon points="150,20 270,85 150,150 30,85" fill="#01948F" stroke="#FFFFFF"/>
+    <!-- Left Face -->
+    <polygon points="30,85 150,150 150,280 30,215" fill="#016562" stroke="#FFFFFF"/>
+    <!-- Right Face -->
+    <polygon points="150,150 270,85 270,215 150,280" fill="#017F7B" stroke="#FFFFFF"/>
+    <!-- Tape / Package Detail -->
+    <line x1="90" y1="52" x2="210" y2="117" stroke="#99F6E4" stroke-width="14"/>
+    <line x1="150" y1="85" x2="150" y2="280" stroke="#FFFFFF" stroke-width="16"/>
+  </g>
+</svg>

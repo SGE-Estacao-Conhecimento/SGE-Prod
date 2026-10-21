@@ -1,0 +1,564 @@
+/* ============================================================
+   USER HISTORY DRAWER (Gaveta Lateral do Solicitante)
+   ============================================================ */
+
+.drawer-overlay-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Backdrop */
+.drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+/* Painel Lateral */
+.drawer-panel {
+  position: relative;
+  width: min(720px, 62vw);
+  min-width: 600px;
+  max-width: 720px;
+  height: 100vh;
+  background: var(--card-bg, #ffffff);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  z-index: 10000;
+  border-left: 1px solid var(--border, #E2E8F0);
+  overflow: hidden;
+}
+
+/* Header */
+.drawer-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border, #E2E8F0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-primary, #F8FAFC);
+}
+
+.drawer-header__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drawer-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent, #4A6CF7);
+}
+
+.drawer-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #0F172A);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.drawer-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border, #CBD5E1);
+  background: var(--card-bg, #ffffff);
+  color: var(--text-secondary, #64748B);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.drawer-close-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #EF4444;
+  transform: rotate(90deg);
+}
+
+/* Corpo com Scroll */
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Card do Perfil do Usuário */
+.drawer-user-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(74, 108, 247, 0.05) 0%, rgba(99, 102, 241, 0.03) 100%);
+  border: 1px solid rgba(74, 108, 247, 0.18);
+  border-radius: var(--radius-lg, 12px);
+}
+
+.drawer-user-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent, #4A6CF7) 0%, #3554D1 100%);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(74, 108, 247, 0.28);
+}
+
+.drawer-user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.drawer-user-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #0F172A);
+  margin: 0 0 6px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawer-user-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.drawer-user-sector-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent, #4A6CF7);
+  background: rgba(74, 108, 247, 0.1);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.drawer-user-role-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748B);
+  background: var(--bg-primary, #F1F5F9);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #E2E8F0);
+}
+
+.drawer-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-secondary, #64748B);
+  flex-wrap: wrap;
+}
+
+/* KPIs de Consumo */
+.drawer-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.drawer-kpi-item {
+  background: var(--bg-primary, #F8FAFC);
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: var(--radius-md, 10px);
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.drawer-kpi-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748B);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.drawer-kpi-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary, #0F172A);
+  line-height: 1;
+}
+
+.drawer-kpi-val--accent { color: var(--accent, #4A6CF7); }
+.drawer-kpi-val--success { color: #10B981; }
+.drawer-kpi-val--warning { color: #F59E0B; }
+
+/* Botão Filtrar na Tabela */
+.drawer-filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-primary, #F1F5F9);
+  border: 1px dashed var(--accent, #4A6CF7);
+  border-radius: var(--radius-md, 8px);
+  color: var(--accent, #4A6CF7);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.drawer-filter-btn:hover {
+  background: rgba(74, 108, 247, 0.08);
+  border-style: solid;
+  transform: translateY(-1px);
+}
+
+/* Seção de Linha do Tempo */
+.drawer-timeline-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.drawer-timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawer-timeline-header h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #0F172A);
+  margin: 0;
+}
+
+.drawer-timeline-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748B);
+  background: var(--bg-primary, #F1F5F9);
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #E2E8F0);
+}
+
+.drawer-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Card de Pedido na Gaveta */
+.drawer-order-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: var(--radius-md, 10px);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.drawer-order-card:hover {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  border-color: rgba(74, 108, 247, 0.3);
+}
+
+/* Card Urgente na Gaveta */
+.drawer-order-card--urgent {
+  border-left: 5px solid #EA580C !important;
+  border-color: #FED7AA;
+  background: linear-gradient(180deg, #FFFDF8 0%, #FFFFFF 100%);
+}
+
+.drawer-order-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.drawer-order-id-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drawer-order-sku {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--accent, #4A6CF7);
+  background: rgba(74, 108, 247, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.drawer-order-date {
+  font-size: 11px;
+  color: var(--text-secondary, #64748B);
+  font-weight: 500;
+}
+
+.drawer-order-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Badges da Gaveta */
+.drawer-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.drawer-badge--success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10B981;
+}
+
+.drawer-badge--warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #D97706;
+}
+
+.drawer-badge--danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
+}
+
+.drawer-badge--info {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563EB;
+}
+
+.drawer-badge--ready {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+.drawer-urgent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #FFF7ED;
+  color: #C2410C;
+  border: 1px solid #FFEDD5;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.4px;
+  animation: pulseDrawerUrgent 2.2s infinite ease-in-out;
+}
+
+@keyframes pulseDrawerUrgent {
+  0%, 100% { transform: scale(1); box-shadow: 0 1px 2px rgba(234, 88, 12, 0.1); }
+  50% { transform: scale(1.03); box-shadow: 0 2px 6px rgba(234, 88, 12, 0.25); }
+}
+
+/* Materiais no Pedido da Gaveta */
+.drawer-order-materials {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drawer-order-materials-label {
+  font-size: 11px;
+  color: var(--text-secondary, #64748B);
+  font-weight: 600;
+}
+
+.drawer-order-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.drawer-mat-chip {
+  font-size: 11px;
+  background: var(--bg-primary, #F8FAFC);
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: 4px;
+  padding: 2px 7px;
+  color: var(--text-primary, #0F172A);
+  display: inline-block;
+}
+
+.drawer-mat-chip strong {
+  color: var(--accent, #4A6CF7);
+}
+
+.drawer-order-justificativa {
+  font-size: 11px;
+  color: var(--text-secondary, #64748B);
+  background: rgba(100, 116, 139, 0.05);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border-left: 2px solid var(--border, #CBD5E1);
+}
+
+.drawer-order-justificativa strong {
+  color: var(--text-primary, #0F172A);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.drawer-order-justificativa p {
+  margin: 0;
+  font-style: italic;
+}
+
+/* Ações Rápidas dentro da Gaveta */
+.drawer-order-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.drawer-btn-quick {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.drawer-btn-quick--approve {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.drawer-btn-quick--approve:hover {
+  background: #10B981;
+  color: #ffffff;
+}
+
+.drawer-btn-quick--ready {
+  background: rgba(74, 108, 247, 0.12);
+  color: var(--accent, #4A6CF7);
+  border-color: rgba(74, 108, 247, 0.25);
+}
+
+.drawer-btn-quick--ready:hover {
+  background: var(--accent, #4A6CF7);
+  color: #ffffff;
+}
+
+.drawer-btn-quick--reject {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.drawer-btn-quick--reject:hover {
+  background: #EF4444;
+  color: #ffffff;
+}
+
+/* Empty State */
+.drawer-empty-state {
+  text-align: center;
+  padding: 36px 16px;
+  color: var(--text-secondary, #64748B);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.drawer-empty-state svg {
+  opacity: 0.5;
+}
+
+.drawer-empty-state p {
+  font-size: 12px;
+  margin: 0;
+  max-width: 260px;
+}
+
+/* Footer */
+.drawer-footer {
+  padding: 14px 24px;
+  border-top: 1px solid var(--border, #E2E8F0);
+  background: var(--bg-primary, #F8FAFC);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawer-footer-note {
+  font-size: 11px;
+  color: var(--text-muted, #94A3B8);
+}
+
+.drawer-footer-btn {
+  padding: 7px 16px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #CBD5E1);
+  color: var(--text-primary, #0F172A);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.drawer-footer-btn:hover {
+  background: var(--bg-primary, #F1F5F9);
+  border-color: var(--text-secondary, #64748B);
+}
+
+/* Responsividade Mobile */
+@media (max-width: 640px) {
+  .drawer-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .drawer-kpis-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

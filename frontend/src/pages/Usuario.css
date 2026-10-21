@@ -1,0 +1,99 @@
+/* ===== USUARIO (PORTAL DO SOLICITANTE) ===== */
+.usuario-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: var(--content-bg, #F0F2F7);
+}
+
+.usuario-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  min-width: 0;
+}
+
+.usuario-page-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+}
+
+.usuario-inicio-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Desktop: aproveita a área disponível sem alterar o fluxo mobile. */
+@media (min-width: 901px) {
+  .usuario-page-scroll {
+    padding: 28px clamp(28px, 4vw, 64px);
+  }
+
+  .usuario-page-scroll > * {
+    width: 100%;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .usuario-page-scroll .usuario-perfil,
+  .usuario-page-scroll .meus-pedidos-container,
+  .usuario-page-scroll .usuario-estoque {
+    max-width: none;
+  }
+
+  .usuario-page-scroll .usuario-perfil {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.85fr) minmax(0, 1.5fr);
+    align-items: start;
+    gap: 24px;
+  }
+
+  .usuario-page-scroll .usuario-perfil > * {
+    min-width: 0;
+  }
+}
+
+/* Sidebar badge for pending items */
+.sidebar__badge {
+  background: rgba(255, 255, 255, 0.28);
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+/* Oculta a barra inferior de celular no desktop */
+.usuario-bottom-nav {
+  display: none;
+}
+
+/* ===== MODO CELULAR (MOBILE-FIRST) ===== */
+@media (max-width: 900px) {
+  /* Oculta totalmente a barra lateral no celular */
+  .usuario-layout .sidebar {
+    display: none !important;
+  }
+
+  .usuario-layout .sidebar-backdrop {
+    display: none !important;
+  }
+
+  .usuario-layout .topbar__menu-btn {
+    display: none !important;
+  }
+
+  .usuario-page-scroll {
+    padding: 10px 12px 72px 12px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}

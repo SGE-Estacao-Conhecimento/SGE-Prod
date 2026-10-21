@@ -1,0 +1,54 @@
+/* ===================================================
+   ALMOXARIFE LAYOUT & NAVIGATION
+   Desktop-First com total adaptação responsiva mobile
+   =================================================== */
+
+.almoxarife-layout {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  position: relative;
+  overflow: hidden;
+}
+
+.almoxarife-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  min-width: 0;
+  position: relative;
+}
+
+.almoxarife-page-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding: 24px 28px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.almoxarife-page-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Sidebar no Computador / Desktop */
+.almoxarife-layout .sidebar {
+  background: #017F7B !important;
+}
+
+/* ===== RESPONSIVIDADE NO CELULAR / SMARTPHONE ===== */
+@media (max-width: 768px) {
+  /* No celular, o padding reserva 76px para a barra inferior e a sidebar abre como drawer via topbar */
+  .almoxarife-page-scroll {
+    padding: 10px 12px 76px 12px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}

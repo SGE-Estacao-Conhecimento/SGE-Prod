@@ -1,0 +1,85 @@
+# ==========================================
+# SGE - Sistema de Gestão de Estoque
+# Git Ignore Global do Repositório
+# ==========================================
+
+# --- Segredos e Variáveis de Ambiente ---
+.env
+.env.*
+!.env.example
+*.env
+*.env.local
+
+# --- Dependências & Builds ---
+# Node / Frontend (sge-frontend)
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+.eslintcache
+
+# .NET / C# (sge-backend)
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+TestResults/
+[Tt]est[Rr]esult*/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+packages/
+*.nupkg
+
+# --- Logs ---
+logs/
+backups/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Editor / IDEs ---
+# Visual Studio / VS Code
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+
+# JetBrains (Rider, WebStorm, IntelliJ)
+.idea/
+*.iws
+*.iml
+
+# --- Sistema Operacional ---
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+
+# Linux
+*~
+.directory
+
+# --- Arquivos Temporários & Utilitários ---
+*.docx
+*.tmp
+*.bak
+.agents/

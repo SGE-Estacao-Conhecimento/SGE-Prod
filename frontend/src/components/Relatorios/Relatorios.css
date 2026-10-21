@@ -1,0 +1,143 @@
+.relatorios-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.relatorios-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.relatorios-section__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.relatorios-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap-md);
+}
+
+@media (max-width: 900px) {
+  .relatorios-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.relatorio-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.relatorio-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.relatorio-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.relatorio-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.relatorio-card__stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.relatorio-stat {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--border-light);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.relatorio-stat--empty {
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.relatorio-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.relatorio-card__desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  flex: 1;
+}
+
+.relatorio-card__divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 2px 0;
+}
+
+.relatorio-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.relatorio-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+
+.relatorio-btn--outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.relatorio-btn--outline:hover {
+  background: var(--border-light);
+  border-color: var(--text-muted);
+}
+
+.relatorio-btn--primary {
+  background: var(--btn-color, var(--accent));
+  border: none;
+  color: #fff;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--btn-color, var(--accent)) 35%, transparent);
+}
+
+.relatorio-btn--primary:hover {
+  filter: brightness(1.08);
+}

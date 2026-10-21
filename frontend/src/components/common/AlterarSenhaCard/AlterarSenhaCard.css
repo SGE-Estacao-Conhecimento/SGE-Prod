@@ -1,0 +1,481 @@
+/* ===================================================
+   ALTERAR SENHA CARD & TRIGGER - A GERAL DO SGE
+   Densidade 8, Motion 3, Anti-Slop & Dual-Core Ergonomics
+   =================================================== */
+
+/* Gatilho Minimalista em Botão para a Seção de Perfil */
+.alterar-senha-trigger-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border, #CBD5E1);
+  border-radius: 12px;
+  padding: 14px 18px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.alterar-senha-trigger-btn:hover {
+  border-color: #94A3B8;
+  background: #F8FAFC;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.alterar-senha-trigger-btn:active {
+  transform: scale(0.985);
+}
+
+.alterar-senha-trigger-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #E6F4F3;
+  color: #017F7B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.alterar-senha-trigger-btn:hover .alterar-senha-trigger-icon {
+  transform: scale(1.04);
+}
+
+.alterar-senha-trigger-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alterar-senha-trigger-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #0F172A);
+  letter-spacing: -0.01em;
+}
+
+.alterar-senha-trigger-desc {
+  font-size: 12px;
+  color: var(--text-secondary, #64748B);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alterar-senha-trigger-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  transition: transform 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.alterar-senha-trigger-btn:hover .alterar-senha-trigger-arrow {
+  color: #017F7B;
+  transform: translateX(2px);
+}
+
+/* ===================================================
+   MODAL DE ALTERAÇÃO DE SENHA (ABERTO PELO BOTÃO)
+   =================================================== */
+
+.alterar-senha-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1020;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  animation: sge-fade-in 0.15s ease-out;
+}
+
+@keyframes sge-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.alterar-senha-modal-panel {
+  width: min(100%, 480px);
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border, #CBD5E1);
+  border-radius: 16px;
+  padding: 24px 26px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-sizing: border-box;
+  animation: sge-scale-in 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes sge-scale-in {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.alterar-senha-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-light, #F1F5F9);
+  position: relative;
+}
+
+.alterar-senha-close-btn {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.12s ease;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.alterar-senha-close-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.alterar-senha-close-btn:active {
+  transform: scale(0.92);
+}
+
+.alterar-senha-header__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #E6F4F3;
+  color: #017F7B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.alterar-senha-header__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.alterar-senha-header__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary, #0F172A);
+  letter-spacing: -0.01em;
+}
+
+.alterar-senha-header__desc {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-secondary, #64748B);
+  line-height: 1.4;
+}
+
+.alterar-senha-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.alterar-senha-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.alterar-senha-field__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.alterar-senha-field__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #334155);
+}
+
+.alterar-senha-field__forgot-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #017F7B;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.alterar-senha-field__forgot-btn:hover {
+  color: #016562;
+  text-decoration: underline;
+}
+
+.alterar-senha-field__forgot-btn:active {
+  transform: scale(0.98);
+}
+
+.alterar-senha-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.alterar-senha-input-icon {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #94A3B8);
+  pointer-events: none;
+}
+
+.alterar-senha-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 40px 0 38px;
+  font-size: 14px;
+  background: var(--input-bg, #F8FAFC);
+  color: var(--text-primary, #0F172A);
+  border: 1px solid var(--border, #CBD5E1);
+  border-radius: 8px;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.alterar-senha-input:focus {
+  outline: none;
+  background: #FFFFFF;
+  border-color: #017F7B;
+  box-shadow: 0 0 0 3px rgba(1, 127, 123, 0.14);
+}
+
+.alterar-senha-input::placeholder {
+  color: var(--text-muted, #94A3B8);
+  font-size: 13px;
+}
+
+.alterar-senha-input-toggle {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #64748B);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.12s ease;
+}
+
+.alterar-senha-input-toggle:hover {
+  color: var(--text-primary, #0F172A);
+}
+
+.alterar-senha-input-toggle:active {
+  transform: scale(0.92);
+}
+
+.alterar-senha-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  color: #B91C1C;
+  font-size: 13px;
+  line-height: 1.4;
+  animation: sge-shake 0.25s ease-in-out;
+}
+
+@keyframes sge-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.alterar-senha-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.alterar-senha-cancel-btn {
+  padding: 10px 18px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.alterar-senha-cancel-btn:hover:not(:disabled) {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.alterar-senha-cancel-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.alterar-senha-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 160px;
+  height: 42px;
+  padding: 0 20px;
+  background: #017F7B;
+  border: 1px solid #017F7B;
+  border-radius: 8px;
+  color: #FFFFFF;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(1, 127, 123, 0.22);
+  transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.alterar-senha-submit-btn:hover:not(:disabled) {
+  background: #016562;
+  border-color: #016562;
+  box-shadow: 0 4px 10px rgba(1, 127, 123, 0.32);
+}
+
+.alterar-senha-submit-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.alterar-senha-submit-btn:disabled,
+.alterar-senha-cancel-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ===================================================
+   POPUP DE CONCLUSÃO (SUCESSO)
+   =================================================== */
+
+.alterar-senha-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  animation: sge-fade-in 0.15s ease-out;
+}
+
+.alterar-senha-popup-panel {
+  width: min(100%, 420px);
+  padding: 32px 28px;
+  border-radius: 16px;
+  background: #FFFFFF;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.24);
+  border: 1px solid #E2E8F0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: sge-scale-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.alterar-senha-popup-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ECFDF5;
+  border: 2px solid #A7F3D0;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alterar-senha-popup-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: #0F172A;
+  letter-spacing: -0.02em;
+}
+
+.alterar-senha-popup-desc {
+  margin: 0;
+  font-size: 13.5px;
+  color: #64748B;
+  line-height: 1.55;
+  max-width: 340px;
+}
+
+.alterar-senha-popup-btn {
+  width: 100%;
+  height: 44px;
+  background: #017F7B;
+  border: 1px solid #017F7B;
+  border-radius: 8px;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all 0.12s ease;
+  box-shadow: 0 2px 6px rgba(1, 127, 123, 0.25);
+}
+
+.alterar-senha-popup-btn:hover {
+  background: #016562;
+  border-color: #016562;
+}
+
+.alterar-senha-popup-btn:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 600px) {
+  .alterar-senha-modal-panel {
+    padding: 18px 16px;
+  }
+  .alterar-senha-actions {
+    flex-direction: column-reverse;
+  }
+  .alterar-senha-cancel-btn,
+  .alterar-senha-submit-btn {
+    width: 100%;
+  }
+}

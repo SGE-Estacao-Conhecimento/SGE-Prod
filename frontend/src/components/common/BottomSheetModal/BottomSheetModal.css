@@ -1,0 +1,248 @@
+/* ==========================================================================
+   SGE BottomSheetModal (A Geral do SGE)
+   Directives: AGENTS.md (Radius 16-20px top on sheet, 100dvh, zero layout shifts)
+   ========================================================================== */
+
+.sge-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100%;
+  height: 100dvh;
+  background: rgba(15, 23, 42, 0.65);
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end; /* Mobile: ancorado no chão */
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  animation: none !important;
+}
+
+/* Liberação imediata de cliques ao fechar ou arrastar para dispensar */
+.sge-modal-backdrop.is-closing,
+.sge-modal-backdrop.is-closing *,
+.sge-bottom-sheet.is-closing,
+.sge-bottom-sheet.is-closing * {
+  pointer-events: none !important;
+}
+
+.sge-bottom-sheet {
+  background: var(--card-bg, #FFFFFF);
+  width: 100%;
+  max-width: 100%;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25);
+  max-height: 88dvh;
+  overflow: hidden; /* Mantém o handle no topo e o footer fixo em baixo sem rolarem para fora */
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  box-sizing: border-box;
+  margin: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+/* Puxador visual e interativo no mobile com margem fixa no topo */
+.sge-sheet-handle-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0 6px 0;
+  margin-top: 8px; /* Margem fixa em cima */
+  flex-shrink: 0; /* Posição fixa no topo */
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.sge-sheet-handle-wrap:active {
+  cursor: grabbing;
+}
+
+.sge-sheet-handle-wrap:active .sge-sheet-handle {
+  background: #94A3B8;
+  transform: scaleX(1.15);
+}
+
+.sge-sheet-handle {
+  width: 44px;
+  height: 4.5px;
+  background: #CBD5E1;
+  border-radius: 9999px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+/* Header */
+.sge-bottom-sheet__header {
+  border-bottom: 1px solid var(--border-light, #F3F4F6);
+  padding: 4px 18px 12px 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.sge-bottom-sheet__header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sge-sheet-subtitle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sge-sheet-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent, #017F7B);
+  line-height: 1.2;
+}
+
+.sge-sheet-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary, #0F172A);
+  letter-spacing: -0.3px;
+  margin: 0;
+  line-height: 1.25;
+}
+
+/* Corpo */
+.sge-bottom-sheet__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 14px 18px;
+  box-sizing: border-box;
+}
+
+.sge-bottom-sheet__body--no-footer {
+  padding-bottom: calc(18px + env(safe-area-inset-bottom, 14px));
+}
+
+/* Rodapé */
+.sge-bottom-sheet__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 18px calc(14px + env(safe-area-inset-bottom, 14px)) 18px;
+  border-top: 1px solid var(--border-light, #F1F5F9);
+  background: var(--card-bg, #FFFFFF);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.04);
+  z-index: 10;
+}
+
+/* Botões padrões do rodapé */
+.sge-modal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sge-modal-btn:active {
+  transform: scale(0.97);
+  transition: transform 0.08s ease;
+}
+
+.sge-modal-btn--cancel {
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+}
+
+.sge-modal-btn--cancel:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.sge-modal-btn--confirm {
+  background: var(--accent, #017F7B);
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(1, 127, 123, 0.28);
+}
+
+.sge-modal-btn--confirm:hover {
+  background: var(--accent-hover, #016562);
+  box-shadow: 0 6px 18px rgba(1, 127, 123, 0.35);
+}
+
+.sge-modal-btn--danger {
+  background: #DC2626;
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.28);
+}
+
+.sge-modal-btn--danger:hover {
+  background: #B91C1C;
+}
+
+/* Desktop (> 768px): Modal centralizado */
+@media (min-width: 769px) {
+  .sge-modal-backdrop {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .sge-bottom-sheet {
+    border-radius: 20px !important;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.22);
+    padding: 0;
+    max-height: 90vh;
+  }
+
+  .sge-sheet-handle-wrap {
+    display: none !important;
+  }
+
+  .sge-bottom-sheet__header {
+    padding: 20px 24px 14px 24px;
+  }
+
+  .sge-bottom-sheet__body {
+    padding: 18px 24px;
+  }
+
+  .sge-bottom-sheet__footer {
+    padding: 14px 24px;
+  }
+}

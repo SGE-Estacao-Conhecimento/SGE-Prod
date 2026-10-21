@@ -1,0 +1,196 @@
+/* ===== SGE SPEED DIAL FAB (A GERAL DO SGE) ===== */
+
+.sge-speed-dial {
+  position: relative;
+  z-index: 1000;
+}
+
+/* Backdrop suave para foco */
+.sge-speed-dial__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 999;
+}
+
+/* Container do FAB posicionado no canto inferior direito */
+.sge-speed-dial__container {
+  position: fixed;
+  bottom: 74px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+@media (min-width: 769px) {
+  .sge-speed-dial__container {
+    bottom: 28px;
+    right: 32px;
+  }
+}
+
+/* Lista de Ações Rápidas Empilhadas */
+.sge-speed-dial__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 12px;
+  pointer-events: auto;
+}
+
+/* Botão individual de ação */
+.sge-speed-dial__action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 16px 0 12px;
+  border-radius: 9999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sge-speed-dial__action-btn:active {
+  transform: scale(0.96);
+}
+
+/* Variante Accent (Ação Primária / Entrada em Lote) */
+.sge-speed-dial__action-btn--accent {
+  background: var(--accent, #017F7B);
+  color: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(1, 127, 123, 0.4), 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.sge-speed-dial__action-btn--accent:hover {
+  background: var(--accent-hover, #016562);
+  box-shadow: 0 6px 20px rgba(1, 127, 123, 0.48);
+}
+
+/* Variante Secundária (Novo Material / Cadastro) */
+.sge-speed-dial__action-btn--secondary {
+  background: #FFFFFF;
+  color: #1E293B;
+  border: 1px solid #CBD5E1;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1), 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.sge-speed-dial__action-btn--secondary:hover {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+}
+
+/* Ícone da Ação */
+.sge-speed-dial__action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sge-speed-dial__action-label {
+  font-size: 13.5px;
+  letter-spacing: -0.2px;
+}
+
+/* Badge interno na ação (opcional) */
+.sge-speed-dial__action-badge {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sge-speed-dial__action-btn--secondary .sge-speed-dial__action-badge {
+  background: #E2E8F0;
+  color: #475569;
+}
+
+/* Botão Gatilho Principal (FAB) */
+.sge-speed-dial__trigger {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  min-height: 52px;
+  border-radius: 9999px;
+  background: var(--accent, #017F7B);
+  color: #FFFFFF;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(1, 127, 123, 0.42), 0 2px 6px rgba(0, 0, 0, 0.1);
+  outline: none;
+  position: relative;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sge-speed-dial__trigger:hover {
+  background: var(--accent-hover, #016562);
+  box-shadow: 0 6px 22px rgba(1, 127, 123, 0.5);
+}
+
+.sge-speed-dial__trigger:active {
+  transform: scale(0.94);
+}
+
+.sge-speed-dial__trigger--open {
+  background: #0F172A;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.35);
+}
+
+.sge-speed-dial__trigger--open:hover {
+  background: #1E293B;
+}
+
+/* Ícone '+' rotativo (gira 45° ao abrir) */
+.sge-speed-dial__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sge-speed-dial__icon--open {
+  transform: rotate(45deg);
+}
+
+/* Badge numérico de rascunho / itens pendentes */
+.sge-speed-dial__badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: #EF4444;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+  pointer-events: none;
+}
