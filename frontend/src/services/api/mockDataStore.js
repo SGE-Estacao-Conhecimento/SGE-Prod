@@ -107,13 +107,24 @@ class MockDataStore {
     this._movimentacoes = safeGet(STORAGE_KEYS.MOVIMENTACOES, DEMO_MOVIMENTACOES);
     this._notificacoes = safeGet(STORAGE_KEYS.NOTIFICACOES, INITIAL_NOTIFICACOES);
     this._remessas = safeGet(STORAGE_KEYS.REMESSAS, INITIAL_REMESSAS);
-    this._favoritos = safeGet(STORAGE_KEYS.FAVORITOS, [1, 2, 4]);
+    this._favoritos = safeGet(STORAGE_KEYS.FAVORITOS, []);
     this._setores = safeGet(STORAGE_KEYS.SETORES, INITIAL_SETORES);
   }
 
   // --- MATERIAIS ---
   async getMateriais(apenasAtivos = true) {
-    let list = [...this._materiais];
+    let list = this._materiais.map(m => {
+      if (!m.itensPorEmbalagem && m.qtdPorCaixa) {
+        return { ...m, itensPorEmbalagem: Number(m.qtdPorCaixa) };
+      }
+      if (!m.itensPorEmbalagem) {
+        const demo = DEMO_MATERIAIS.find(d => d.id === m.id || d.codigo === m.codigo);
+        if (demo?.itensPorEmbalagem) {
+          return { ...m, itensPorEmbalagem: demo.itensPorEmbalagem };
+        }
+      }
+      return m;
+    });
     if (apenasAtivos) {
       list = list.filter(m => m.ativo !== false);
     }
@@ -128,6 +139,7 @@ class MockDataStore {
       nome: payload.nome,
       categoria: payload.categoria || 'Geral',
       unidade: payload.unidade || 'UN',
+      itensPorEmbalagem: payload.itensPorEmbalagem !== undefined ? Number(payload.itensPorEmbalagem) : undefined,
       quantidade: Number(payload.quantidadeInicial ?? payload.quantidade ?? 0),
       estoqueMinimo: Number(payload.estoqueMinimo ?? 0),
       localizacao: payload.localizacao || 'Almoxarifado Central',

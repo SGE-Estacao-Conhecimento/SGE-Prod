@@ -3,7 +3,7 @@
  * no bypass de desenvolvimento. Este arquivo nunca é persistido.
  */
 export const DEMO_MATERIAIS = [
-  { id: 1, codigo: 'MAT-001', nome: 'Papel Sulfite A4', categoria: 'Escritório', unidade: 'Resma', quantidade: 48, estoqueMinimo: 10, descricao: '75g/m², resma com 500 folhas', localizacao: 'Armário A - Prateleira 2' },
+  { id: 1, codigo: 'MAT-001', nome: 'Papel Sulfite A4', categoria: 'Escritório', unidade: 'Resma', itensPorEmbalagem: 500, quantidade: 48, estoqueMinimo: 10, descricao: '75g/m², resma com 500 folhas', localizacao: 'Armário A - Prateleira 2' },
   { id: 2, codigo: 'MAT-002', nome: 'Caneta Esferográfica Azul', categoria: 'Escritório', unidade: 'UN', quantidade: 120, estoqueMinimo: 30, descricao: 'Ponta média 1.0mm', localizacao: 'Gaveteiro 1' },
   { id: 3, codigo: 'MAT-003', nome: 'Marcador para Quadro Branco', categoria: 'Material Didático', unidade: 'UN', quantidade: 18, estoqueMinimo: 15, descricao: 'Cores azul e preta', localizacao: 'Armário Didático B' },
   { id: 4, codigo: 'MAT-004', nome: 'Álcool em Gel 70%', categoria: 'Limpeza e Higiene', unidade: 'Frasco', quantidade: 35, estoqueMinimo: 8, descricao: 'Frasco de 500ml', localizacao: 'Almoxarifado Central' },
@@ -11,8 +11,8 @@ export const DEMO_MATERIAIS = [
   { id: 6, codigo: 'MAT-006', nome: 'Fita Adesiva Transparente', categoria: 'Escritório', unidade: 'Rolo', quantidade: 0, estoqueMinimo: 10, descricao: '45mm x 50 metros', localizacao: 'Caixa de Fitas' },
   { id: 7, codigo: 'MAT-007', nome: 'Cabo HDMI 2.0', categoria: 'Informática / TI', unidade: 'UN', quantidade: 8, estoqueMinimo: 3, descricao: '2 metros, compatível com 4K', localizacao: 'Armário TI' },
   { id: 8, codigo: 'MAT-008', nome: 'Apagador para Quadro Branco', categoria: 'Material Didático', unidade: 'UN', quantidade: 0, estoqueMinimo: 6, descricao: 'Corpo anatômico', localizacao: 'Armário Didático B' },
-  { id: 9, codigo: 'MAT-009', nome: 'Giz Escolar Plastificado', categoria: 'Material Didático', unidade: 'Caixa', quantidade: 22, estoqueMinimo: 8, descricao: 'Caixa com 50 unidades', localizacao: 'Armário Didático A' },
-  { id: 10, codigo: 'MAT-010', nome: 'Papel Toalha Interfolhado', categoria: 'Limpeza e Higiene', unidade: 'Fardo', quantidade: 14, estoqueMinimo: 5, descricao: 'Fardo com 1000 folhas', localizacao: 'Depósito de Limpeza' }
+  { id: 9, codigo: 'MAT-009', nome: 'Giz Escolar Plastificado', categoria: 'Material Didático', unidade: 'Caixa', itensPorEmbalagem: 50, quantidade: 22, estoqueMinimo: 8, descricao: 'Caixa com 50 unidades', localizacao: 'Armário Didático A' },
+  { id: 10, codigo: 'MAT-010', nome: 'Papel Toalha Interfolhado', categoria: 'Limpeza e Higiene', unidade: 'Fardo', itensPorEmbalagem: 1000, quantidade: 14, estoqueMinimo: 5, descricao: 'Fardo com 1000 folhas', localizacao: 'Depósito de Limpeza' }
 ];
 
 export const DEMO_USUARIOS = [

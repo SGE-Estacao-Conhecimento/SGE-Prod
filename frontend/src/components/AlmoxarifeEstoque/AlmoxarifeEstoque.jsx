@@ -64,33 +64,33 @@ export const isUnidadeCaixa = (unidade) => {
 };
 
 /**
- * Normaliza um material garantindo os campos estruturados de complexo, localização física e itens por caixa
+ * Normaliza um material garantindo os campos estruturados de complexo, localização física e itens por embalagem
  */
 export const normalizarMaterial = (item) => {
   if (!item) return item;
-  let qtdPorCaixa = item.qtdPorCaixa;
-  if (!qtdPorCaixa && item.descricao) {
-    const match = item.descricao.match(/Caixa (?:com|c\/)\s*([\d.]+)\s*unidades?/i);
+  let itensPorEmbalagem = item.itensPorEmbalagem ?? item.qtdPorCaixa;
+  if (!itensPorEmbalagem && item.descricao) {
+    const match = item.descricao.match(/(?:Caixa|Fardo|Resma|Pacote)?\s*(?:com|c\/)\s*([\d.]+)\s*(?:unidades?|folhas?|palitos?|un)?/i);
     if (match) {
-      qtdPorCaixa = parseInt(match[1].replace('.', ''), 10);
+      itensPorEmbalagem = parseInt(match[1].replace('.', ''), 10);
     }
   }
 
   if (item.complexo) {
-    return { ...item, qtdPorCaixa };
+    return { ...item, itensPorEmbalagem };
   }
   if (item.localizacao && item.localizacao.includes('•')) {
     const [comp, ...resto] = item.localizacao.split('•');
     return {
       ...item,
-      qtdPorCaixa,
+      itensPorEmbalagem,
       complexo: comp.trim() || 'Almoxarifado Central',
       localizacao: resto.join('•').trim()
     };
   }
   return {
     ...item,
-    qtdPorCaixa,
+    itensPorEmbalagem,
     complexo: 'Almoxarifado Central',
     localizacao: item.localizacao || ''
   };
@@ -104,6 +104,7 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     nome: 'Papel Sulfite A4 75g',
     categoria: 'Escritório',
     unidade: 'Resma',
+    itensPorEmbalagem: 500,
     quantidade: 48,
     estoqueMinimo: 15,
     descricao: 'Branco • Resma c/ 500 folhas • Gramatura 75g/m²',
@@ -116,6 +117,7 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     nome: 'Caneta Esferográfica Azul',
     categoria: 'Escritório',
     unidade: 'CX',
+    itensPorEmbalagem: 50,
     quantidade: 12,
     estoqueMinimo: 20,
     descricao: 'Ponta Média 1.0mm • Caixa com 50 unidades',
@@ -200,6 +202,7 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     nome: 'Grampos 26/6 Galvanizados',
     categoria: 'Escritório',
     unidade: 'CX',
+    itensPorEmbalagem: 5000,
     quantidade: 16,
     estoqueMinimo: 12,
     descricao: 'Caixa com 5.000 unidades • Tratamento antiferrugem',
@@ -321,7 +324,7 @@ const AlmoxarifeEstoque = ({
     codigo: '',
     nome: '',
     unidade: 'UN',
-    qtdPorCaixa: '',
+    itensPorEmbalagem: '',
     categoria: '',
     estoqueMinimo: 0,
     complexo: 'Almoxarifado Central',
@@ -338,7 +341,7 @@ const AlmoxarifeEstoque = ({
     nome: '',
     categoria: 'Escritório',
     unidade: 'UN',
-    qtdPorCaixa: '',
+    itensPorEmbalagem: '',
     quantidade: 0,
     estoqueMinimo: 5,
     complexo: 'Almoxarifado Central',
@@ -592,7 +595,7 @@ const AlmoxarifeEstoque = ({
       codigo: matNormalizado.codigo || '',
       nome: matNormalizado.nome || '',
       unidade: matNormalizado.unidade || 'UN',
-      qtdPorCaixa: matNormalizado.qtdPorCaixa || '',
+      itensPorEmbalagem: matNormalizado.itensPorEmbalagem || '',
       categoria: matNormalizado.categoria || 'Escritório',
       estoqueMinimo: matNormalizado.estoqueMinimo ?? 5,
       complexo: matNormalizado.complexo || 'Almoxarifado Central',
@@ -694,7 +697,7 @@ const AlmoxarifeEstoque = ({
       codigo: materialModal.codigo || '',
       nome: materialModal.nome || '',
       unidade: materialModal.unidade || 'UN',
-      qtdPorCaixa: materialModal.qtdPorCaixa || '',
+      itensPorEmbalagem: materialModal.itensPorEmbalagem || '',
       categoria: materialModal.categoria || 'Escritório',
       estoqueMinimo: materialModal.estoqueMinimo ?? 5,
       complexo: materialModal.complexo || 'Almoxarifado Central',
@@ -714,7 +717,7 @@ const AlmoxarifeEstoque = ({
         codigo: materialModal.codigo || '',
         nome: materialModal.nome || '',
         unidade: materialModal.unidade || 'UN',
-        qtdPorCaixa: materialModal.qtdPorCaixa || '',
+        itensPorEmbalagem: materialModal.itensPorEmbalagem || '',
         categoria: materialModal.categoria || 'Escritório',
         estoqueMinimo: materialModal.estoqueMinimo ?? 5,
         complexo: materialModal.complexo || 'Almoxarifado Central',
@@ -743,11 +746,11 @@ const AlmoxarifeEstoque = ({
 
     const unidadeFormatada = detalhesForm.unidade.trim() || materialModal.unidade || 'UN';
     const ehIndividual = isUnidadeIndividual(unidadeFormatada);
-    const qtdNum = Number(detalhesForm.qtdPorCaixa);
+    const qtdNum = Number(detalhesForm.itensPorEmbalagem);
 
     // Validação mandatória: embalagens DEVEM ter quantidade informada (> 0)
-    if (!ehIndividual && (!detalhesForm.qtdPorCaixa || isNaN(qtdNum) || qtdNum <= 0)) {
-      setCampoErro('qtdPorCaixa');
+    if (!ehIndividual && (!detalhesForm.itensPorEmbalagem || isNaN(qtdNum) || qtdNum <= 0)) {
+      setCampoErro('itensPorEmbalagem');
       exibirToast('Preencha a quantidade no campo "Qtd na Embalagem"!', 'aviso');
       setTimeout(() => {
         const inputEl = document.querySelector('input[aria-label="Quantidade por Embalagem"]');
@@ -762,14 +765,14 @@ const AlmoxarifeEstoque = ({
 
     const codigoFormatado = detalhesForm.codigo.trim() || materialModal.codigo;
     const nomeFormatado = detalhesForm.nome.trim() || materialModal.nome;
-    const qtdPorCaixaNum = ehIndividual ? undefined : qtdNum;
+    const itensPorEmbalagemNum = ehIndividual ? undefined : qtdNum;
 
     const materialAtualizado = {
       ...materialModal,
       codigo: codigoFormatado,
       nome: nomeFormatado,
       unidade: unidadeFormatada,
-      qtdPorCaixa: qtdPorCaixaNum,
+      itensPorEmbalagem: itensPorEmbalagemNum,
       categoria: detalhesForm.categoria || materialModal.categoria,
       estoqueMinimo: Number(detalhesForm.estoqueMinimo) || materialModal.estoqueMinimo,
       complexo: detalhesForm.complexo || materialModal.complexo || 'Almoxarifado Central',
@@ -852,16 +855,16 @@ const AlmoxarifeEstoque = ({
     if (!novoItemForm.nome.trim()) return;
 
     const ehIndividual = isUnidadeIndividual(novoItemForm.unidade);
-    const qtdNum = Number(novoItemForm.qtdPorCaixa);
+    const qtdNum = Number(novoItemForm.itensPorEmbalagem);
 
-    if (!ehIndividual && (!novoItemForm.qtdPorCaixa || isNaN(qtdNum) || qtdNum <= 0)) {
+    if (!ehIndividual && (!novoItemForm.itensPorEmbalagem || isNaN(qtdNum) || qtdNum <= 0)) {
       exibirToast('Informe a quantidade de itens na embalagem antes de cadastrar!', 'aviso');
       return;
     }
 
     const novoId = Math.max(...materiais.map(m => m.id), 0) + 1;
     const codigoGerado = novoItemForm.codigo.trim() || `MAT-${String(novoId).padStart(3, '0')}`;
-    const qtdPorCaixaNum = ehIndividual ? undefined : qtdNum;
+    const itensPorEmbalagemNum = ehIndividual ? undefined : qtdNum;
 
     const novoMaterial = {
       id: novoId,
@@ -869,7 +872,7 @@ const AlmoxarifeEstoque = ({
       nome: novoItemForm.nome.trim(),
       categoria: novoItemForm.categoria,
       unidade: novoItemForm.unidade || 'UN',
-      qtdPorCaixa: qtdPorCaixaNum,
+      itensPorEmbalagem: itensPorEmbalagemNum,
       quantidade: Number(novoItemForm.quantidade) || 0,
       estoqueMinimo: Number(novoItemForm.estoqueMinimo) || 5,
       complexo: novoItemForm.complexo || 'Almoxarifado Central',
@@ -889,7 +892,7 @@ const AlmoxarifeEstoque = ({
       nome: '',
       categoria: 'Escritório',
       unidade: 'UN',
-      qtdPorCaixa: '',
+      itensPorEmbalagem: '',
       quantidade: 0,
       estoqueMinimo: 5,
       complexo: 'Almoxarifado Central',
@@ -1483,7 +1486,7 @@ const AlmoxarifeEstoque = ({
                               setDetalhesForm(prev => ({
                                 ...prev,
                                 unidade: novaUnidade,
-                                qtdPorCaixa: isUnidadeIndividual(novaUnidade) ? '' : prev.qtdPorCaixa
+                                itensPorEmbalagem: isUnidadeIndividual(novaUnidade) ? '' : prev.itensPorEmbalagem
                               }));
                             }}
                             aria-label="Unidade de Medida"
@@ -1524,7 +1527,7 @@ const AlmoxarifeEstoque = ({
                       className={`detail-split__col ${
                         isEditandoDetalhes && !isUnidadeIndividual(detalhesForm.unidade) ? 'detail-split__col--clickable' : ''
                       } ${isEditandoDetalhes && isUnidadeIndividual(detalhesForm.unidade) ? 'detail-split__col--locked' : ''} ${
-                        campoErro === 'qtdPorCaixa' ? 'detail-split__col--error' : ''
+                        campoErro === 'itensPorEmbalagem' ? 'detail-split__col--error' : ''
                       }`}
                       onClick={
                         isEditandoDetalhes && !isUnidadeIndividual(detalhesForm.unidade)
@@ -1574,11 +1577,11 @@ const AlmoxarifeEstoque = ({
                                 pattern="[0-9]*"
                                 className="card-btn-input"
                                 placeholder="Ex: 50"
-                                value={detalhesForm.qtdPorCaixa || ''}
+                                value={detalhesForm.itensPorEmbalagem || ''}
                                 onChange={e => {
                                   const val = e.target.value.replace(/\D/g, '');
-                                  if (campoErro === 'qtdPorCaixa') setCampoErro(null);
-                                  setDetalhesForm(prev => ({ ...prev, qtdPorCaixa: val }));
+                                  if (campoErro === 'itensPorEmbalagem') setCampoErro(null);
+                                  setDetalhesForm(prev => ({ ...prev, itensPorEmbalagem: val }));
                                 }}
                                 enterKeyHint="done"
                                 onKeyDown={(e) => {
@@ -1596,8 +1599,8 @@ const AlmoxarifeEstoque = ({
                           <span className={`detail-value ${isUnidadeIndividual(materialModal.unidade) ? 'detail-value--muted' : ''}`}>
                             {isUnidadeIndividual(materialModal.unidade)
                               ? `1 ${materialModal.unidade === 'Par' ? 'par' : 'un'} (individual)`
-                              : materialModal.qtdPorCaixa
-                              ? `${materialModal.qtdPorCaixa} un / emb.`
+                              : materialModal.itensPorEmbalagem
+                              ? `${materialModal.itensPorEmbalagem} un / emb.`
                               : 'Não informado'}
                           </span>
                         )}
@@ -2097,8 +2100,8 @@ const AlmoxarifeEstoque = ({
                     pattern="[0-9]*"
                     className="modal-input"
                     placeholder="Ex: 500"
-                    value={novoItemForm.qtdPorCaixa}
-                    onChange={e => setNovoItemForm({ ...novoItemForm, qtdPorCaixa: e.target.value.replace(/\D/g, '') })}
+                    value={novoItemForm.itensPorEmbalagem}
+                    onChange={e => setNovoItemForm({ ...novoItemForm, itensPorEmbalagem: e.target.value.replace(/\D/g, '') })}
                     enterKeyHint="done"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {

@@ -4,258 +4,7 @@ import { SearchFilterBar, FilterDrawer, FilterGroup, FilterChip, SortLoopButton 
 import './UsuarioEstoque.css';
 import { favoritoService } from '../../services/favoritos/favoritoService';
 import { corrigirTexto } from '../../utils/text';
-import NovoPedidoModal from '../Pedidos/NovoPedidoModal';
-
-// Dados de demonstração realistas para apresentação ao professor
-const _MOCK_MATERIAIS_DEMO = [
-  {
-    id: 1,
-    codigo: 'MAT-001',
-    nome: 'Papel Sulfite A4',
-    categoria: 'Escritório',
-    unidade: 'Resma',
-    quantidade: 48,
-    estoqueMinimo: 10,
-    pedidos: 148,
-    maisPedido: true,
-    descricao: 'Branco • 75g/m² • Formato A4 • Resma c/ 500 folhas',
-    localizacao: 'Armário A - Prateleira 2'
-  },
-  {
-    id: 2,
-    codigo: 'MAT-002',
-    nome: 'Caneta Esferográfica',
-    categoria: 'Escritório',
-    unidade: 'UN',
-    quantidade: 120,
-    estoqueMinimo: 30,
-    pedidos: 124,
-    maisPedido: true,
-    descricao: 'Azul • Ponta Média 1.0mm',
-    localizacao: 'Gaveteiro 1'
-  },
-  {
-    id: 3,
-    codigo: 'MAT-003',
-    nome: 'Marcador para Quadro Branco',
-    categoria: 'Material Didático',
-    unidade: 'UN',
-    quantidade: 18,
-    estoqueMinimo: 15,
-    pedidos: 98,
-    maisPedido: true,
-    descricao: 'Azul e Preto • Ponta Redonda',
-    localizacao: 'Armário Didático B'
-  },
-  {
-    id: 4,
-    codigo: 'MAT-004',
-    nome: 'Álcool em Gel 70%',
-    categoria: 'Limpeza e Higiene',
-    unidade: 'Frasco',
-    quantidade: 35,
-    estoqueMinimo: 8,
-    pedidos: 85,
-    maisPedido: true,
-    descricao: 'Frasco 500ml • Bico dosador',
-    localizacao: 'Almoxarifado Central'
-  },
-  {
-    id: 5,
-    codigo: 'MAT-005',
-    nome: 'Grampeador de Mesa',
-    categoria: 'Escritório',
-    unidade: 'UN',
-    quantidade: 6,
-    estoqueMinimo: 5,
-    pedidos: 52,
-    descricao: 'Modelo Médio • Grampos 26/6 • Até 25 folhas',
-    localizacao: 'Prateleira 3'
-  },
-  {
-    id: 6,
-    codigo: 'MAT-006',
-    nome: 'Fita Adesiva Transparente',
-    categoria: 'Escritório',
-    unidade: 'Rolo',
-    quantidade: 0,
-    estoqueMinimo: 10,
-    pedidos: 60,
-    descricao: 'Larga • 45mm x 50 metros',
-    localizacao: 'Caixa de Fitas'
-  },
-  {
-    id: 7,
-    codigo: 'MAT-007',
-    nome: 'Cabo HDMI 2.0',
-    categoria: 'Informática / TI',
-    unidade: 'UN',
-    quantidade: 8,
-    estoqueMinimo: 3,
-    pedidos: 22,
-    descricao: '2 metros • 4K Alta Velocidade',
-    localizacao: 'Armário TI - Gaveta 2'
-  },
-  {
-    id: 8,
-    codigo: 'MAT-008',
-    nome: 'Apagador para Quadro Branco',
-    categoria: 'Material Didático',
-    unidade: 'UN',
-    quantidade: 0,
-    estoqueMinimo: 6,
-    pedidos: 45,
-    descricao: 'Corpo anatômico • Suporte para 2 marcadores',
-    localizacao: 'Armário Didático B'
-  },
-  {
-    id: 9,
-    codigo: 'MAT-009',
-    nome: 'Giz Escolar Plastificado',
-    categoria: 'Material Didático',
-    unidade: 'Caixa',
-    quantidade: 22,
-    estoqueMinimo: 8,
-    pedidos: 38,
-    descricao: 'Branco • Cx c/ 50 palitos antialérgicos',
-    localizacao: 'Prateleira 1'
-  },
-  {
-    id: 10,
-    codigo: 'MAT-010',
-    nome: 'Papel Toalha Interfolhado',
-    categoria: 'Limpeza e Higiene',
-    unidade: 'Fardo',
-    quantidade: 14,
-    estoqueMinimo: 5,
-    pedidos: 76,
-    maisPedido: true,
-    descricao: 'Folha dupla 100% Celulose • Fardo 1000 folhas',
-    localizacao: 'Depósito de Limpeza'
-  },
-  {
-    id: 11,
-    codigo: 'MAT-011',
-    nome: 'Grampos Galvanizados 26/6',
-    categoria: 'Escritório',
-    unidade: 'Caixa',
-    quantidade: 15,
-    estoqueMinimo: 5,
-    pedidos: 54,
-    descricao: 'Caixa c/ 5000 unidades • Modelo 26/6',
-    localizacao: 'Prateleira 3'
-  },
-  {
-    id: 12,
-    codigo: 'MAT-012',
-    nome: 'Mouse Óptico USB',
-    categoria: 'Informática / TI',
-    unidade: 'UN',
-    quantidade: 4,
-    estoqueMinimo: 5,
-    pedidos: 16,
-    descricao: 'Preto • Cabo 1.5m • 1000 DPI',
-    localizacao: 'Armário TI - Prateleira 1'
-  },
-  {
-    id: 13,
-    codigo: 'MAT-013',
-    nome: 'Clipes Metálicos Nº 2/0',
-    categoria: 'Escritório',
-    unidade: 'Caixa',
-    quantidade: 28,
-    estoqueMinimo: 10,
-    pedidos: 35,
-    descricao: 'Niquelados antiferrugem • Caixa c/ 100 un',
-    localizacao: 'Gaveteiro 2'
-  },
-  {
-    id: 14,
-    codigo: 'MAT-014',
-    nome: 'Sabonete Líquido Neutro',
-    categoria: 'Limpeza e Higiene',
-    unidade: 'Galão',
-    quantidade: 3,
-    estoqueMinimo: 3,
-    pedidos: 29,
-    descricao: 'Bombona 5 Litros • Refil',
-    localizacao: 'Depósito de Limpeza'
-  },
-  {
-    id: 15,
-    codigo: 'MAT-015',
-    nome: 'Pilhas Alcalinas AAA (Palito)',
-    categoria: 'Informática / TI',
-    unidade: 'Cartela',
-    quantidade: 0,
-    estoqueMinimo: 8,
-    pedidos: 19,
-    descricao: '1.5V • Cartela c/ 4 unidades',
-    localizacao: 'Armário TI - Gaveta 3'
-  },
-  {
-    id: 16,
-    codigo: 'MAT-016',
-    nome: 'Pasta Suspensa Kraft',
-    categoria: 'Escritório',
-    unidade: 'UN',
-    quantidade: 42,
-    estoqueMinimo: 15,
-    pedidos: 42,
-    descricao: 'Com haste plástica, visor e etiqueta',
-    localizacao: 'Arquivo Deslizante 2'
-  },
-  {
-    id: 17,
-    codigo: 'MAT-017',
-    nome: 'Bloco de Recado Autoadesivo',
-    categoria: 'Escritório',
-    unidade: 'Bloco',
-    quantidade: 19,
-    estoqueMinimo: 6,
-    pedidos: 40,
-    descricao: 'Amarelo • 76x76mm • Bloco c/ 100 folhas',
-    localizacao: 'Prateleira 2'
-  },
-  {
-    id: 18,
-    codigo: 'MAT-018',
-    nome: 'Papel Sulfite A3',
-    categoria: 'Escritório',
-    unidade: 'Resma',
-    quantidade: 2,
-    estoqueMinimo: 3,
-    pedidos: 25,
-    descricao: 'Branco • 75g/m² • Formato A3 • Resma c/ 500 folhas',
-    localizacao: 'Armário A - Prateleira 1'
-  },
-  {
-    id: 19,
-    codigo: 'MAT-019',
-    nome: 'Tesoura Escolar',
-    categoria: 'Material Didático',
-    unidade: 'UN',
-    quantidade: 30,
-    estoqueMinimo: 10,
-    pedidos: 33,
-    descricao: '13cm • Sem ponta (aço inox)',
-    localizacao: 'Armário Didático A'
-  },
-  {
-    id: 20,
-    codigo: 'MAT-020',
-    nome: 'Adaptador USB-C Multiporta',
-    categoria: 'Informática / TI',
-    unidade: 'UN',
-    quantidade: 0,
-    estoqueMinimo: 4,
-    pedidos: 12,
-    descricao: 'Saídas HDMI e VGA',
-    localizacao: 'Armário TI - Gaveta 1'
-  }
-];
-
-const CATEGORIAS = ['Todas', 'Escritório', 'Material Didático', 'Limpeza e Higiene', 'Informática / TI'];
+import CadernetaPedidosModal from './CadernetaPedidosModal';
 
 const OPCOES_ORDENACAO = [
   { id: 'alfabetica', label: 'Nome (A - Z)' },
@@ -267,59 +16,44 @@ const OPCOES_ORDENACAO = [
 // Retorna null quando o item é distribuído em unidade individual (sem conversão a exibir)
 const getMultiplicador = (material) => {
   if (!material) return null;
-  if (material.multiplicador) return material.multiplicador; // suporte a campo explícito
+
+  // 1. Campo estruturado oficial do Almoxarifado (itensPorEmbalagem)
+  const itensPorEmb = Number(material.itensPorEmbalagem ?? material.qtdPorCaixa ?? material.multiplicador);
+  if (!isNaN(itensPorEmb) && itensPorEmb > 1) {
+    const unid = (material.unidade || '').toLowerCase();
+    const combo = ((material.nome || '') + ' ' + (material.descricao || '')).toLowerCase();
+    const sub = (unid.includes('resma') || combo.includes('resma') || unid.includes('fardo') || combo.includes('fardo'))
+      ? 'folhas'
+      : 'unidades';
+    return { fator: itensPorEmb, unidadeBase: sub };
+  }
 
   const combo = ((material.nome || '') + ' ' + (material.descricao || '')).toLowerCase();
   const unid = (material.unidade || '').toLowerCase();
 
-  // 1. Resma: 500 folhas
+  // 2. Fallbacks de leitura de texto (para compatibilidade histórica)
+  // Resma: 500 folhas
   if (unid.includes('resma') || combo.includes('resma')) {
     return { fator: 500, unidadeBase: 'folhas' };
   }
 
-  // 2. Líquidos / Volumes
-  if (combo.includes('500ml') || combo.includes('500 ml')) {
-    return { fator: 500, unidadeBase: 'ml' };
-  }
-  if (combo.includes('5 litros') || combo.includes('5l')) {
-    return { fator: 5, unidadeBase: 'Litros' };
-  }
-
-  // 3. Fardo de papel
+  // Fardo de papel
   if (unid.includes('fardo') || combo.includes('fardo')) {
-    const matchFardo = ((material.nome || '') + ' ' + (material.descricao || '')).match(/(\d[\d.,]*)\s*folhas/i);
+    const matchFardo = combo.match(/(\d[\d.,]*)\s*folhas/i);
     const fator = matchFardo ? parseInt(matchFardo[1].replace(/\./g, ''), 10) : 1000;
     return { fator: isNaN(fator) ? 1000 : fator, unidadeBase: 'folhas' };
   }
 
-  // 4. Cartela
-  const matchCart = ((material.nome || '') + ' ' + (material.descricao || '')).match(/cartela[^c]*c[/\s]\s*(\d+)/i);
-  if (matchCart) {
-    const fator = parseInt(matchCart[1], 10);
-    if (!isNaN(fator) && fator > 1) {
-      const sub = combo.includes('pilha') ? 'pilhas' : 'unidades';
-      return { fator, unidadeBase: sub };
-    }
-  }
-
-  // 5. Caixa ou Cx com quantidade numérica
-  const comboText = (material.nome || '') + ' ' + (material.descricao || '');
-  const matchCx = comboText.match(/(?:caixa\s*c\/|cx\.?\s*c\/|c\/)\s*(\d[\d.,]*)/i) ||
-    comboText.match(/(?:cx\.?\s*)(\d[\d.,]*)/i);
+  // Cartela ou Caixa com quantidade numérica -> unidades
+  const matchCx = combo.match(/(?:caixa|cx\.?|cartela)\s*(?:com|c\/)\s*(\d[\d.,]*)/i) ||
+    combo.match(/(?:com|c\/)\s*(\d[\d.,]*)\s*(?:unidades?|un|itens?|palitos?|folhas?)/i) ||
+    combo.match(/(?:caixa\s*c\/|cx\.?\s*c\/|c\/)\s*(\d[\d.,]*)/i) ||
+    combo.match(/(?:cx\.?\s*)(\d[\d.,]*)/i);
   if (matchCx) {
     const fator = parseInt(matchCx[1].replace(/\./g, '').replace(',', '.'), 10);
     if (!isNaN(fator) && fator > 1) {
-      let sub = 'unidades';
-      if (combo.includes('grampo')) sub = 'grampos';
-      else if (combo.includes('giz') || combo.includes('palito')) sub = 'palitos';
-      else if (combo.includes('folha')) sub = 'folhas';
-      return { fator, unidadeBase: sub };
+      return { fator, unidadeBase: 'unidades' };
     }
-  }
-
-  // 6. Bloco
-  if (unid.includes('bloco') || combo.includes('bloco')) {
-    return { fator: 100, unidadeBase: 'folhas' };
   }
 
   return null;
@@ -371,14 +105,43 @@ const UsuarioEstoque = ({
   const [selectedCategoria, setSelectedCategoria] = useState('Todas');
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [apenasFavoritos, setApenasFavoritos] = useState(false);
-  const [apenasEsgotados, setApenasEsgotados] = useState(false);
 
-  // Modal de Novo Pedido (com suporte nativo a pedido em lote)
-  const [isNovoPedidoModalOpen, setIsNovoPedidoModalOpen] = useState(false);
-  const currentUserName = user?.nome || user?.identifier || 'Usuário';
-  const initialPedidoData = useMemo(() => ({
-    usuario: currentUserName
-  }), [currentUserName]);
+
+  // Caderneta de Pedidos do Usuário (Persistência no localStorage vinculada à conta do usuário)
+  const [isCadernetaOpen, setIsCadernetaOpen] = useState(false);
+  const storageKeyCaderneta = useMemo(() => {
+    const userKey = user?.matricula || user?.email || user?.id || user?.identifier || 'usuario';
+    return `sge_caderneta_${userKey}`;
+  }, [user]);
+
+  const [itensCaderneta, setItensCaderneta] = useState(() => {
+    try {
+      const userKey = user?.matricula || user?.email || user?.id || user?.identifier || 'usuario';
+      const saved = localStorage.getItem(`sge_caderneta_${userKey}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Sincroniza a caderneta no localStorage sempre que houver alteração
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKeyCaderneta, JSON.stringify(itensCaderneta));
+    } catch (e) {
+      console.error('Erro ao sincronizar caderneta no localStorage:', e);
+    }
+  }, [itensCaderneta, storageKeyCaderneta]);
+
+  // Recarrega os itens da caderneta caso a conta conectada mude
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKeyCaderneta);
+      setItensCaderneta(saved ? JSON.parse(saved) : []);
+    } catch {
+      setItensCaderneta([]);
+    }
+  }, [storageKeyCaderneta]);
 
   // Foco automático e seleção da busca ao ser acionado externamente
   useEffect(() => {
@@ -421,21 +184,23 @@ const UsuarioEstoque = ({
     });
   }, []);
 
+  // Categorias extraídas dinamicamente a partir dos materiais cadastrados
+  const categorias = useMemo(() => {
+    const cats = Array.from(new Set(dados.map(m => m.categoria).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    return ['Todas', ...cats];
+  }, [dados]);
+
   // Contagem dinâmica de materiais por categoria para os badges de filtro (Padrão Almoxarife)
   const metricasCategorias = useMemo(() => {
     const counts = { Todas: dados.length };
-    CATEGORIAS.forEach(cat => {
+    categorias.forEach(cat => {
       if (cat !== 'Todas') {
         counts[cat] = dados.filter(item => item.categoria === cat).length;
       }
     });
     return counts;
-  }, [dados]);
+  }, [dados, categorias]);
 
-  // Contagem de itens sem estoque (esgotados)
-  const contagemEsgotados = useMemo(() => {
-    return dados.filter(item => Number(item.quantidade ?? 0) <= 0).length;
-  }, [dados]);
 
   // Contagem de pedidos do próprio usuário por material para ordenação inteligente
   const contagemPedidosUsuario = useMemo(() => {
@@ -535,35 +300,20 @@ const UsuarioEstoque = ({
     return Array.from(mapRecentes.values()).slice(0, 8);
   }, [pedidos, dados]);
 
-  // Estado do modal de solicitação (material clicado na tabela)
+  // Estado do modal de confirmação de quantidade (material clicado no catálogo)
   const [itemSelecionado, setItemSelecionado] = useState(null);
   const [quantidade, setQuantidade] = useState(1);
-  const [justificativa, setJustificativa] = useState('');
-  const [urgente, setUrgente] = useState(false);
   const [erroQtd, setErroQtd] = useState('');
 
   // Toast de feedback
   const [toastMessage, setToastMessage] = useState(null);
   const toastTimeoutRef = useRef(null);
 
-  // Lista filtrada e ordenada com base na busca instantânea, favoritos, esgotados e ordenação
+  // Lista filtrada e ordenada com base na busca instantânea, favoritos e ordenação
   const materiaisFiltrados = useMemo(() => {
     const searchNormalized = normalizeText(searchTerm.trim());
-    const isPesquisando = Boolean(searchNormalized);
 
     const filtrados = dados.filter(item => {
-      const isSemEstoque = Number(item.quantidade ?? 0) <= 0;
-
-      // Se o filtro de itens esgotados estiver ativo, foca exclusivamente nos materiais sem estoque
-      if (apenasEsgotados) {
-        if (!isSemEstoque) return false;
-      } else {
-        // Se NÃO estiver no filtro de esgotados e NÃO estiver pesquisando, oculta os sem estoque
-        if (isSemEstoque && !isPesquisando) {
-          return false;
-        }
-      }
-
       const matchSearch =
         !searchNormalized ||
         normalizeText(item.nome).includes(searchNormalized) ||
@@ -597,7 +347,7 @@ const UsuarioEstoque = ({
       }
       return 0;
     });
-  }, [dados, searchTerm, selectedCategoria, ordenacao, apenasFavoritos, favoritos, apenasEsgotados, contagemPedidosUsuario]);
+  }, [dados, searchTerm, selectedCategoria, ordenacao, apenasFavoritos, favoritos, contagemPedidosUsuario]);
 
   // Paginação com Scroll Infinito Automático
   const ITEMS_POR_PAGINA = 10;
@@ -607,7 +357,7 @@ const UsuarioEstoque = ({
   // Reseta a paginação automaticamente ao pesquisar, alternar categoria, mudar ordenação ou filtros
   useEffect(() => {
     setLimiteExibicao(ITEMS_POR_PAGINA);
-  }, [searchTerm, selectedCategoria, ordenacao, apenasFavoritos, apenasEsgotados]);
+  }, [searchTerm, selectedCategoria, ordenacao, apenasFavoritos]);
 
   // Lista fatiada para a tela
   const materiaisExibidos = useMemo(() => {
@@ -648,9 +398,8 @@ const UsuarioEstoque = ({
   const handleItemClick = (material) => {
     if (isClosingRef.current) return;
     setItemSelecionado(material);
-    setQuantidade(1);
-    setJustificativa('');
-    setUrgente(false);
+    const itemExistente = itensCaderneta.find(i => i.id === material.id);
+    setQuantidade(itemExistente ? itemExistente.quantidade : 1);
     setErroQtd('');
   };
 
@@ -911,8 +660,9 @@ const UsuarioEstoque = ({
     }
   };
 
-  const handleSubmitPedido = async (e) => {
-    e.preventDefault();
+  // Adiciona ou atualiza o material na Caderneta de Pedidos
+  const handleSalvarItemCaderneta = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!itemSelecionado) return;
 
     const qtdFinal = typeof quantidade === 'number' && quantidade >= 1 ? quantidade : 1;
@@ -920,29 +670,38 @@ const UsuarioEstoque = ({
       setQuantidade(1);
     }
 
-    let pedidoCriado = null;
-    if (onSolicitarMaterial) {
-      pedidoCriado = await onSolicitarMaterial({
-        produtoId: itemSelecionado.id,
-        material: itemSelecionado.nome,
-        quantidade: qtdFinal,
-        unidade: itemSelecionado.unidade || 'UN',
-        justificativa: justificativa.trim() || 'Solicitação via catálogo de materiais',
-        urgente,
-        materialCodigo: itemSelecionado.codigo,
-        semEstoqueImediato: itemSelecionado.quantidade === 0
-      });
-    }
+    const itemJaNaLista = itensCaderneta.some(it => it.id === itemSelecionado.id);
 
-    const pedidoId = pedidoCriado?.id || Math.floor(Math.random() * 900) + 100;
+    setItensCaderneta(prev => {
+      const idx = prev.findIndex(it => it.id === itemSelecionado.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = {
+          ...copy[idx],
+          quantidade: qtdFinal,
+          itensPorEmbalagem: itemSelecionado.itensPorEmbalagem
+        };
+        return copy;
+      }
+      return [
+        ...prev,
+        {
+          id: itemSelecionado.id,
+          nome: itemSelecionado.nome,
+          descricao: itemSelecionado.descricao,
+          unidade: itemSelecionado.unidade || 'UN',
+          itensPorEmbalagem: itemSelecionado.itensPorEmbalagem,
+          quantidade: qtdFinal
+        }
+      ];
+    });
 
-    // Exibe notificação de confirmação visual informando o número do pedido gerado
     setToastMessage({
-      id: pedidoId,
-      titulo: `Pedido #${pedidoId} gerado com sucesso!`,
+      id: Date.now(),
+      titulo: itemJaNaLista ? 'Caderneta atualizada!' : 'Adicionado à caderneta!',
       detalhe: `${qtdFinal} ${itemSelecionado.unidade || 'UN'} de "${itemSelecionado.nome}"`,
-      tipo: itemSelecionado.quantidade === 0 ? 'aviso-reposicao' : 'sucesso',
-      urgente: urgente
+      tipo: 'sucesso',
+      urgente: false
     });
 
     if (toastTimeoutRef.current) {
@@ -950,30 +709,42 @@ const UsuarioEstoque = ({
     }
     toastTimeoutRef.current = setTimeout(() => {
       setToastMessage(null);
-    }, 5500);
+    }, 3200);
 
     handleCloseModal();
   };
 
-  // Salva pedido criado via NovoPedidoModal (suporte a pedido em lote com múltiplos itens)
-  const handleSalvarNovoPedido = async (dadosPedido) => {
+  // Funções de gerenciamento da caderneta de pedidos
+  const handleUpdateQtdCaderneta = useCallback((id, novaQtd) => {
+    setItensCaderneta(prev => prev.map(item => item.id === id ? { ...item, quantidade: novaQtd } : item));
+  }, []);
+
+  const handleRemoveItemCaderneta = useCallback((id) => {
+    setItensCaderneta(prev => prev.filter(item => item.id !== id));
+  }, []);
+
+  const handleClearCaderneta = useCallback(() => {
+    setItensCaderneta([]);
+  }, []);
+
+  const handleSubmitCaderneta = useCallback(async (dadosPedido) => {
     let pedidoCriado = null;
     if (onSolicitarMaterial) {
       pedidoCriado = await onSolicitarMaterial(dadosPedido);
     }
 
     const pedidoId = pedidoCriado?.id || Math.floor(Math.random() * 900) + 100;
-    const totalItens = dadosPedido?.itens?.length || 1;
+    const totalItens = dadosPedido.itens?.length || 1;
     const resumo = totalItens === 1
       ? `${dadosPedido.itens?.[0]?.quantidade || 1} ${dadosPedido.itens?.[0]?.unidade || 'UN'} de "${dadosPedido.itens?.[0]?.materialNome || 'Material'}"`
-      : `${totalItens} materiais solicitados em lote`;
+      : `${totalItens} materiais solicitados em lote via caderneta`;
 
     setToastMessage({
       id: pedidoId,
       titulo: `Pedido #${pedidoId} gerado com sucesso!`,
       detalhe: resumo,
       tipo: 'sucesso',
-      urgente: dadosPedido.prioridade === 'Urgente'
+      urgente: dadosPedido.urgente || dadosPedido.prioridade === 'Urgente'
     });
 
     if (toastTimeoutRef.current) {
@@ -983,8 +754,9 @@ const UsuarioEstoque = ({
       setToastMessage(null);
     }, 5500);
 
-    setIsNovoPedidoModalOpen(false);
-  };
+    setItensCaderneta([]);
+    setIsCadernetaOpen(false);
+  }, [onSolicitarMaterial]);
 
   return (
     <div className="usuario-estoque">
@@ -1053,24 +825,11 @@ const UsuarioEstoque = ({
               onSearchChange={setSearchTerm}
               onClear={() => setSearchTerm('')}
               placeholder="Buscar material..."
-              hasActiveFilter={selectedCategoria !== 'Todas' || apenasFavoritos || apenasEsgotados}
+              hasActiveFilter={selectedCategoria !== 'Todas' || apenasFavoritos}
               isFilterOpen={mostrarFiltros}
               onToggleFilter={() => setMostrarFiltros(prev => !prev)}
             />
           </div>
-          <button
-            type="button"
-            id="btn-usuario-novo-pedido"
-            className="usuario-btn-novo-pedido"
-            onClick={() => setIsNovoPedidoModalOpen(true)}
-            title="Novo Pedido (incluindo pedido em lote de múltiplos materiais)"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span className="usuario-btn-novo-pedido__label">Novo Pedido</span>
-          </button>
         </div>
 
         <FilterDrawer isOpen={mostrarFiltros}>
@@ -1080,32 +839,13 @@ const UsuarioEstoque = ({
               count={favoritos.length}
               isActive={apenasFavoritos}
               onClick={() => {
-                setApenasFavoritos(prev => {
-                  const next = !prev;
-                  if (next) setApenasEsgotados(false);
-                  return next;
-                });
-              }}
-            />
-            <FilterChip
-              label="Itens Esgotados"
-              count={contagemEsgotados}
-              isActive={apenasEsgotados}
-              onClick={() => {
-                setApenasEsgotados(prev => {
-                  const next = !prev;
-                  if (next) {
-                    setApenasFavoritos(false);
-                    setSelectedCategoria('Todas');
-                  }
-                  return next;
-                });
+                setApenasFavoritos(prev => !prev);
               }}
             />
           </FilterGroup>
 
           <FilterGroup title="Categorias">
-            {CATEGORIAS.map(cat => (
+            {categorias.map(cat => (
               <FilterChip
                 key={cat}
                 label={cat}
@@ -1148,27 +888,32 @@ const UsuarioEstoque = ({
 
           <div className="usuario-recentes-scroll" tabIndex={0} role="region" aria-label="Carrossel de itens recentes">
             {itensRecentes.map(item => {
-              const semEstoque = item.quantidade === 0;
-              const estoqueBaixo = item.quantidade > 0 && item.quantidade <= (item.estoqueMinimo || 5);
+              const naCaderneta = itensCaderneta.find(it => it.id === item.id);
               return (
                 <button
                   key={`recente-${item.id}`}
                   type="button"
-                  className={`usuario-recente-card ${semEstoque ? 'usuario-recente-card--sem-estoque' : ''}`}
+                  className={`usuario-recente-card ${naCaderneta ? 'usuario-recente-card--na-caderneta' : ''}`}
                   onClick={() => handleItemClick(item)}
-                  title={`Solicitar ${item.nome}`}
+                  title={naCaderneta ? `${item.nome} (${naCaderneta.quantidade} na caderneta)` : `Adicionar ${item.nome} à caderneta`}
                 >
                   <div className="usuario-recente-card__icon-wrap">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                      <line x1="12" y1="22.08" x2="12" y2="12" />
-                    </svg>
+                    {naCaderneta ? (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                        <line x1="12" y1="22.08" x2="12" y2="12" />
+                      </svg>
+                    )}
                   </div>
                   <div className="usuario-recente-card__info">
                     <span className="usuario-recente-card__nome">{item.nome}</span>
-                    <span className={`usuario-recente-card__saldo ${semEstoque ? 'usuario-recente-card__saldo--esgotado' : estoqueBaixo ? 'usuario-recente-card__saldo--baixo' : ''}`}>
-                      {semEstoque ? 'Sem estoque' : `${item.quantidade} ${item.unidade || 'UN'}`}
+                    <span className="usuario-recente-card__unidade">
+                      {naCaderneta ? `${naCaderneta.quantidade} na lista` : (item.unidade || 'UN')}
                     </span>
                   </div>
                 </button>
@@ -1191,11 +936,7 @@ const UsuarioEstoque = ({
             type="button"
             className={`sge-fav-filter-chip ${apenasFavoritos ? 'sge-fav-filter-chip--active' : ''}`}
             onClick={() => {
-              setApenasFavoritos(prev => {
-                const next = !prev;
-                if (next) setApenasEsgotados(false);
-                return next;
-              });
+              setApenasFavoritos(prev => !prev);
             }}
             title={apenasFavoritos ? "Mostrar todos os materiais" : "Ver apenas meus favoritos"}
             aria-pressed={apenasFavoritos}
@@ -1215,39 +956,6 @@ const UsuarioEstoque = ({
             <span>Favoritos</span>
             <span className="sge-fav-count-pill">{favoritos.length}</span>
           </button>
-
-          <button
-            type="button"
-            className={`sge-fav-filter-chip sge-esgotados-chip ${apenasEsgotados ? 'sge-esgotados-chip--active' : ''}`}
-            onClick={() => {
-              setApenasEsgotados(prev => {
-                const next = !prev;
-                if (next) {
-                  setApenasFavoritos(false);
-                  setSelectedCategoria('Todas');
-                }
-                return next;
-              });
-            }}
-            title={apenasEsgotados ? "Mostrar materiais disponíveis" : "Filtrar apenas itens esgotados"}
-            aria-pressed={apenasEsgotados}
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-            </svg>
-            <span>Esgotados</span>
-            <span className="sge-fav-count-pill sge-esgotados-count-pill">{contagemEsgotados}</span>
-          </button>
         </div>
 
         <SortLoopButton
@@ -1260,14 +968,9 @@ const UsuarioEstoque = ({
       <div className="usuario-estoque__table-card">
         {materiaisFiltrados.length === 0 ? (
           <div className="usuario-estoque__empty">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill={apenasFavoritos ? "rgba(245, 158, 11, 0.2)" : "none"} stroke={apenasFavoritos ? "#D97706" : apenasEsgotados ? "#DC2626" : "currentColor"} strokeWidth="1.5">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill={apenasFavoritos ? "rgba(245, 158, 11, 0.2)" : "none"} stroke={apenasFavoritos ? "#D97706" : "currentColor"} strokeWidth="1.5">
               {apenasFavoritos ? (
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              ) : apenasEsgotados ? (
-                <>
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                </>
               ) : (
                 <>
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -1277,24 +980,19 @@ const UsuarioEstoque = ({
             <p className="usuario-estoque__empty-title">
               {apenasFavoritos
                 ? 'Nenhum material favorito encontrado'
-                : apenasEsgotados
-                ? 'Nenhum material esgotado no momento'
                 : 'Nenhum material encontrado'}
             </p>
             <p className="usuario-estoque__empty-sub">
               {apenasFavoritos
                 ? 'Clique no ícone de favorito de qualquer material para fixá-lo como favorito para acesso rápido.'
-                : apenasEsgotados
-                ? 'Todos os materiais catalogados possuem saldo disponível em estoque.'
                 : 'Tente buscar por outro termo ou selecione "Todas" as categorias.'}
             </p>
-            {(apenasFavoritos || apenasEsgotados) && (
+            {apenasFavoritos && (
               <button
                 type="button"
                 className="btn-limpar-fav-filtro"
                 onClick={() => {
                   setApenasFavoritos(false);
-                  setApenasEsgotados(false);
                 }}
               >
                 Ver todos os materiais
@@ -1304,15 +1002,14 @@ const UsuarioEstoque = ({
         ) : (
           <div className="usuario-ticket-list">
             {materiaisExibidos.map((item) => {
-              const semEstoque = item.quantidade === 0;
-              const estoqueBaixo = item.quantidade > 0 && item.quantidade <= (item.estoqueMinimo || 5);
               const intensidadeUso = getIntensidadeUso(item.pedidos);
               const isFavorito = favoritos.includes(item.id);
+              const itemCaderneta = itensCaderneta.find(it => it.id === item.id);
 
               return (
                 <div
                   key={item.id}
-                  className={`usuario-ticket ${semEstoque ? 'usuario-ticket--sem-estoque' : estoqueBaixo ? 'usuario-ticket--baixo' : ''} ${isFavorito ? 'usuario-ticket--favorito' : ''}`}
+                  className={`usuario-ticket ${isFavorito ? 'usuario-ticket--favorito' : ''} ${itemCaderneta ? 'usuario-ticket--na-caderneta' : ''}`}
                   onClick={() => handleItemClick(item)}
                   role="button"
                   tabIndex={0}
@@ -1322,16 +1019,21 @@ const UsuarioEstoque = ({
                     }
                   }}
                 >
-                  {/* Bloco Esquerdo do Ticket: Saldo e Unidade (Indicador Visual) */}
-                  <div className="ticket-left">
-                    <span className="ticket-qtd">{item.quantidade}</span>
-                    <span className="ticket-unidade">{semEstoque ? 'esgotado' : item.unidade}</span>
-                  </div>
-
                   {/* Corpo do Ticket: Informações */}
                   <div className="ticket-body">
                     <div className="ticket-info">
-                    <span className="ticket-nome" title={displayText(item.nome)}>{displayText(item.nome)}</span>
+                      <div className="ticket-title-row">
+                        <span className="ticket-nome" title={displayText(item.nome)}>{displayText(item.nome)}</span>
+                        <span className="ticket-unidade-tag">{item.unidade || 'UN'}</span>
+                        {itemCaderneta && (
+                          <span className="ticket-caderneta-badge" title={`${itemCaderneta.quantidade} ${item.unidade || 'UN'} na sua caderneta`}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            {itemCaderneta.quantidade} na caderneta
+                          </span>
+                        )}
+                      </div>
                       {item.descricao && (
                         <span className="ticket-desc" title={displayText(item.descricao)}>
                           {displayText(item.descricao)}
@@ -1453,13 +1155,18 @@ const UsuarioEstoque = ({
               >
                 <div className="pedido-sheet__header-title">
                   <div className="sheet-subtitle-row">
-                    <span className="sheet-subtitle">Solicitar ao Almoxarifado</span>
-                    {urgente && (
-                      <span className="sheet-badge-urgente">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    <span className="sheet-subtitle">
+                      {itensCaderneta.some(it => it.id === itemSelecionado.id)
+                        ? 'Atualizar na Caderneta'
+                        : 'Adicionar à Caderneta'}
+                    </span>
+                    <span className="sheet-badge-unit">{itemSelecionado.unidade || 'UN'}</span>
+                    {itensCaderneta.some(it => it.id === itemSelecionado.id) && (
+                      <span className="sheet-badge-na-caderneta">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12" />
                         </svg>
-                        Urgência Ativada
+                        Já na Caderneta
                       </span>
                     )}
                   </div>
@@ -1470,87 +1177,50 @@ const UsuarioEstoque = ({
                 </div>
               </div>
 
-              {/* Formulário de Pedido */}
-              <form onSubmit={handleSubmitPedido} className="pedido-sheet__form">
-                {/* Alerta caso o item esteja sem estoque imediato */}
-                {itemSelecionado.quantidade === 0 && (
-                  <div className="sheet-alert sheet-alert--sem-estoque">
-                    <div className="sheet-alert__icon">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                      </svg>
-                    </div>
-                    <div className="sheet-alert__content">
-                      <strong>Demanda para Reposição</strong>
-                      <p>O item está sem saldo imediato e será registrado para o Almoxarifado providenciar.</p>
-                    </div>
+              {/* Formulário de Adição à Caderneta */}
+              <form onSubmit={handleSalvarItemCaderneta} className="pedido-sheet__form">
+                {/* Seletor de Quantidade a pedir */}
+                <div className="qty-picker-container">
+                  <label className="qty-picker-label" htmlFor="sheet-qtd-input">
+                    Quantidade a pedir ({itemSelecionado.unidade || 'UN'})
+                  </label>
+                  <div className="stepper-wrap">
+                    <motion.button
+                      type="button"
+                      className="stepper-btn stepper-btn--minus"
+                      onClick={handleDecrement}
+                      aria-label="Diminuir quantidade"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.86 }}
+                      transition={{ type: "spring", stiffness: 450, damping: 18 }}
+                    >
+                      &minus;
+                    </motion.button>
+                    <input
+                      id="sheet-qtd-input"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      className="stepper-input"
+                      value={quantidade}
+                      onChange={handleQuantityChange}
+                      onBlur={handleQuantityBlur}
+                      onFocus={(e) => e.target.select()}
+                      aria-label="Quantidade"
+                    />
+                    <motion.button
+                      type="button"
+                      className="stepper-btn stepper-btn--plus"
+                      onClick={handleIncrement}
+                      aria-label="Aumentar quantidade"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.86 }}
+                      transition={{ type: "spring", stiffness: 450, damping: 18 }}
+                    >
+                      +
+                    </motion.button>
                   </div>
-                )}
-
-                {/* Layout dividido simétrico: Estoque (esq) ╎ Seletor (dir) */}
-                <div className={`qty-split-row ${itemSelecionado.quantidade === 0 ? 'qty-split-row--sem-estoque' : ''}`}>
-                  {/* Coluna esquerda: Saldo no Almoxarifado */}
-                  <div className="qty-split-left">
-                    <span className="qty-split-label">No almoxarifado</span>
-                    {itemSelecionado.quantidade > 0 ? (
-                      <div className="qty-saldo-block">
-                        <span className={`qty-saldo-line ${itemSelecionado.quantidade <= (itemSelecionado.estoqueMinimo || 5) ? 'qty-saldo-line--baixo' : ''}`}>
-                          <strong>{itemSelecionado.quantidade}</strong> {itemSelecionado.unidade || 'UN'}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="qty-saldo-block">
-                        <span className="qty-saldo-esgotado">Esgotado</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Divisória vertical */}
-                  <div className="qty-split-divider" aria-hidden="true" />
-
-                  {/* Coluna direita: Quantidade a pedir */}
-                  <div className="qty-split-right">
-                    <label className="qty-split-label" htmlFor="sheet-qtd-input">
-                      Quantidade a pedir
-                    </label>
-                    <div className="stepper-wrap">
-                      <motion.button
-                        type="button"
-                        className="stepper-btn stepper-btn--minus"
-                        onClick={handleDecrement}
-                        aria-label="Diminuir quantidade"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.86 }}
-                        transition={{ type: "spring", stiffness: 450, damping: 18 }}
-                      >
-                        &minus;
-                      </motion.button>
-                      <input
-                        id="sheet-qtd-input"
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        className="stepper-input"
-                        value={quantidade}
-                        onChange={handleQuantityChange}
-                        onBlur={handleQuantityBlur}
-                        onFocus={(e) => e.target.select()}
-                        aria-label="Quantidade"
-                      />
-                      <motion.button
-                        type="button"
-                        className="stepper-btn stepper-btn--plus"
-                        onClick={handleIncrement}
-                        aria-label="Aumentar quantidade"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.86 }}
-                        transition={{ type: "spring", stiffness: 450, damping: 18 }}
-                      >
-                        +
-                      </motion.button>
-                    </div>
-                    {erroQtd && <span className="sheet-error">{erroQtd}</span>}
-                  </div>
+                  {erroQtd && <span className="sheet-error">{erroQtd}</span>}
                 </div>
 
                 {/* Linha única de resumo / conversão alinhada abaixo das duas colunas */}
@@ -1568,46 +1238,6 @@ const UsuarioEstoque = ({
                   );
                 })()}
 
-                {/* Justificativa / Finalidade */}
-                <div className="sheet-form-group">
-                  <label className="sheet-label" htmlFor="sheet-justificativa">
-                    Justificativa / Finalidade
-                  </label>
-                  <textarea
-                    id="sheet-justificativa"
-                    className="sheet-textarea"
-                    rows="3"
-                    placeholder="Ex: Aulas pedagógicas, reposição do setor..."
-                    value={justificativa}
-                    onChange={(e) => setJustificativa(e.target.value)}
-                  />
-                </div>
-
-                {/* Switch / Toggle Moderno de Pedido Urgente */}
-                <div className={`sheet-switch-group ${urgente ? 'sheet-switch-group--active' : ''}`}>
-                  <label className="sheet-switch-label" htmlFor="urgent-switch">
-                    <div className="sheet-switch-info">
-                      <div className="sheet-switch-title">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                        </svg>
-                        <span>Marcar como Pedido Urgente</span>
-                      </div>
-                      <span className="sheet-switch-desc">Prioridade na fila de separação do almoxarifado</span>
-                    </div>
-                    <div className="sheet-toggle-wrap">
-                      <input
-                        id="urgent-switch"
-                        type="checkbox"
-                        className="sheet-toggle-input"
-                        checked={urgente}
-                        onChange={(e) => setUrgente(e.target.checked)}
-                      />
-                      <span className="sheet-toggle-slider" />
-                    </div>
-                  </label>
-                </div>
-
                 {/* Botões do Rodapé */}
                 <div className="sheet-footer">
                   <motion.button
@@ -1621,26 +1251,20 @@ const UsuarioEstoque = ({
                   </motion.button>
                   <motion.button
                     type="submit"
-                    className={`sheet-btn sheet-btn--submit ${urgente ? 'sheet-btn--submit-urgente' : ''}`}
+                    className="sheet-btn sheet-btn--submit"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}
                   >
-                    {urgente ? (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                        </svg>
-                        Confirmar Pedido Urgente
-                      </>
-                    ) : (
-                      <>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Confirmar Pedido
-                      </>
-                    )}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                      <path d="M9 12h6" />
+                      <path d="M9 16h6" />
+                    </svg>
+                    {itensCaderneta.some(it => it.id === itemSelecionado.id)
+                      ? 'Atualizar na Caderneta'
+                      : 'Adicionar à Caderneta'}
                   </motion.button>
                 </div>
               </form>
@@ -1649,14 +1273,41 @@ const UsuarioEstoque = ({
         )}
       </AnimatePresence>
 
-      {/* Modal de Pedido em Lote / Novo Pedido */}
-      <NovoPedidoModal
-        isOpen={isNovoPedidoModalOpen}
-        onClose={() => setIsNovoPedidoModalOpen(false)}
-        onSave={handleSalvarNovoPedido}
-        initialData={initialPedidoData}
-        materiaisDisponiveis={dados}
-        usuariosDisponiveis={[currentUserName]}
+      {/* Botão Flutuante (FAB) da Caderneta de Pedidos - Sempre Visível */}
+      <motion.button
+        type="button"
+        id="btn-fab-caderneta"
+        className="fab-caderneta"
+        onClick={() => setIsCadernetaOpen(true)}
+        title="Caderneta de Pedidos"
+        aria-label={`Caderneta de Pedidos com ${itensCaderneta.length} ${itensCaderneta.length === 1 ? 'item' : 'itens'}`}
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.94 }}
+      >
+        <div className="fab-caderneta__icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+            <path d="M9 12h6" />
+            <path d="M9 16h6" />
+          </svg>
+          {itensCaderneta.length > 0 && (
+            <span className="fab-caderneta__badge" aria-hidden="true">
+              {itensCaderneta.length}
+            </span>
+          )}
+        </div>
+      </motion.button>
+
+      {/* Modal de Revisão e Envio da Caderneta de Pedidos */}
+      <CadernetaPedidosModal
+        isOpen={isCadernetaOpen}
+        onClose={() => setIsCadernetaOpen(false)}
+        itens={itensCaderneta}
+        onUpdateQtd={handleUpdateQtdCaderneta}
+        onRemoveItem={handleRemoveItemCaderneta}
+        onClear={handleClearCaderneta}
+        onSubmit={handleSubmitCaderneta}
       />
     </div>
   );

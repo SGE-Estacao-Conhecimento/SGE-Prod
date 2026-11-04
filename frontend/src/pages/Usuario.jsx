@@ -43,64 +43,6 @@ const navItemsUsuario = [
 
 const USUARIO_SECTIONS = navItemsUsuario.map((item) => item.id);
 
-export const MATERIAIS_BYPASS = [
-  { id: 1, codigo: 'MAT-001', nome: 'Papel Sulfite A4', categoria: 'Escritório', unidade: 'Resma', quantidade: 48, estoqueMinimo: 10, localizacao: 'Armário A - Prateleira 2', descricao: '75g/m², resma com 500 folhas' },
-  { id: 2, codigo: 'MAT-002', nome: 'Caneta Esferográfica Azul', categoria: 'Escritório', unidade: 'UN', quantidade: 120, estoqueMinimo: 30, localizacao: 'Gaveteiro 1', descricao: 'Ponta média 1.0mm' },
-  { id: 3, codigo: 'MAT-003', nome: 'Marcador para Quadro Branco', categoria: 'Material Didático', unidade: 'UN', quantidade: 18, estoqueMinimo: 15, localizacao: 'Armário Didático B', descricao: 'Cores azul e preta' },
-  { id: 4, codigo: 'MAT-004', nome: 'Álcool em Gel 70%', categoria: 'Limpeza e Higiene', unidade: 'Frasco', quantidade: 35, estoqueMinimo: 8, localizacao: 'Almoxarifado Central', descricao: 'Frasco de 500ml' },
-  { id: 5, codigo: 'MAT-005', nome: 'Grampeador de Mesa', categoria: 'Escritório', unidade: 'UN', quantidade: 6, estoqueMinimo: 5, localizacao: 'Prateleira 3', descricao: 'Modelo médio para até 25 folhas' },
-  { id: 6, codigo: 'MAT-006', nome: 'Fita Adesiva Transparente', categoria: 'Escritório', unidade: 'Rolo', quantidade: 0, estoqueMinimo: 10, localizacao: 'Caixa de Fitas', descricao: '45mm x 50 metros' },
-  { id: 7, codigo: 'MAT-007', nome: 'Cabo HDMI 2.0', categoria: 'Informática / TI', unidade: 'UN', quantidade: 8, estoqueMinimo: 3, localizacao: 'Armário TI - Gaveta 2', descricao: '2 metros, compatível com 4K' },
-  { id: 8, codigo: 'MAT-008', nome: 'Apagador para Quadro Branco', categoria: 'Material Didático', unidade: 'UN', quantidade: 0, estoqueMinimo: 6, localizacao: 'Armário Didático B', descricao: 'Corpo anatômico' },
-  { id: 9, codigo: 'MAT-009', nome: 'Giz Escolar Plastificado', categoria: 'Material Didático', unidade: 'Caixa', quantidade: 22, estoqueMinimo: 8, localizacao: 'Prateleira 1', descricao: 'Caixa com 50 unidades' },
-  { id: 10, codigo: 'MAT-010', nome: 'Papel Toalha Interfolhado', categoria: 'Limpeza e Higiene', unidade: 'Fardo', quantidade: 14, estoqueMinimo: 5, localizacao: 'Depósito de Limpeza', descricao: 'Fardo com 1000 folhas' }
-];
-
-const _MOCK_PEDIDOS_INICIAIS = [
-  {
-    id: 102,
-    data: '27/09/2026',
-    material: 'Álcool em Gel 70% (Frasco 500ml)',
-    quantidade: 3,
-    materiais: [
-      { materialNome: 'Álcool em Gel 70% (Frasco 500ml)', quantidade: 3, unidade: 'Frasco' }
-    ],
-    justificativa: 'Urgência sanitária para salas de aula e refeitório',
-    prioridade: 'Urgente',
-    urgente: true,
-    status: 'Pendente',
-    usuario: 'Usuário'
-  },
-  {
-    id: 101,
-    data: '26/09/2026',
-    material: 'Papel Sulfite A4 (Resma 500 folhas)',
-    quantidade: 2,
-    materiais: [
-      { materialNome: 'Papel Sulfite A4 (Resma 500 folhas)', quantidade: 2, unidade: 'Resma' }
-    ],
-    justificativa: 'Impressão das atividades pedagógicas do 3º bimestre',
-    prioridade: 'Normal',
-    urgente: false,
-    status: 'Pendente',
-    usuario: 'Usuário'
-  },
-  {
-    id: 98,
-    data: '24/09/2026',
-    material: 'Marcador para Quadro Branco (Azul/Preto)',
-    quantidade: 4,
-    materiais: [
-      { materialNome: 'Marcador para Quadro Branco (Azul/Preto)', quantidade: 4, unidade: 'UN' }
-    ],
-    justificativa: 'Reposição para salas do bloco B',
-    prioridade: 'Normal',
-    urgente: false,
-    status: 'Atendido',
-    usuario: 'Usuário'
-  }
-];
-
 const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
   const [activeNav, setActiveNav] = useSectionNavigation('usuario', USUARIO_SECTIONS, 'inicio');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
