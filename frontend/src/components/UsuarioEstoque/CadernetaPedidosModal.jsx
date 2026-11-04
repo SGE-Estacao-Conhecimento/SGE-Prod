@@ -95,6 +95,18 @@ const CadernetaPedidosModal = ({
           </span>
         ) : null
       }
+      headerAction={
+        totalMateriais > 0 ? (
+          <button
+            type="button"
+            className="caderneta-clear-btn"
+            onClick={onClear}
+            title="Limpar todos os itens da caderneta"
+          >
+            Limpar lista
+          </button>
+        ) : null
+      }
       maxWidth="560px"
       className="caderneta-modal"
     >
@@ -122,32 +134,19 @@ const CadernetaPedidosModal = ({
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="caderneta-form">
-          {/* Lista de Itens da Caderneta */}
-          <div className="caderneta-itens-list">
-            <div className="caderneta-itens-header">
-              <span className="caderneta-itens-header__title">Itens selecionados ({totalMateriais})</span>
-              <button
-                type="button"
-                className="caderneta-clear-btn"
-                onClick={onClear}
-                title="Limpar todos os itens da caderneta"
-              >
-                Limpar lista
-              </button>
-            </div>
-
-            <div className="caderneta-itens-scroll">
-              <AnimatePresence initial={false}>
-                {itens.map((item) => (
-                  <motion.div
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                    transition={{ duration: 0.18 }}
-                    className="caderneta-item-row"
-                  >
+          {/* Lista de Itens da Caderneta Direto na Janela */}
+          <div className="caderneta-itens-scroll">
+            <AnimatePresence initial={false}>
+              {itens.map((item) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="caderneta-item-row"
+                >
                     <div className="caderneta-item-info">
                       <div className="caderneta-item-nome-wrap">
                         <span className="caderneta-item-nome" title={item.nome}>
@@ -210,9 +209,8 @@ const CadernetaPedidosModal = ({
                 ))}
               </AnimatePresence>
             </div>
-          </div>
 
-          {/* Justificativa Geral do Pedido */}
+            {/* Justificativa Geral do Pedido */}
           <div className="caderneta-form-group">
             <label className="caderneta-label" htmlFor="caderneta-justificativa">
               Justificativa / Finalidade do Pedido <span className="caderneta-required">*</span>

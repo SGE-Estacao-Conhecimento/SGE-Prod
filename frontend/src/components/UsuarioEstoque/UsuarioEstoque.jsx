@@ -815,22 +815,18 @@ const UsuarioEstoque = ({
         )}
       </AnimatePresence>
 
-      {/* Seção Superior Unificada (Busca + Botão Novo Pedido + Sanfona de Categorias - A Geral do SGE) */}
+      {/* Seção Superior Unificada: Busca + Gatilho de Filtro com Sanfona (A Geral do SGE) */}
       <div className="usuario-estoque__top-section">
-        <div className="usuario-estoque__action-bar">
-          <div className="usuario-estoque__search-wrap">
-            <SearchFilterBar
-              inputRef={searchInputRef}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              onClear={() => setSearchTerm('')}
-              placeholder="Buscar material..."
-              hasActiveFilter={selectedCategoria !== 'Todas' || apenasFavoritos}
-              isFilterOpen={mostrarFiltros}
-              onToggleFilter={() => setMostrarFiltros(prev => !prev)}
-            />
-          </div>
-        </div>
+        <SearchFilterBar
+          inputRef={searchInputRef}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onClear={() => setSearchTerm('')}
+          placeholder="Buscar material..."
+          hasActiveFilter={selectedCategoria !== 'Todas' || apenasFavoritos}
+          isFilterOpen={mostrarFiltros}
+          onToggleFilter={() => setMostrarFiltros(prev => !prev)}
+        />
 
         <FilterDrawer isOpen={mostrarFiltros}>
           <FilterGroup title="Acesso Rápido">
@@ -1027,10 +1023,7 @@ const UsuarioEstoque = ({
                         <span className="ticket-unidade-tag">{item.unidade || 'UN'}</span>
                         {itemCaderneta && (
                           <span className="ticket-caderneta-badge" title={`${itemCaderneta.quantidade} ${item.unidade || 'UN'} na sua caderneta`}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            {itemCaderneta.quantidade} na caderneta
+                            {itemCaderneta.quantidade}
                           </span>
                         )}
                       </div>

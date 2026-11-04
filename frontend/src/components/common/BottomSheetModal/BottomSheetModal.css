@@ -102,6 +102,13 @@
   min-width: 0;
 }
 
+.sge-bottom-sheet__header-action {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 .sge-sheet-subtitle-row {
   display: flex;
   align-items: center;

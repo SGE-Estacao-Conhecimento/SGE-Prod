@@ -137,184 +137,11 @@
 }
 
 
-/* ===== BARRA DE BUSCA (MOBILE-FIRST) ===== */
-.usuario-estoque__search-bar {
-  width: 100%;
-}
-
-.usuario-estoque__search-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  background: var(--card-bg, #FFFFFF);
-  border: 1.5px solid var(--border, #E5E7EB);
-  border-radius: 12px;
-  padding: 0 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.usuario-estoque__search-wrap:focus-within {
-  border-color: var(--accent, #4A6CF7);
-  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.12);
-}
-
-.usuario-estoque__search-icon {
-  color: var(--text-muted, #9CA3AF);
-  flex-shrink: 0;
-  margin-right: 8px;
-}
-
-.usuario-estoque__search-input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  padding: 12px 0;
-  font-size: 15px;
-  color: var(--text-primary, #1A1D2E);
-  outline: none;
-}
-
-.usuario-estoque__search-input::placeholder {
-  color: var(--text-muted, #9CA3AF);
-  font-size: 14px;
-}
-
-.usuario-estoque__clear-btn {
-  background: none;
-  border: none;
-  font-size: 20px;
-  color: var(--text-muted, #9CA3AF);
-  padding: 4px 6px;
-  cursor: pointer;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-/* Botão de Toggle de Filtro */
-.usuario-estoque__filter-btn {
-  background: none;
-  border: none;
-  color: #94A3B8;
-  padding: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  transition: color 0.15s ease, background-color 0.15s ease;
-  flex-shrink: 0;
-  position: relative;
-  margin-left: 2px;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.usuario-estoque__filter-btn:focus {
-  outline: none;
-}
-
-/* Quando inativo (fechado) */
-.usuario-estoque__filter-btn:not(.usuario-estoque__filter-btn--active) {
-  color: #94A3B8;
-}
-
-/* Quando ativo (aberto) */
-.usuario-estoque__filter-btn--active {
-  color: var(--accent, #4A6CF7);
-}
-
-/* Hover real apenas para mouse em desktop, evitando sticky hover em touch screen */
-@media (hover: hover) and (pointer: fine) {
-  .usuario-estoque__filter-btn:not(.usuario-estoque__filter-btn--active):hover {
-    background: #F1F5F9;
-    color: #64748B;
-  }
-
-  .usuario-estoque__filter-btn--active:hover {
-    background: rgba(74, 108, 247, 0.08);
-    color: var(--accent-hover, #3558E8);
-  }
-}
-
-.filter-active-dot {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent, #4A6CF7);
-  box-shadow: 0 0 0 1.5px #FFFFFF;
-}
-
-/* Container Unificado da Seção Superior (evita gap fantasma quando fechado) */
+/* ===== SEÇÃO SUPERIOR UNIFICADA (BUSCA + BOTÃO DE FILTRO COM SANFONA) ===== */
 .usuario-estoque__top-section {
   display: flex;
   flex-direction: column;
   width: 100%;
-}
-
-/* Barra de Ações Superior (Busca + Botão Novo Pedido) */
-.usuario-estoque__action-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-
-.usuario-estoque__search-wrap {
-  flex: 1;
-  min-width: 0;
-}
-
-.usuario-btn-novo-pedido {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 42px;
-  padding: 0 16px;
-  background-color: var(--accent, #017F7B);
-  color: #FFFFFF;
-  border: none;
-  border-radius: 10px;
-  font-size: 13.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(1, 127, 123, 0.25);
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.usuario-btn-novo-pedido:hover {
-  background-color: var(--accent-hover, #016562);
-  box-shadow: 0 4px 12px rgba(1, 127, 123, 0.35);
-}
-
-.usuario-btn-novo-pedido:active {
-  transform: scale(0.97);
-  transition: transform 0.08s ease;
-}
-
-@media (max-width: 480px) {
-  .usuario-estoque__action-bar {
-    gap: 8px;
-  }
-  .usuario-btn-novo-pedido {
-    padding: 0 12px;
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 360px) {
-  .usuario-btn-novo-pedido {
-    padding: 0 8px;
-    font-size: 12px;
-    gap: 4px;
-  }
 }
 
 /* ===== ACORDEÃO SUAVE DE CATEGORIAS (ABERTURA & FECHAMENTO CONTÍNUO) ===== */
@@ -1861,19 +1688,18 @@
 .ticket-caderneta-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: #017F7B;
-  background: rgba(1, 127, 123, 0.08);
-  border: 1px solid rgba(1, 127, 123, 0.2);
-  padding: 1.5px 7px;
-  border-radius: 9999px;
-  white-space: nowrap;
-}
-
-.ticket-caderneta-badge svg {
-  flex-shrink: 0;
+  background: rgba(1, 127, 123, 0.12);
+  border: 1px solid rgba(1, 127, 123, 0.3);
+  line-height: 1;
+  box-sizing: border-box;
 }
 
 .usuario-ticket--na-caderneta {

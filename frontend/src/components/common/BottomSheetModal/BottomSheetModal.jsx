@@ -26,6 +26,7 @@ const BottomSheetModal = ({
   title,
   subtitle,
   badge,
+  headerAction,
   children,
   footer,
   maxWidth = '520px',
@@ -303,7 +304,7 @@ const BottomSheetModal = ({
             </div>
 
             {/* Cabeçalho do Modal (Título primeiro, metadados/subtítulo em baixo) */}
-            {(title || subtitle || badge) && (
+            {(title || subtitle || badge || headerAction) && (
               <div
                 className="sge-bottom-sheet__header"
                 onTouchStart={handleTouchStart}
@@ -320,6 +321,11 @@ const BottomSheetModal = ({
                     </div>
                   )}
                 </div>
+                {headerAction && (
+                  <div className="sge-bottom-sheet__header-action">
+                    {headerAction}
+                  </div>
+                )}
               </div>
             )}
 
