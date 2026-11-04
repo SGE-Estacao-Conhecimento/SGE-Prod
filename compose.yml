@@ -4,115 +4,148 @@ services:
   db:
     image: mysql:8.4
     restart: unless-stopped
+
     environment:
       MYSQL_DATABASE: sge
       MYSQL_USER: sge_app
-      MYSQL_PASSWORD: ${DB_PASSWORD:?Preencha DB_PASSWORD no .env}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Preencha DB_ROOT_PASSWORD no .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Preencha DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Preencha DB_ROOT_PASSWORD}
       TZ: UTC
+
     command:
-      - --default-time-zone=+00:00
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_0900_ai_ci
+      - "--default-time-zone=+00:00"
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_0900_ai_ci"
+
     ports:
       - "127.0.0.1:3306:3306"
+
     volumes:
       - mysql_data:/var/lib/mysql
+
     healthcheck:
       test:
         - CMD-SHELL
         - >-
-          MYSQL_PWD="$${MYSQL_PASSWORD}" mysql --protocol=TCP
-          -h 127.0.0.1 -u "$${MYSQL_USER}" "$${MYSQL_DATABASE}"
-          -e 'SELECT 1' >/dev/null 2>&1
+          MYSQL_PWD="$${MYSQL_PASSWORD}"
+          mysql --protocol=TCP -h 127.0.0.1
+          -u "$${MYSQL_USER}" "$${MYSQL_DATABASE}"
+          -e "SELECT 1" >/dev/null 2>&1
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 60s
-    networks: [interna]
+
+    networks:
+      - interna
 
   minio:
-    image: ${MINIO_IMAGE:-quay.io/minio/minio:latest}
-    command: server /data --console-address ':9001'
+    image: sge/minio:local
+    build:
+      context: ./infra/minio
+
     restart: unless-stopped
+
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Preencha MINIO_ROOT_USER no .env}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Preencha MINIO_ROOT_PASSWORD no .env}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Preencha MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Preencha MINIO_ROOT_PASSWORD}
+
     ports:
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
+
     volumes:
       - minio_data:/data
-    networks: [interna]
 
-  # Cria bucket privado e usuário limitado; não publica arquivos nem concede exclusão.
+    networks:
+      - interna
+
   minio-init:
-    image: ${MINIO_MC_IMAGE:-quay.io/minio/mc:latest}
-    restart: 'no'
+    image: sge/minio-mc:local
+    build:
+      context: ./infra/minio-mc
+
+    restart: "no"
+
     depends_on:
       minio:
         condition: service_started
+
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Preencha MINIO_ROOT_USER no .env}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Preencha MINIO_ROOT_PASSWORD no .env}
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?Preencha S3_ACCESS_KEY_ID no .env}
-      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?Preencha S3_SECRET_ACCESS_KEY no .env}
-    entrypoint: ['/bin/sh', '-ec']
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Preencha MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Preencha MINIO_ROOT_PASSWORD}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?Preencha S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?Preencha S3_SECRET_ACCESS_KEY}
+
+    entrypoint: ["/bin/sh", "-ec"]
+
     command:
       - |
         tentativas=0
-        until mc alias set sge http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" >/dev/null 2>&1; do
+
+        until mc alias set sge http://minio:9000 \
+          "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" \
+          >/dev/null 2>&1; do
           tentativas=$$((tentativas + 1))
+
           if [ "$${tentativas}" -ge 60 ]; then
-            echo 'MinIO indisponível; confira o serviço minio.' >&2
+            echo "Não foi possível conectar ao MinIO." >&2
             exit 1
           fi
+
           sleep 2
         done
+
         if [ "$${S3_ACCESS_KEY_ID}" = "$${MINIO_ROOT_USER}" ]; then
-          echo 'A API deve ter usuário diferente do administrador.' >&2
+          echo "A API precisa de usuário diferente do administrador." >&2
           exit 1
         fi
+
         mc mb --ignore-existing sge/sge-documentos >/dev/null
         mc anonymous set none sge/sge-documentos >/dev/null
-        cat > /tmp/sge-policy.json <<'POLICY'
-        {"Version":"2012-10-17","Statement":[
-          {"Effect":"Allow","Action":["s3:GetBucketLocation","s3:ListBucket","s3:ListBucketMultipartUploads"],"Resource":["arn:aws:s3:::sge-documentos"]},
-          {"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:AbortMultipartUpload","s3:ListMultipartUploadParts"],"Resource":["arn:aws:s3:::sge-documentos/*"]}
-        ]}
-        POLICY
-        mc admin policy create sge sge-documentos-api /tmp/sge-policy.json >/dev/null
-        mc admin user add sge "$${S3_ACCESS_KEY_ID}" "$${S3_SECRET_ACCESS_KEY}" >/dev/null
-        mc admin policy attach sge sge-documentos-api --user "$${S3_ACCESS_KEY_ID}" >/dev/null
-        echo 'Bucket privado e acesso da API configurados.'
-    networks: [interna]
 
-  # Ative com --profile app quando backend/Dockerfile existir.
-  api:
-    profiles: [app]
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_HTTP_PORTS: '8080'
-      ConnectionStrings__DefaultConnection: >-
-        Server=db;Port=3306;Database=sge;User=sge_app;Password=${DB_PASSWORD:?Preencha DB_PASSWORD no .env};
-      S3_ENDPOINT: http://minio:9000
-      S3_BUCKET: sge-documentos
-      S3_REGION: us-east-1
-      S3_FORCE_PATH_STYLE: 'true'
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?Preencha S3_ACCESS_KEY_ID no .env}
-      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?Preencha S3_SECRET_ACCESS_KEY no .env}
-    ports:
-      - "127.0.0.1:8080:8080"
-    depends_on:
-      db:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
-    networks: [interna]
+        cat > /tmp/policy.json <<'POLICY'
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetBucketLocation",
+                "s3:ListBucket",
+                "s3:ListBucketMultipartUploads"
+              ],
+              "Resource": ["arn:aws:s3:::sge-documentos"]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts"
+              ],
+              "Resource": ["arn:aws:s3:::sge-documentos/*"]
+            }
+          ]
+        }
+        POLICY
+
+        mc admin policy create \
+          sge sge-documentos-api /tmp/policy.json >/dev/null
+
+        mc admin user add \
+          sge "$${S3_ACCESS_KEY_ID}" "$${S3_SECRET_ACCESS_KEY}" \
+          >/dev/null
+
+        mc admin policy attach \
+          sge sge-documentos-api \
+          --user "$${S3_ACCESS_KEY_ID}" >/dev/null
+
+        echo "Bucket privado e usuário da API configurados."
+
+    networks:
+      - interna
 
 volumes:
   mysql_data:
