@@ -19,8 +19,20 @@ const mapUrgencia = (pedido) => {
  */
 export const criarPedido = (pedido) => {
   const itens = Array.isArray(pedido.itens) && pedido.itens.length > 0
-    ? pedido.itens.map(item => ({ produtoId: item.produtoId, quantidade: item.quantidade }))
-    : [{ produtoId: pedido.produtoId, quantidade: pedido.quantidade }];
+    ? pedido.itens.map(item => ({
+        produtoId: item.produtoId || item.id,
+        materialNome: item.materialNome || item.nome || item.material,
+        quantidade: item.quantidade,
+        unidade: item.unidade || 'UN',
+        itensPorEmbalagem: item.itensPorEmbalagem
+      }))
+    : [{
+        produtoId: pedido.produtoId,
+        materialNome: pedido.materialNome || pedido.nome || pedido.material,
+        quantidade: pedido.quantidade,
+        unidade: pedido.unidade || 'UN',
+        itensPorEmbalagem: pedido.itensPorEmbalagem
+      }];
 
   return request('/api/pedidos', {
     method: 'POST',

@@ -227,6 +227,7 @@ const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
             {!pedidosLoading && !pedidosError && (
               <MeusPedidos
                 pedidos={pedidos}
+                user={user}
                 onCancelarPedido={handleCancelarPedido}
                 onNavigateToEstoque={() => handleNavClick('inicio')}
                 onPedirNovamente={handleNovoPedidoSubmit}

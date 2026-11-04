@@ -23,9 +23,9 @@
   height: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .sge-page-scroll {
-    padding: 10px 12px 72px 12px;
+    padding: 10px 12px calc(112px + env(safe-area-inset-bottom, 24px)) 12px;
   }
 }
 

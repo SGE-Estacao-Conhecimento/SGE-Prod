@@ -67,7 +67,7 @@
   background: #10B981;
 }
 
-/* Alerta: Pendente / Em Separação / Estoque Baixo */
+/* Alerta: Pendente / Estoque Baixo */
 .sge-status-badge--warning {
   background: #FFFBEB;
   color: #92400E;
@@ -76,6 +76,28 @@
 
 .sge-status-badge__dot--warning {
   background: #F59E0B;
+}
+
+/* Informativo: Em Separação */
+.sge-status-badge--info {
+  background: #EFF6FF;
+  color: #1E40AF;
+  border-color: #BFDBFE;
+}
+
+.sge-status-badge__dot--info {
+  background: #3B82F6;
+}
+
+/* Parcial: Parcialmente Disponível / Atendido Parcialmente */
+.sge-status-badge--partial {
+  background: #FFF7ED;
+  color: #C2410C;
+  border-color: #FED7AA;
+}
+
+.sge-status-badge__dot--partial {
+  background: #F97316;
 }
 
 /* Crítico: Cancelado / Sem Estoque */

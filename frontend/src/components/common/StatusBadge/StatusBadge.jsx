@@ -17,15 +17,21 @@ import './StatusBadge.css';
 const STATUS_CONFIG = {
   // Pedidos
   'pendente': {
-    label: 'Pendente',
+    label: 'Aguardando Separação',
+    className: 'sge-status-badge--warning',
+    dotClass: 'sge-status-badge__dot--warning',
+    pulse: true
+  },
+  'aguardando-separacao': {
+    label: 'Aguardando Separação',
     className: 'sge-status-badge--warning',
     dotClass: 'sge-status-badge__dot--warning',
     pulse: true
   },
   'em-separacao': {
     label: 'Em Separação',
-    className: 'sge-status-badge--warning',
-    dotClass: 'sge-status-badge__dot--warning',
+    className: 'sge-status-badge--info',
+    dotClass: 'sge-status-badge__dot--info',
     pulse: true
   },
   'pronto': {
@@ -33,10 +39,47 @@ const STATUS_CONFIG = {
     className: 'sge-status-badge--success',
     dotClass: 'sge-status-badge__dot--success'
   },
-  'atendido': {
-    label: 'Atendido',
+  'pronto-para-retirada': {
+    label: 'Pronto para Retirada',
     className: 'sge-status-badge--success',
     dotClass: 'sge-status-badge__dot--success'
+  },
+  'parcialmente-disponivel': {
+    label: 'Parcialmente Disponível',
+    className: 'sge-status-badge--partial',
+    dotClass: 'sge-status-badge__dot--partial',
+    pulse: true
+  },
+  'atendido-parcialmente': {
+    label: 'Atendido Parcialmente',
+    className: 'sge-status-badge--partial',
+    dotClass: 'sge-status-badge__dot--partial',
+    pulse: true
+  },
+  'entregue': {
+    label: 'Entregue',
+    className: 'sge-status-badge--success',
+    dotClass: 'sge-status-badge__dot--success'
+  },
+  'concluido': {
+    label: 'Concluído',
+    className: 'sge-status-badge--success',
+    dotClass: 'sge-status-badge__dot--success'
+  },
+  'atendido': {
+    label: 'Entregue',
+    className: 'sge-status-badge--success',
+    dotClass: 'sge-status-badge__dot--success'
+  },
+  'estoque-insuficiente': {
+    label: 'Estoque Insuficiente',
+    className: 'sge-status-badge--danger',
+    dotClass: 'sge-status-badge__dot--danger'
+  },
+  'indisponivel': {
+    label: 'Estoque Insuficiente',
+    className: 'sge-status-badge--danger',
+    dotClass: 'sge-status-badge__dot--danger'
   },
   'cancelado': {
     label: 'Cancelado',

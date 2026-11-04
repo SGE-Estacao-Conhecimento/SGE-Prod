@@ -107,6 +107,43 @@ const CadernetaPedidosModal = ({
           </button>
         ) : null
       }
+      footer={
+        totalMateriais > 0 ? (
+          <div className="caderneta-footer__actions">
+            <button
+              type="button"
+              className="caderneta-btn-cancel"
+              onClick={onClose}
+            >
+              Continuar Escolhendo
+            </button>
+            <button
+              type="submit"
+              form="caderneta-form-pedidos"
+              disabled={enviando || totalMateriais === 0}
+              className={`caderneta-btn-submit ${urgente ? 'caderneta-btn-submit--urgente' : ''}`}
+            >
+              {enviando ? (
+                'Enviando Pedido...'
+              ) : urgente ? (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                  Enviar Pedido Urgente
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Confirmar e Enviar Pedido
+                </>
+              )}
+            </button>
+          </div>
+        ) : null
+      }
       maxWidth="560px"
       className="caderneta-modal"
     >
@@ -133,7 +170,7 @@ const CadernetaPedidosModal = ({
           </button>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="caderneta-form">
+        <form id="caderneta-form-pedidos" onSubmit={handleSubmit} className="caderneta-form">
           {/* Lista de Itens da Caderneta Direto na Janela */}
           <div className="caderneta-itens-scroll">
             <AnimatePresence initial={false}>
@@ -252,51 +289,6 @@ const CadernetaPedidosModal = ({
                 <span className="sheet-toggle-slider" />
               </div>
             </label>
-          </div>
-
-          {/* Rodapé com Resumo e Confirmação */}
-          <div className="caderneta-footer">
-            <div className="caderneta-footer__resumo">
-              <span className="caderneta-footer__total-itens">
-                <strong>{totalMateriais}</strong> {totalMateriais === 1 ? 'material' : 'materiais'}
-              </span>
-              <span className="caderneta-footer__total-volumes">
-                ({totalVolumes} {totalVolumes === 1 ? 'unidade/volume' : 'unidades/volumes'} no total)
-              </span>
-            </div>
-
-            <div className="caderneta-footer__actions">
-              <button
-                type="button"
-                className="caderneta-btn-cancel"
-                onClick={onClose}
-              >
-                Continuar Escolhendo
-              </button>
-              <button
-                type="submit"
-                disabled={enviando || totalMateriais === 0}
-                className={`caderneta-btn-submit ${urgente ? 'caderneta-btn-submit--urgente' : ''}`}
-              >
-                {enviando ? (
-                  'Enviando Pedido...'
-                ) : urgente ? (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                    </svg>
-                    Enviar Pedido Urgente
-                  </>
-                ) : (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    Confirmar e Enviar Pedido
-                  </>
-                )}
-              </button>
-            </div>
           </div>
         </form>
       )}

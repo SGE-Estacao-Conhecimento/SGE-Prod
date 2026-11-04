@@ -190,17 +190,67 @@ class MockDataStore {
     return { success: true };
   }
 
+  _sanitizarPedido(p) {
+    if (!p) return p;
+    const resolverNome = (id, nomeAtual) => {
+      if (nomeAtual && String(nomeAtual).trim() && nomeAtual !== 'undefined') return nomeAtual;
+      const m = this._materiais.find(mat => Number(mat.id) === Number(id));
+      return m?.nome || 'Material Solicitado';
+    };
+    const resolverUnidade = (id, unidAtual) => {
+      if (unidAtual && String(unidAtual).trim() && unidAtual !== 'undefined') return unidAtual;
+      const m = this._materiais.find(mat => Number(mat.id) === Number(id));
+      return m?.unidade || 'UN';
+    };
+
+    let itensSanitizados = p.itens;
+    if (Array.isArray(p.itens) && p.itens.length > 0) {
+      itensSanitizados = p.itens.map(it => ({
+        ...it,
+        materialNome: resolverNome(it.produtoId || it.id, it.materialNome || it.nome),
+        unidade: resolverUnidade(it.produtoId || it.id, it.unidade)
+      }));
+    }
+
+    let materiaisSanitizados = p.materiais;
+    if (Array.isArray(p.materiais) && p.materiais.length > 0) {
+      materiaisSanitizados = p.materiais.map(m => typeof m === 'string' ? m : {
+        ...m,
+        materialNome: resolverNome(m.produtoId || m.id, m.materialNome || m.nome),
+        unidade: resolverUnidade(m.produtoId || m.id, m.unidade)
+      });
+    }
+
+    let resumoMaterial = p.material;
+    if (!resumoMaterial || resumoMaterial.includes('undefined')) {
+      if (Array.isArray(materiaisSanitizados) && materiaisSanitizados.length > 0) {
+        resumoMaterial = materiaisSanitizados.length === 1
+          ? (typeof materiaisSanitizados[0] === 'string' ? materiaisSanitizados[0] : materiaisSanitizados[0].materialNome)
+          : materiaisSanitizados.map(m => typeof m === 'string' ? m : `${m.materialNome} (${m.quantidade} ${m.unidade})`).join(', ');
+      }
+    }
+
+    return {
+      ...p,
+      itens: itensSanitizados || p.itens,
+      materiais: materiaisSanitizados || p.materiais,
+      material: resumoMaterial || p.material
+    };
+  }
+
   // --- PEDIDOS ---
   async getPedidos(status = '') {
-    if (!status) return [...this._pedidos];
+    const list = this._pedidos.map(p => this._sanitizarPedido(p));
+    if (!status) return [...list];
     const s = String(status).toLowerCase();
-    return this._pedidos.filter(p => String(p.status || '').toLowerCase() === s);
+    return list.filter(p => String(p.status || '').toLowerCase() === s);
   }
 
   async getMeusPedidos(user) {
+    const list = this._pedidos.map(p => this._sanitizarPedido(p));
     const nomeOuEmail = (user?.identifier || user?.email || user?.nome || '').toLowerCase();
-    if (!nomeOuEmail) return [...this._pedidos];
-    return this._pedidos.filter(p => {
+    if (!nomeOuEmail) return [...list];
+    return list.filter(p => {
       const u = String(p.usuario || '').toLowerCase();
       return u === nomeOuEmail || nomeOuEmail.includes(u) || u.includes('usuário') || u.includes('carlos');
     });
@@ -217,11 +267,26 @@ class MockDataStore {
           unidade: pedidoData.unidade || 'UN'
         }];
 
-    const materiaisFormatados = itens.map(it => ({
-      materialNome: it.materialNome || it.nome,
-      quantidade: it.quantidade,
-      unidade: it.unidade || 'UN'
-    }));
+    const materiaisFormatados = itens.map(it => {
+      const matCadastrado = this._materiais.find(m => Number(m.id) === Number(it.produtoId || it.id));
+      const materialNome = it.materialNome || it.nome || matCadastrado?.nome || 'Material Solicitado';
+      const unidade = it.unidade || matCadastrado?.unidade || 'UN';
+      return {
+        produtoId: it.produtoId || it.id,
+        materialNome,
+        quantidade: it.quantidade,
+        unidade
+      };
+    });
+
+    const itensNormalizados = itens.map(it => {
+      const matCadastrado = this._materiais.find(m => Number(m.id) === Number(it.produtoId || it.id));
+      return {
+        ...it,
+        materialNome: it.materialNome || it.nome || matCadastrado?.nome || 'Material Solicitado',
+        unidade: it.unidade || matCadastrado?.unidade || 'UN'
+      };
+    });
 
     const resumoMaterial = materiaisFormatados.length === 1
       ? materiaisFormatados[0].materialNome
@@ -237,9 +302,9 @@ class MockDataStore {
       setor: pedidoData.setor || user?.setor || 'Educação Infantil',
       data: new Date().toLocaleDateString('pt-BR'),
       material: resumoMaterial,
-      quantidade: itens.reduce((acc, it) => acc + (Number(it.quantidade) || 0), 0),
+      quantidade: itensNormalizados.reduce((acc, it) => acc + (Number(it.quantidade) || 0), 0),
       materiais: materiaisFormatados,
-      itens,
+      itens: itensNormalizados,
       prioridade: urgenciaNormalizada,
       urgente: urgenciaNormalizada === 'Urgente',
       status: 'Pendente',
