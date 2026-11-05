@@ -1,1017 +1,1163 @@
 /* ============================================================
-   GESTÃO CENTRAL DE PEDIDOS (PedidosView.css)
+   SEPARAÇÃO E ATENDIMENTO DE PEDIDOS (WMS PIPELINE)
+   PedidosView.css — Ergonomia Tátil e Design System do SGE
    ============================================================ */
 
-/* Container Principal */
-.pedidos-container {
+.atendimento-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
   position: relative;
+  box-sizing: border-box;
 }
 
-/* Toast de Notificação Flutuante */
-.pedidos-toast {
-  position: sticky;
-  top: 12px;
-  align-self: center;
-  z-index: 1000;
+/* ===== TOAST FLUTUANTE DE FEEDBACK ===== */
+.atendimento-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 18px;
-  border-radius: 30px;
+  border-radius: 9999px;
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-  animation: slideDownToast 0.25s ease-out;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  animation: slideDownToast 0.22s ease-out;
+  max-width: calc(100vw - 32px);
+  width: max-content;
+  pointer-events: auto;
 }
 
 @keyframes slideDownToast {
-  from { opacity: 0; transform: translateY(-12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate(-50%, -12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
-.pedidos-toast--success {
+.atendimento-toast--sucesso {
   background: #064E3B;
   color: #ECFDF5;
   border: 1px solid #059669;
 }
 
-.pedidos-toast--danger {
+.atendimento-toast--aviso {
+  background: #78350F;
+  color: #FEF3C7;
+  border: 1px solid #D97706;
+}
+
+.atendimento-toast--erro {
   background: #7F1D1D;
   color: #FEF2F2;
   border: 1px solid #DC2626;
 }
 
-.pedidos-toast__icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+.atendimento-toast__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  flex-shrink: 0;
 }
 
-.pedidos-toast__close {
-  background: none;
+.atendimento-toast__msg {
+  flex: 1;
+  line-height: 1.3;
+}
+
+.atendimento-toast__close {
+  background: transparent;
   border: none;
   color: inherit;
   font-size: 18px;
+  line-height: 1;
   cursor: pointer;
   padding: 0 4px;
-  line-height: 1;
   opacity: 0.8;
+  transition: opacity 0.15s ease;
 }
 
-.pedidos-toast__close:hover {
+.atendimento-toast__close:hover {
   opacity: 1;
 }
 
-/* Header */
-.pedidos-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
+/* ===== ABAS SEGMENTADAS DA ESTEIRA (WMS TABS) ===== */
+.atendimento-tabs-wrap {
+  width: 100%;
 }
 
-.pedidos-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.3px;
-  margin-bottom: 4px;
+.atendimento-segmented-tabs {
+  width: 100%;
 }
 
-.pedidos-subtitle {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.btn-novo-pedido {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 2px 10px rgba(74, 108, 247, 0.35);
-  transition: all 0.2s ease;
-  cursor: pointer;
-  border: none;
-}
-
-.btn-novo-pedido:hover {
-  background: var(--accent-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(74, 108, 247, 0.45);
-}
-
-/* KPIs */
-.pedidos-kpis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 14px;
-}
-
-.pedidos-kpi-card {
-  background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  padding: 14px 18px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
-  cursor: pointer;
-  user-select: none;
-}
-
-.pedidos-kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: #CBD5E1;
-}
-
-.pedidos-kpi-card:active {
-  transform: scale(0.98);
-}
-
-.pedidos-kpi-card--active {
-  border-color: var(--accent, #017F7B);
-  box-shadow: 0 0 0 2px rgba(1, 127, 123, 0.22);
-  background: #F0FDFA;
-}
-
-.pedidos-kpi-card--active-warning {
-  border-color: #F59E0B;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.22);
-  background: #FFFBEB;
-}
-
-.pedidos-kpi-card--active-urgente {
-  border-color: #EA580C;
-  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.22);
-  background: #FFF7ED;
-}
-
-.pedidos-kpi-card--active-success {
-  border-color: #10B981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.22);
-  background: #ECFDF5;
-}
-
-.pedidos-kpi-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.pedidos-kpi-icon--total {
-  background: rgba(74, 108, 247, 0.12);
-  color: var(--accent);
-}
-
-.pedidos-kpi-icon--warning {
-  background: rgba(245, 158, 11, 0.12);
-  color: #F59E0B;
-}
-
-.pedidos-kpi-icon--urgente {
-  background: rgba(234, 88, 12, 0.15);
-  color: #EA580C;
-}
-
-.pedidos-kpi-icon--success {
-  background: rgba(16, 185, 129, 0.12);
-  color: #10B981;
-}
-
-.pedidos-kpi-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  font-weight: 600;
-  display: block;
-  margin-bottom: 2px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.pedidos-kpi-val {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--text-primary);
-  line-height: 1.1;
-}
-
-.text-urgente {
-  color: #EA580C;
-}
-
-/* Chips de Filtro Rápido por Setor */
-.pedidos-sector-chips-bar {
+/* ===== BARRA DE BUSCA E FILTROS RÁPIDOS ===== */
+.atendimento-filter-bar {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 12px 16px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  width: 100%;
 }
 
-.pedidos-sector-chips-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-}
-
-.pedidos-sector-chips-list {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+.atendimento-search-wrap {
   flex: 1;
-}
-
-.sector-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.sector-chip:hover {
-  background: rgba(74, 108, 247, 0.08);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-1px);
-}
-
-.sector-chip--active {
-  background: var(--accent) !important;
-  color: #ffffff !important;
-  border-color: var(--accent) !important;
-  box-shadow: 0 2px 8px rgba(74, 108, 247, 0.35);
-  font-weight: 600;
-}
-
-.sector-chip-count {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.sector-chip--active .sector-chip-count {
-  background: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
-}
-
-/* Barra de Filtros e Busca */
-.pedidos-filter-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.pedidos-search-wrap {
+  min-width: 260px;
   position: relative;
-  flex: 1;
-  min-width: 280px;
+  display: flex;
+  align-items: center;
 }
 
-.pedidos-search-icon {
+.atendimento-search-icon {
   position: absolute;
   left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-secondary);
+  color: #94A3B8;
   pointer-events: none;
 }
 
-.pedidos-search-input {
+.atendimento-search-input {
   width: 100%;
   height: 40px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0 34px 0 38px;
+  padding: 0 36px 0 38px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
   font-size: 13px;
-  color: var(--text-primary);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  color: #0F172A;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   box-sizing: border-box;
 }
 
-.pedidos-search-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15);
+.atendimento-search-input:focus {
+  border-color: var(--accent, #017F7B);
+  box-shadow: 0 0 0 3px rgba(1, 127, 123, 0.12);
 }
 
-.pedidos-clear-search {
+.atendimento-clear-search {
   position: absolute;
   right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
+  background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: #94A3B8;
   font-size: 18px;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 4px;
+  line-height: 1;
 }
 
-.pedidos-filters-right {
+.atendimento-clear-search:hover {
+  color: #0F172A;
+}
+
+.atendimento-filter-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.pedidos-select-filter {
+/* Chip de Urgência */
+.atendimento-chip-urgente {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   height: 40px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0 12px;
-  font-size: 13px;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.pedidos-select-filter:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-/* Card e Tabela */
-.pedidos-table-card {
-  background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-
-.pedidos-table-wrapper {
-  overflow-x: auto;
-  width: 100%;
-}
-
-.pedidos-table-main {
-  width: 100%;
-  min-width: 0;
-  table-layout: fixed;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-/* Mantém as ações dentro da viewport em notebooks e janelas menores. */
-.pedidos-table-main th:nth-child(1),
-.pedidos-table-main td:nth-child(1) { width: 7% !important; }
-.pedidos-table-main th:nth-child(2),
-.pedidos-table-main td:nth-child(2) { width: 20% !important; }
-.pedidos-table-main th:nth-child(3),
-.pedidos-table-main td:nth-child(3) { width: 9% !important; }
-.pedidos-table-main th:nth-child(4),
-.pedidos-table-main td:nth-child(4) { width: 21% !important; }
-.pedidos-table-main th:nth-child(5),
-.pedidos-table-main td:nth-child(5) { width: 10% !important; }
-.pedidos-table-main th:nth-child(6),
-.pedidos-table-main td:nth-child(6) { width: 10% !important; }
-.pedidos-table-main th:nth-child(7),
-.pedidos-table-main td:nth-child(7) { width: 17% !important; }
-.pedidos-table-main th:nth-child(8),
-.pedidos-table-main td:nth-child(8) { width: 6% !important; }
-
-.pedidos-table-main thead th {
-  background: var(--bg-primary);
-  padding: 13px 14px;
-  font-size: 11px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  color: #475569;
+  font-size: 12.5px;
   font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  transition: all 0.15s ease;
 }
 
-.pedidos-table-main tbody td {
-  padding: 13px 14px;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
-  color: var(--text-primary);
-  vertical-align: middle;
+.atendimento-chip-urgente:hover {
+  border-color: #CBD5E1;
+  background: #F8FAFC;
 }
 
-.pedidos-table-main tbody tr:last-child td {
-  border-bottom: none;
+.atendimento-chip-urgente--active {
+  background: #FEF2F2 !important;
+  border-color: #F87171 !important;
+  color: #DC2626 !important;
 }
 
-.pedidos-table-main tbody tr:hover td {
-  background: var(--hover-bg, rgba(74, 108, 247, 0.03));
+.atendimento-chip-urgente__count {
+  background: #EF4444;
+  color: #FFFFFF;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-weight: 800;
 }
 
-.pedido-details-row td {
-  padding: 0 14px 12px;
-  background: #f8fafc;
+/* Seletor por Setor */
+.atendimento-select-setor {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
 }
 
-.pedido-details-panel {
-  display: flex;
-  align-items: flex-start;
-  gap: 28px;
-  padding: 12px 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #ffffff;
-  color: var(--text-secondary);
-  font-size: 12px;
-  animation: pedido-details-open 0.22s ease-out both;
+.atendimento-select-setor:focus {
+  border-color: var(--accent, #017F7B);
 }
 
-@keyframes pedido-details-open {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.pedido-details-materiais {
-  flex: 1.3;
-}
-
-.pedido-details-panel > div {
+/* ===== LISTA DE CARDS DA ESTEIRA WMS ===== */
+.atendimento-cards-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 14px;
+  width: 100%;
 }
 
-.pedido-details-label {
-  color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.pedido-details-panel strong {
-  color: var(--text-primary);
-}
-
-.pedido-details-justificativa {
-  flex: 1;
-}
-
-/* Destaque para Pedidos Urgentes */
-.pedidos-table-row--urgente td {
-  background: rgba(234, 88, 12, 0.035);
-}
-
-.pedidos-table-row--urgente td:first-child {
-  border-left: 5px solid #EA580C !important;
-}
-
-.pedidos-table-row--urgente:hover td {
-  background: rgba(234, 88, 12, 0.065) !important;
-}
-
-.sku-cell {
+/* Card do Pedido */
+.atendimento-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 16px 18px;
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  position: relative;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
 }
 
-.pedido-sku-badge {
-  font-weight: 700;
-  color: var(--accent);
-  font-size: 12px;
-  font-family: monospace;
-  background: rgba(74, 108, 247, 0.08);
-  padding: 3px 7px;
-  border-radius: var(--radius-sm);
-  display: inline-block;
+.atendimento-card:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+  border-color: #CBD5E1;
 }
 
-.pedido-sku-badge--urgente {
-  color: #EA580C;
-  background: #FFF7ED;
-  border: 1px solid #FED7AA;
-  box-shadow: 0 1px 3px rgba(234, 88, 12, 0.15);
+/* A Borda Esquerda pertence EXCLUSIVAMENTE a pedidos Urgentes! */
+.atendimento-card--urgente {
+  border-left: 4.5px solid #EF4444 !important;
+  background: linear-gradient(180deg, #FFFDFB 0%, #FFFFFF 100%);
 }
 
-/* Célula do Solicitante Interativa (Abre Gaveta) */
-.solicitante-cell-btn {
+.atendimento-card--urgente:hover {
+  border-left-color: #EF4444 !important;
+}
+
+/* ===== CABEÇALHO DO CARD ===== */
+.atendimento-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-right: 76px; /* Garante que o solicitante e os badges nunca colidam com o ID fixo */
+}
+
+.atendimento-card__solicitante-btn {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: none;
+  background: transparent;
   border: none;
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  text-align: left;
+  padding: 0;
   cursor: pointer;
-  transition: all 0.18s ease;
-  width: 100%;
+  text-align: left;
+  outline: none;
+  user-select: none;
 }
 
-.solicitante-cell-btn:hover {
-  background: rgba(74, 108, 247, 0.07);
-}
-
-.solicitante-cell-btn:hover .solicitante-name {
-  color: var(--accent);
+.atendimento-card__solicitante-btn:hover .atendimento-card__nome {
+  color: var(--accent, #017F7B);
   text-decoration: underline;
 }
 
-.solicitante-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent) 0%, #3554d1 100%);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
+.atendimento-card__avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  background: var(--accent-light, #F0FDFA);
+  color: var(--accent, #017F7B);
+  font-size: 14px;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid #CCFBF1;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(74, 108, 247, 0.25);
-  transition: transform 0.18s ease;
 }
 
-.solicitante-cell-btn:hover .solicitante-avatar {
-  transform: scale(1.08);
+.atendimento-card__avatar--urgente {
+  background: #FEF2F2;
+  color: #DC2626;
+  border-color: #FECACA;
 }
 
-.solicitante-avatar--urgente {
-  background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
-  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.35);
-}
-
-.solicitante-info {
+.atendimento-card__solicitante-meta {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.solicitante-name-row {
+.atendimento-card__nome-row {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.solicitante-name {
-  font-weight: 600;
-  color: var(--text-primary);
-  font-size: 13px;
+.atendimento-card__nome {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.25;
 }
 
-.solicitante-history-tag {
+.atendimento-card__prontuario-tag {
   display: inline-flex;
   align-items: center;
   gap: 3px;
   font-size: 10px;
   font-weight: 600;
-  color: var(--accent);
-  background: rgba(74, 108, 247, 0.08);
-  padding: 1px 5px;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 1px 6px;
   border-radius: 4px;
-  opacity: 0.85;
 }
 
-.solicitante-cell-btn:hover .solicitante-history-tag {
-  opacity: 1;
-  background: rgba(74, 108, 247, 0.16);
-}
-
-.solicitante-sub-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-}
-
-.setor-tag {
-  display: inline-block;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.pedido-justificativa-sub {
-  font-size: 11px;
-  color: var(--text-secondary);
-  max-width: 180px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-style: italic;
-}
-
-.data-text {
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-/* Lista de Materiais */
-.pedidos-materiais-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  max-width: 270px;
-}
-
-.pedido-mat-chip {
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 11px;
-  color: var(--text-primary);
-  white-space: nowrap;
-}
-
-.pedido-mat-chip strong {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-/* Badges de Prioridade */
-.prioridade-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.prioridade-badge--alta {
-  background: rgba(245, 158, 11, 0.15);
-  color: #F59E0B;
-}
-
-.prioridade-badge--normal {
-  background: rgba(100, 116, 139, 0.15);
+.atendimento-card__setor-text {
+  font-size: 11.5px;
   color: #64748B;
 }
 
-/* Badge Urgente com Pulso Idêntico ao Portal do Usuário */
-.pedido-badge-urgente {
+/* Lado Direito do Header (Badges + ID Fixo no Canto Superior Direito) */
+.atendimento-card__header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.atendimento-card__badges-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Número do Pedido Fixo no Canto Superior Direito (Desktop e Mobile) */
+.atendimento-card__id-badge {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-family: monospace;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #1E293B;
+  background: #F1F5F9;
+  border: 1.5px solid #CBD5E1;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  z-index: 2;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.atendimento-badge-urgente {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
-  background: #FFF7ED;
-  border: 1px solid #FFEDD5;
-  color: #C2410C;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(234, 88, 12, 0.12);
-  animation: pulseUrgentBadge 2.2s infinite ease-in-out;
-  white-space: nowrap;
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  letter-spacing: 0.4px;
+  animation: pulseUrgent 1.8s infinite;
 }
 
-.pedido-badge-urgente svg {
-  color: #EA580C;
-  animation: urgentFlash 1.6s infinite ease-in-out;
+@keyframes pulseUrgent {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
 }
 
-@keyframes pulseUrgentBadge {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 1px 3px rgba(234, 88, 12, 0.12);
-  }
-  50% {
-    transform: scale(1.03);
-    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.28);
-  }
-}
-
-@keyframes urgentFlash {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.15); }
-}
-
-/* Status Badges */
-.status-badge {
+/* Semáforo de Disponibilidade de Estoque */
+.estoque-semaforo-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 9px;
-  border-radius: 12px;
+  gap: 5px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
   white-space: nowrap;
 }
 
-.status-badge--success {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10B981;
+.estoque-semaforo-dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 9999px;
 }
 
-.status-badge--warning {
-  background: rgba(245, 158, 11, 0.15);
-  color: #F59E0B;
+.estoque-semaforo-badge--disponivel {
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+.estoque-semaforo-badge--disponivel .estoque-semaforo-dot {
+  background: #10B981;
 }
 
-.status-badge--danger {
-  background: rgba(239, 68, 68, 0.15);
-  color: #EF4444;
+.estoque-semaforo-badge--parcial {
+  background: #FFFBEB;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+.estoque-semaforo-badge--parcial .estoque-semaforo-dot {
+  background: #F59E0B;
 }
 
-.status-badge--info {
-  background: rgba(59, 130, 246, 0.15);
-  color: #2563EB;
+.estoque-semaforo-badge--indisponivel {
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+.estoque-semaforo-badge--indisponivel .estoque-semaforo-dot {
+  background: #DC2626;
 }
 
-.status-badge--ready {
-  background: rgba(16, 185, 129, 0.2);
-  color: #059669;
+/* ===== JUSTIFICATIVA DO SOLICITANTE ===== */
+.atendimento-card__justificativa {
+  background: #F8FAFC;
+  border-left: 3px solid #CBD5E1;
+  padding: 7px 12px;
+  border-radius: 0 8px 8px 0;
+  font-size: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  line-height: 1.35;
 }
 
-/* ============================================================
-   AÇÕES RÁPIDAS EM 1 CLIQUE
-   ============================================================ */
+.atendimento-card__justificativa-label {
+  font-weight: 700;
+  color: #475569;
+  flex-shrink: 0;
+}
 
-.quick-actions-bar {
+.atendimento-card__justificativa-text {
+  color: #334155;
+  font-style: italic;
+}
+
+/* ===== ROTEIRO DE ITENS / PICKING ===== */
+/* Lista de Materiais do Card (Sanfona e Visual Padronizado com o Usuário) */
+.atendimento-card__items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.atendimento-card__itens-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* No Desktop / PC: distribui os materiais em 2 colunas para preencher o espaço horizontal */
+@media (min-width: 769px) {
+  .atendimento-card__itens-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .atendimento-card__itens-list {
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 10px;
+  }
+}
+
+/* Botão de Sanfona / Expandir Mais Materiais no Rodapé da Lista */
+.atendimento-card__expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px dashed #CBD5E1;
+  border-radius: 8px;
+  color: var(--accent, #017F7B);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 2px;
+  outline: none;
+  user-select: none;
+}
+
+.atendimento-card__expand-btn:hover {
+  background: #F1F5F9;
+  border-color: var(--accent, #017F7B);
+}
+
+.atendimento-card__expand-icon {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.atendimento-card__expand-icon--open {
+  transform: rotate(180deg);
+}
+
+/* Ícones de status tátil (V ou X) para os itens */
+.atendimento-item-status-icon {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.atendimento-item-status-icon--ok {
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+}
+
+.atendimento-item-status-icon--falta {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+}
+
+/* Bullet neutro ou falta na aba Novos */
+.atendimento-item-bullet {
+  color: var(--accent, #017F7B);
+  background: rgba(1, 127, 123, 0.08);
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.atendimento-item-bullet--falta {
+  background: #FEE2E2 !important;
+  color: #DC2626 !important;
+}
+
+/* Linha de Item do Pedido */
+.atendimento-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.atendimento-item-row--checked {
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+}
+
+.atendimento-item-row--sem-saldo {
+  border-color: #FECACA;
+  background: #FFF1F2;
+}
+
+/* Checkbox de Picking */
+.picking-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding-top: 2px;
+}
+
+.picking-checkbox-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.picking-checkbox-custom {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 6px;
+  border: 2px solid #CBD5E1;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  transition: all 0.15s ease;
+}
+
+.picking-checkbox-input:checked + .picking-checkbox-custom {
+  background: #10B981;
+  border-color: #10B981;
+}
+
+.atendimento-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.atendimento-item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.atendimento-item-nome {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.25;
+}
+
+.atendimento-item-nome--checked {
+  color: #0F172A;
+}
+
+.atendimento-item-qtd-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.atendimento-item-qtd-pedida {
+  color: #0F172A;
+}
+
+.atendimento-item-saldo-pill {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.saldo-pill--ok {
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+
+.saldo-pill--baixo {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+/* Endereçamento Físico WMS (Modelo 2) dentro do Item */
+.atendimento-item-wms {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.atendimento-item-wms__macro {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: #64748B;
+}
+
+.atendimento-item-wms__macro svg {
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+
+.atendimento-item-wms__micro {
   display: flex;
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
-  max-width: 100%;
 }
 
-.btn-quick-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 9px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  white-space: nowrap;
-  border: 1px solid transparent;
-  max-width: 100%;
-}
-
-@media (max-width: 1200px) {
-  .pedidos-table-main th:nth-child(8),
-  .pedidos-table-main td:nth-child(8) { display: none; }
-
-  .pedidos-table-main th:nth-child(7),
-  .pedidos-table-main td:nth-child(7) { width: 19%; }
-}
-
-/* Tabela compacta: seis colunas, com a linha inteira como gatilho de expansão. */
-.pedidos-table-main th:nth-child(1), .pedidos-table-main td:nth-child(1) { width: 9% !important; }
-.pedidos-table-main th:nth-child(2), .pedidos-table-main td:nth-child(2) { width: 27% !important; }
-.pedidos-table-main th:nth-child(3), .pedidos-table-main td:nth-child(3) { width: 12% !important; }
-.pedidos-table-main th:nth-child(4), .pedidos-table-main td:nth-child(4) { width: 15% !important; }
-.pedidos-table-main th:nth-child(5), .pedidos-table-main td:nth-child(5) { width: 13% !important; }
-.pedidos-table-main th:nth-child(6), .pedidos-table-main td:nth-child(6) { width: 24% !important; }
-.pedidos-table-row { cursor: pointer; }
-
-.btn-quick-action:active {
-  transform: scale(0.96);
-}
-
-/* Aprovar Solicitação */
-.btn-quick-action--approve {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.btn-quick-action--approve:hover {
-  background: #10B981;
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
-}
-
-/* Liberar Retirada */
-.btn-quick-action--ready {
-  background: rgba(74, 108, 247, 0.12);
-  color: var(--accent);
-  border-color: rgba(74, 108, 247, 0.3);
-}
-
-.btn-quick-action--ready:hover {
-  background: var(--accent);
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(74, 108, 247, 0.35);
-}
-
-/* Finalizar / Concluir Entrega */
-.btn-quick-action--finish {
-  background: #059669;
-  color: #ffffff;
-  border-color: #059669;
-  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.28);
-}
-
-.btn-quick-action--finish:hover {
-  background: #047857;
-  transform: translateY(-1px);
-}
-
-/* Recusar */
-.btn-quick-action--reject {
-  background: rgba(239, 68, 68, 0.1);
-  color: #EF4444;
-  border-color: rgba(239, 68, 68, 0.25);
-}
-
-.btn-quick-action--reject:hover {
-  background: #EF4444;
-  color: #ffffff;
-}
-
-/* Reabrir / Neutro */
-.btn-quick-action--neutral {
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  border-color: var(--border);
-}
-
-.btn-quick-action--neutral:hover {
-  border-color: var(--text-secondary);
-  color: var(--text-primary);
-}
-
-.quick-action-status-box {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.quick-action-status-tag {
-  font-size: 11px;
-  font-weight: 700;
-}
-
-/* Botões de Ação Secundários */
-.action-buttons {
+/* ===== RODAPÉ DE AÇÕES DO CARD ===== */
+.atendimento-card__actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 5px;
+  border-top: 1px dashed #E2E8F0;
+  padding-top: 10px;
+  margin-top: 2px;
 }
 
-.btn-action {
-  width: 28px;
-  height: 28px;
+.atendimento-actions-row {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.atendimento-btn {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--card-bg);
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
   cursor: pointer;
-  color: var(--text-secondary);
+  outline: none;
+  user-select: none;
+  border: none;
   transition: all 0.15s ease;
 }
 
-.btn-action--edit:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(74, 108, 247, 0.08);
+.atendimento-btn:active {
+  transform: scale(0.97);
 }
 
-.btn-action--delete:hover {
-  border-color: #EF4444;
-  color: #EF4444;
-  background: rgba(239, 68, 68, 0.08);
+.atendimento-btn--primary {
+  background: var(--accent, #017F7B);
+  color: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(1, 127, 123, 0.2);
 }
 
-/* Empty State */
-.pedidos-empty-state {
+.atendimento-btn--primary:hover {
+  background: #016562;
+  box-shadow: 0 2px 6px rgba(1, 127, 123, 0.3);
+}
+
+.atendimento-btn--success {
+  background: #059669;
+  color: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(5, 150, 105, 0.25);
+}
+
+.atendimento-btn--success:hover {
+  background: #047857;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.35);
+}
+
+.atendimento-btn--secondary {
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+}
+
+.atendimento-btn--secondary:hover {
+  background: #E2E8F0;
+  color: #1E293B;
+}
+
+.atendimento-btn--recusar {
+  background: #FFF1F2;
+  color: #E11D48;
+  border: 1px solid #FECDD3;
+}
+
+.atendimento-btn--recusar:hover {
+  background: #FFE4E6;
+  color: #BE123C;
+}
+
+/* Informações do Histórico */
+.atendimento-actions-row--historico {
+  justify-content: flex-start;
+}
+
+.historico-tag {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.historico-tag--entregue {
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+
+.historico-tag--cancelado {
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+.historico-tag--parcial {
+  background: #FFFBEB;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+/* Callout de Instruções do Almoxarifado */
+.atendimento-card__instrucoes-almox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-left: 3px solid #16A34A;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #166534;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.atendimento-card__instrucoes-almox svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #16A34A;
+}
+
+.atendimento-card__instrucoes-almox strong {
+  font-weight: 700;
+  color: #14532D;
+}
+
+/* Tag de Entrega Parcial/Total nos Itens */
+.atendimento-item-entregue-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.entregue-tag--ok {
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+}
+
+.entregue-tag--parcial {
+  background: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FCD34D;
+}
+
+/* ===== MODAL DE RECUSA ===== */
+.recusa-modal__body {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 24px;
-  text-align: center;
+  gap: 14px;
+  padding: 4px 0;
 }
 
-.pedidos-empty-state .empty-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--border-light);
-  color: var(--text-muted);
+.recusa-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.recusa-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recusa-radio-card {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.pedidos-empty-state h4 {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 6px;
-}
-
-.pedidos-empty-state p {
-  font-size: 13px;
-  color: var(--text-secondary);
-  max-width: 380px;
-  margin-bottom: 16px;
-}
-
-.btn-clear-filters {
-  padding: 8px 16px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: 13px;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s;
+  font-size: 13px;
+  color: #1E293B;
+  transition: all 0.15s ease;
 }
 
-.btn-clear-filters:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+.recusa-radio-card:hover {
+  border-color: #CBD5E1;
+  background: #F8FAFC;
 }
 
-/* ===== RESPONSIVIDADE ===== */
-@media (max-width: 900px) {
-  .pedidos-header {
+.recusa-radio-card--selected {
+  border-color: #E11D48 !important;
+  background: #FFF1F2 !important;
+  color: #9F1239 !important;
+  font-weight: 600;
+}
+
+.recusa-obs-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.recusa-obs-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #0F172A;
+  outline: none;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.recusa-obs-textarea:focus {
+  border-color: var(--accent, #017F7B);
+}
+
+.recusa-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+.recusa-btn-voltar {
+  padding: 9px 16px;
+  border-radius: 8px;
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.recusa-btn-voltar:hover {
+  background: #E2E8F0;
+}
+
+.recusa-btn-confirmar {
+  padding: 9px 16px;
+  border-radius: 8px;
+  background: #DC2626;
+  color: #FFFFFF;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.recusa-btn-confirmar:hover {
+  background: #B91C1C;
+}
+
+/* ===== MODAL DE PRONTO PARA RETIRADA COM INSTRUÇÕES ===== */
+.pronto-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0;
+}
+
+.pronto-modal-desc {
+  font-size: 13px;
+  color: #475569;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.pronto-atalhos-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pronto-chip-btn {
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  color: #334155;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.pronto-chip-btn:hover {
+  background: #E2E8F0;
+  border-color: #94A3B8;
+  color: #0F172A;
+}
+
+.pronto-chip-btn--active {
+  background: #E6F4F3 !important;
+  border-color: var(--accent, #017F7B) !important;
+  color: var(--accent, #017F7B) !important;
+  font-weight: 700;
+}
+
+.pronto-textarea-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pronto-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.pronto-textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #0F172A;
+  outline: none;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.pronto-textarea:focus {
+  border-color: var(--accent, #017F7B);
+  box-shadow: 0 0 0 2px rgba(1, 127, 123, 0.15);
+}
+
+.atendimento-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+.modal-btn-secondary {
+  padding: 9px 15px;
+  border-radius: 8px;
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-btn-secondary:hover {
+  background: #E2E8F0;
+  color: #1E293B;
+}
+
+.modal-btn-primary {
+  padding: 9px 16px;
+  border-radius: 8px;
+  background: var(--accent, #017F7B);
+  color: #FFFFFF;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-btn-primary:hover {
+  background: #016562;
+}
+
+/* ===== RESPONSIVIDADE MOBILE ===== */
+@media (max-width: 768px) {
+  .atendimento-filter-bar {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
   }
 
-  .btn-novo-pedido {
-    justify-content: center;
-    width: 100%;
-  }
-
-  .pedidos-kpis {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .pedidos-filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .pedidos-search-wrap {
+  .atendimento-search-wrap {
     min-width: 100%;
   }
 
-  .pedidos-filters-right {
-    flex-direction: column;
-    align-items: stretch;
+  .atendimento-filter-actions {
     width: 100%;
+    justify-content: space-between;
   }
 
-  .pedidos-select-filter {
+  .atendimento-select-setor {
+    flex: 1;
+  }
+
+  .atendimento-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .atendimento-btn {
     width: 100%;
   }
 }
 
-@media (max-width: 540px) {
-  .pedidos-kpis {
-    grid-template-columns: 1fr;
+@media (max-width: 480px) {
+  .atendimento-card {
+    padding: 14px 14px;
+  }
+
+  .atendimento-card__id-badge {
+    top: 12px;
+    right: 12px;
+  }
+
+  .atendimento-card__header {
+    padding-right: 70px;
+  }
+
+  .atendimento-segmented-tabs .sge-segmented-tab {
+    padding: 6px 4px;
+    font-size: 11.5px;
+  }
+
+  .atendimento-segmented-tabs .sge-segmented-tab__content {
+    gap: 3px;
   }
 }

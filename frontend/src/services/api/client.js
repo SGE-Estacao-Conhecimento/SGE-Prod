@@ -80,7 +80,7 @@ export const request = async (path, options = {}) => {
   }
   const matchPedidoStatus = pathname.match(/^\/api\/pedidos\/(\d+)\/status$/);
   if (matchPedidoStatus) {
-    return mockStore.updateStatusPedido(matchPedidoStatus[1], body.status);
+    return mockStore.updateStatusPedido(matchPedidoStatus[1], body.status, body);
   }
   const matchPedidoId = pathname.match(/^\/api\/pedidos\/(\d+)$/);
   if (matchPedidoId) {

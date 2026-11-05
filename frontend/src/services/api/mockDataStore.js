@@ -142,7 +142,10 @@ class MockDataStore {
       itensPorEmbalagem: payload.itensPorEmbalagem !== undefined ? Number(payload.itensPorEmbalagem) : undefined,
       quantidade: Number(payload.quantidadeInicial ?? payload.quantidade ?? 0),
       estoqueMinimo: Number(payload.estoqueMinimo ?? 0),
-      localizacao: payload.localizacao || 'Almoxarifado Central',
+      complexo: payload.complexo || 'Almoxarifado Central',
+      locacao: payload.locacao || '',
+      localizacao: payload.localizacao || '',
+      dataValidade: payload.dataValidade || null,
       descricao: payload.descricao || '',
       ativo: true
     };
@@ -325,12 +328,17 @@ class MockDataStore {
     return novo;
   }
 
-  async updateStatusPedido(id, novoStatus) {
+  async updateStatusPedido(id, novoStatus, extras = {}) {
     const numId = Number(id);
     let atualizado = null;
     this._pedidos = this._pedidos.map(p => {
       if (Number(p.id) === numId) {
-        atualizado = { ...p, status: novoStatus };
+        atualizado = {
+          ...p,
+          ...extras,
+          status: novoStatus,
+          id: numId
+        };
         return atualizado;
       }
       return p;
@@ -338,11 +346,24 @@ class MockDataStore {
     safeSet(STORAGE_KEYS.PEDIDOS, this._pedidos);
 
     if (atualizado) {
+      const isPronto = String(novoStatus).toLowerCase().includes('pronto');
+      const isEntregue = String(novoStatus).toLowerCase().includes('atendido') || String(novoStatus).toLowerCase().includes('entregue');
+
+      const tituloNotif = isPronto
+        ? `Pedido #${numId} Pronto para Retirada!`
+        : isEntregue
+        ? `Pedido #${numId} Entregue`
+        : `Pedido #${numId} Atualizado`;
+
+      const msgNotif = extras.mensagemAlmoxarife
+        ? extras.mensagemAlmoxarife
+        : `Situação alterada para: ${novoStatus}.`;
+
       this.addNotificacao({
         pedidoId: numId,
-        titulo: `Pedido #${numId} Atualizado`,
-        mensagem: `Situação alterada para: ${novoStatus}.`,
-        tipo: novoStatus.toLowerCase() === 'atendido' ? 'sucesso' : 'info'
+        titulo: tituloNotif,
+        mensagem: msgNotif,
+        tipo: isEntregue ? 'sucesso' : (isPronto ? 'urgente' : 'info')
       });
     }
 

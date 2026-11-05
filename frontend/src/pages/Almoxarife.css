@@ -44,8 +44,16 @@
 }
 
 /* ===== RESPONSIVIDADE NO CELULAR / SMARTPHONE ===== */
+@media (max-width: 900px) {
+  /* No celular e tablet, a navegação é 100% via BottomNav: remove a sidebar drawer e o botão hambúrguer */
+  .almoxarife-layout .sidebar,
+  .almoxarife-layout .sidebar-backdrop,
+  .almoxarife-layout .topbar__menu-btn {
+    display: none !important;
+  }
+}
+
 @media (max-width: 768px) {
-  /* No celular, o padding reserva 76px para a barra inferior e a sidebar abre como drawer via topbar */
   .almoxarife-page-scroll {
     padding: 10px 12px 76px 12px;
     -webkit-overflow-scrolling: touch;

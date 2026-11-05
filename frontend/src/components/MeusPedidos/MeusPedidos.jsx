@@ -67,6 +67,7 @@ const MeusPedidos = ({
   const normalizarStatus = (status = '') => {
     const s = String(status).toLowerCase().trim();
     if (s.includes('insuficiente') || s.includes('falta') || s.includes('recusad')) return 'estoque-insuficiente';
+    if (s === 'atendido-parcialmente' || s === 'atendido parcialmente' || s.includes('atendido parc')) return 'atendido-parcialmente';
     if (s.includes('parcial')) return 'parcialmente-disponivel';
     if (s.includes('pronto')) return 'pronto';
     if (s.includes('separ')) return 'em-separacao';
@@ -83,7 +84,7 @@ const MeusPedidos = ({
 
   const isStatusHistorico = (status) => {
     const norm = normalizarStatus(status);
-    return norm === 'entregue' || norm === 'estoque-insuficiente' || norm === 'cancelado';
+    return norm === 'entregue' || norm === 'atendido-parcialmente' || norm === 'estoque-insuficiente' || norm === 'cancelado';
   };
 
   // Extrai lista uniforme de materiais/itens de um pedido (suporta item único ou lote da caderneta)
@@ -118,7 +119,8 @@ const MeusPedidos = ({
         quantidade: it.quantidade || 1,
         unidade: resolverUnidade(it),
         produtoId: it.produtoId || it.id,
-        disponivel: it.disponivel !== false && it.status !== 'falta'
+        disponivel: it.disponivel !== false && it.status !== 'falta',
+        quantidadeAtendida: it.quantidadeAtendida
       }));
     }
     if (Array.isArray(p.materiais) && p.materiais.length > 0) {
@@ -127,7 +129,8 @@ const MeusPedidos = ({
         quantidade: m.quantidade || 1,
         unidade: resolverUnidade(m),
         produtoId: m.produtoId || m.id,
-        disponivel: m.disponivel !== false && m.status !== 'falta'
+        disponivel: m.disponivel !== false && m.status !== 'falta',
+        quantidadeAtendida: m.quantidadeAtendida
       });
     }
     return [{
@@ -135,7 +138,8 @@ const MeusPedidos = ({
       quantidade: p.quantidade || 1,
       unidade: p.unidade || 'UN',
       produtoId: p.produtoId,
-      disponivel: true
+      disponivel: true,
+      quantidadeAtendida: p.quantidadeAtendida
     }];
   };
 
@@ -155,7 +159,7 @@ const MeusPedidos = ({
       const norm = normalizarStatus(p.status);
       if (isStatusAndamento(p.status)) emAndamento++;
       if (norm === 'pronto' || norm === 'parcialmente-disponivel') prontosRetirada++;
-      if (norm === 'entregue') concluidos++;
+      if (norm === 'entregue' || norm === 'atendido-parcialmente') concluidos++;
     });
 
     const historico = pedidos.length - emAndamento;
@@ -357,7 +361,7 @@ const MeusPedidos = ({
       <AnimatePresence>
         {toastFeedback && (
           <motion.div
-            className={`meus-pedidos__toast ${toastFeedback.tipo === 'erro' ? 'meus-pedidos__toast--erro' : toastFeedback.tipo === 'aviso' ? 'meus-pedidos__toast--aviso' : ''}`}
+            className={`sge-toast meus-pedidos__toast ${toastFeedback.tipo === 'erro' ? 'sge-toast--erro' : toastFeedback.tipo === 'aviso' ? 'sge-toast--aviso' : 'sge-toast--sucesso'}`}
             initial={{ opacity: 0, y: -25, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -25, scale: 0.95 }}
@@ -492,28 +496,28 @@ const MeusPedidos = ({
           transition={{ duration: 0.14, ease: "easeOut" }}
         >
           {pedidosFiltrados.length === 0 ? (
-            <div className="pedidos-empty-state">
-              <div className="empty-state-icon">
+            <div className="sge-empty-state pedidos-empty-state">
+              <div className="sge-empty-state__icon-wrap empty-state-icon">
                 {statusFilter === 'andamento' ? (
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
                 ) : (
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
                   </svg>
                 )}
               </div>
-              <h3 className="empty-state-title">
+              <h3 className="sge-empty-state__title empty-state-title">
                 {searchTerm
                   ? 'Nenhum pedido encontrado'
                   : statusFilter === 'andamento'
                   ? 'Nenhum pedido em andamento'
                   : 'Nenhum pedido no histórico'}
               </h3>
-              <p className="empty-state-desc">
+              <p className="sge-empty-state__desc empty-state-desc">
                 {searchTerm
                   ? 'Tente buscar por outro número de pedido ou nome de material.'
                   : statusFilter === 'andamento'
@@ -524,7 +528,7 @@ const MeusPedidos = ({
               {statusFilter === 'andamento' && onNavigateToEstoque && (
                 <button
                   type="button"
-                  className="btn-ir-estoque"
+                  className="sge-empty-state__btn btn-ir-estoque"
                   onClick={onNavigateToEstoque}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -594,6 +598,19 @@ const MeusPedidos = ({
                     </div>
                   )}
 
+                  {/* Instruções / Mensagem do Almoxarife ao Solicitante */}
+                  {pedido.mensagemAlmoxarife && (
+                    <div className="pedido-card__mensagem-almoxarife">
+                      <div className="mensagem-almoxarife-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                        <span className="mensagem-almoxarife-title">Instruções do Balcão de Retirada:</span>
+                      </div>
+                      <p className="mensagem-almoxarife-corpo">"{pedido.mensagemAlmoxarife}"</p>
+                    </div>
+                  )}
+
                   {/* Banner de Estoque Insuficiente (quando nenhum item pôde ser atendido) */}
                   {isEstoqueInsuficiente && (
                     <div className="pedido-card__alerta-insuficiente">
@@ -609,36 +626,67 @@ const MeusPedidos = ({
                   {/* Lista de Materiais do Lote (Sanfona Opção B) */}
                   <div className="pedido-card__items-container">
                     <div className="pedido-card__items-list">
-                      {itensVisiveis.map((item, idx) => (
-                        <div key={`${pedido.id}-item-${idx}`} className={`pedido-item-row ${isParcial && !item.disponivel ? 'pedido-item-row--falta' : ''}`}>
-                          <div className="pedido-item-main">
-                            <span className="pedido-item-bullet">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                              </svg>
-                            </span>
-                            <span className="pedido-item-nome">{item.materialNome}</span>
-                          </div>
+                      {itensVisiveis.map((item, idx) => {
+                        const isItemSemSaldo = item.quantidadeAtendida === 0;
+                        const isItemParcial = item.quantidadeAtendida !== undefined && item.quantidadeAtendida > 0 && item.quantidadeAtendida < item.quantidade;
+                        const isItemAtendidoTotal = item.quantidadeAtendida !== undefined && item.quantidadeAtendida >= item.quantidade;
 
-                          <div className="pedido-item-meta">
-                            {/* Tags de status individual quando o pedido tem itens mistos */}
-                            {isParcial && (
-                              item.disponivel ? (
-                                <span className="pedido-item-tag pedido-item-tag--disponivel" title="Material separado e pronto">
-                                  Disponível
+                        return (
+                          <div
+                            key={`${pedido.id}-item-${idx}`}
+                            className={`pedido-item-row ${isParcial && !item.disponivel ? 'pedido-item-row--falta' : ''} ${isItemSemSaldo ? 'pedido-item-row--sem-saldo' : ''}`}
+                          >
+                            <div className="pedido-item-main">
+                              <span className={`pedido-item-bullet ${isItemSemSaldo ? 'pedido-item-bullet--sem-saldo' : ''}`}>
+                                {isItemSemSaldo ? (
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                  </svg>
+                                ) : (
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                                  </svg>
+                                )}
+                              </span>
+                              <span className={`pedido-item-nome ${isItemSemSaldo ? 'pedido-item-nome--sem-saldo' : ''}`}>
+                                {item.materialNome}
+                              </span>
+                            </div>
+
+                            <div className="pedido-item-meta">
+                              {/* Quando há registro de quantidade atendida (baixa no almoxarifado) */}
+                              {item.quantidadeAtendida !== undefined ? (
+                                <span className={`pedido-item-tag ${isItemSemSaldo ? 'pedido-item-tag--sem-saldo' : isItemParcial ? 'pedido-item-tag--parcial' : 'pedido-item-tag--entregue'}`}>
+                                  {isItemSemSaldo
+                                    ? `0 de ${item.quantidade} (Sem Estoque)`
+                                    : isItemParcial
+                                    ? `${item.quantidadeAtendida} de ${item.quantidade} ${item.unidade || 'UN'} entregues`
+                                    : `${item.quantidade} ${item.unidade || 'UN'} ✓`}
                                 </span>
                               ) : (
-                                <span className="pedido-item-tag pedido-item-tag--falta" title="Material em falta no estoque">
-                                  Em Falta
-                                </span>
-                              )
-                            )}
-                            <span className="pedido-item-qtd">
-                              {item.quantidade} {item.unidade || 'UN'}
-                            </span>
+                                <>
+                                  {/* Tags de status individual quando o pedido tem itens mistos */}
+                                  {isParcial && (
+                                    item.disponivel ? (
+                                      <span className="pedido-item-tag pedido-item-tag--disponivel" title="Material separado e pronto">
+                                        Disponível
+                                      </span>
+                                    ) : (
+                                      <span className="pedido-item-tag pedido-item-tag--falta" title="Material em falta no estoque">
+                                        Em Falta
+                                      </span>
+                                    )
+                                  )}
+                                  <span className="pedido-item-qtd">
+                                    {item.quantidade} {item.unidade || 'UN'}
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {/* Botão de Sanfona para Expandir/Recolher quando houver mais de 2 itens */}
@@ -742,13 +790,15 @@ const MeusPedidos = ({
         </motion.div>
       </AnimatePresence>
 
-      {/* Modal / Bottom Sheet de Confirmação de Cancelamento */}
+      {/* Modal / Dialog de Confirmação de Cancelamento (Modal Flutuante) */}
       <BottomSheetModal
         isOpen={!!cancelModalPedido}
         onClose={() => setCancelModalPedido(null)}
         className="cancel-order-modal"
         title={cancelModalPedido ? `Cancelar Pedido #${cancelModalPedido.id}?` : ''}
         subtitle="Confirmação de Cancelamento"
+        variant="dialog"
+        maxWidth="440px"
         footer={
           <div className="cancel-modal-actions" style={{ display: 'flex', width: '100%', gap: '10px' }}>
             <motion.button
@@ -787,13 +837,15 @@ const MeusPedidos = ({
         </div>
       </BottomSheetModal>
 
-      {/* Modal / Bottom Sheet de Confirmação de Repetir Pedido */}
+      {/* Modal / Dialog de Confirmação de Repetir Pedido (Modal Flutuante) */}
       <BottomSheetModal
         isOpen={!!reorderModalPedido}
         onClose={() => setReorderModalPedido(null)}
         className="reorder-order-modal"
         title={reorderModalPedido ? `Repetir Pedido #${reorderModalPedido.id}?` : ''}
         subtitle="Nova Solicitação Idêntica"
+        variant="dialog"
+        maxWidth="460px"
         footer={
           <div className="reorder-modal-actions" style={{ display: 'flex', width: '100%', gap: '10px' }}>
             <motion.button

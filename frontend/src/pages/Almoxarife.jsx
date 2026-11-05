@@ -14,7 +14,8 @@ import { movimentacaoService } from '../services/movimentacoes/movimentacaoServi
 import { notificacaoService } from '../services/notificacoes/notificacaoService';
 import { remessaService } from '../services/remessas/remessaService';
 import { pedidoService } from '../services/pedidos/pedidoService';
-import { DEMO_MATERIAIS, DEMO_PEDIDOS, DEMO_MOVIMENTACOES } from '../data/demoData';
+import { usuarioService } from '../services/usuarios/usuarioService';
+import { DEMO_MATERIAIS, DEMO_PEDIDOS, DEMO_MOVIMENTACOES, DEMO_USUARIOS } from '../data/demoData';
 
 const _PEDIDOS_BYPASS = [
   { id: 102, usuario: 'Carlos Silva', setor: 'Educação Infantil', data: '27/09/2026', material: 'Álcool em Gel 70%', quantidade: 3, prioridade: 'Urgente', status: 'Pendente', justificativa: 'Urgência sanitária para as salas e refeitório' },
@@ -25,7 +26,7 @@ const _PEDIDOS_BYPASS = [
 
 const TITLES = {
   estoque: 'Controle de Estoque & Movimentações',
-  pedidos: 'Separação e Atendimento',
+  pedidos: 'Separação e Pedidos',
   relatorios: 'Relatórios de Estoque',
   perfil: 'Meu Perfil'
 };
@@ -42,7 +43,7 @@ const navItemsAlmoxarife = [
   },
   {
     id: 'pedidos',
-    label: 'Atendimento',
+    label: 'Pedidos',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -83,6 +84,15 @@ const Almoxarife = ({ onLogout, user }) => {
   const [remessas, setRemessas] = useState([]);
   const [pedidos, setPedidos] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
+  const [usuarios, setUsuarios] = useState(DEMO_USUARIOS);
+
+  useEffect(() => {
+    let active = true;
+    usuarioService.listar()
+      .then((data) => { if (active && data?.length) setUsuarios(data); })
+      .catch(() => { if (active) setUsuarios(DEMO_USUARIOS); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -110,6 +120,59 @@ const Almoxarife = ({ onLogout, user }) => {
     setRemessas(await remessaService.listar());
     setMateriais(await materialService.listar());
     return criada;
+  };
+
+  const handleConfirmarEntregaPedido = async (pedidoAtualizado) => {
+    const novoStatus = pedidoAtualizado.status || 'Atendido';
+    try {
+      const atualizado = await pedidoService.atualizarStatus(pedidoAtualizado.id, novoStatus, {
+        status: novoStatus,
+        itens: pedidoAtualizado.itens,
+        mensagemAlmoxarife: pedidoAtualizado.mensagemAlmoxarife
+      });
+      setPedidos(prev => prev.map(p => p.id === pedidoAtualizado.id ? (atualizado || pedidoAtualizado) : p));
+    } catch {
+      setPedidos(prev => prev.map(p => p.id === pedidoAtualizado.id ? pedidoAtualizado : p));
+    }
+
+    const itens = Array.isArray(pedidoAtualizado.itens) && pedidoAtualizado.itens.length > 0
+      ? pedidoAtualizado.itens
+      : Array.isArray(pedidoAtualizado.materiais) && pedidoAtualizado.materiais.length > 0
+      ? pedidoAtualizado.materiais
+      : [{
+          produtoId: pedidoAtualizado.produtoId || pedidoAtualizado.materialId,
+          materialNome: pedidoAtualizado.materialNome || pedidoAtualizado.nome || pedidoAtualizado.material,
+          quantidade: pedidoAtualizado.quantidade || 1
+        }];
+
+    for (const it of itens) {
+      const qtdEntregue = it.quantidadeAtendida !== undefined ? Number(it.quantidadeAtendida) : Number(it.quantidade);
+      if (qtdEntregue <= 0) continue; // Não dá baixa se o item não pôde ser entregue por falta de estoque
+
+      const mat = materiais.find(m =>
+        (it.produtoId && Number(m.id) === Number(it.produtoId)) ||
+        (it.materialNome && String(m.nome).toLowerCase().trim() === String(it.materialNome).toLowerCase().trim())
+      );
+
+      const matId = mat ? mat.id : (it.produtoId || it.materialId);
+      const matNome = mat ? mat.nome : (it.materialNome || it.nome || 'Material');
+
+      await movimentacaoService.registrar({
+        produtoId: matId,
+        produtoNome: matNome,
+        tipo: 'saida',
+        quantidade: qtdEntregue,
+        funcionarioNome: pedidoAtualizado.usuario || 'Solicitante',
+        observacao: `Atendimento do Pedido #${pedidoAtualizado.id}`
+      });
+    }
+
+    const [materiaisAtualizados, movsAtualizadas] = await Promise.all([
+      materialService.listar(),
+      movimentacaoService.listar()
+    ]);
+    if (materiaisAtualizados) setMateriais(materiaisAtualizados);
+    if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
   };
 
   useEffect(() => {
@@ -208,12 +271,15 @@ const Almoxarife = ({ onLogout, user }) => {
           <PageTabTransition tabKey="pedidos">
             <PedidosView
               pedidos={pedidos}
-              onUpdateStatus={async (pedidoId, novoStatus) => {
+              materiais={materiais}
+              usuariosDisponiveis={usuarios}
+              onConfirmarEntrega={handleConfirmarEntregaPedido}
+              onUpdateStatus={async (pedidoId, novoStatus, extras = {}) => {
                 try {
-                  const atualizado = await pedidoService.atualizarStatus(pedidoId, novoStatus);
-                  setPedidos(prev => prev.map(p => p.id === pedidoId ? (atualizado || { ...p, status: novoStatus }) : p));
+                  const atualizado = await pedidoService.atualizarStatus(pedidoId, novoStatus, extras);
+                  setPedidos(prev => prev.map(p => p.id === pedidoId ? (atualizado || { ...p, status: novoStatus, ...extras }) : p));
                 } catch {
-                  setPedidos(prev => prev.map(p => p.id === pedidoId ? { ...p, status: novoStatus } : p));
+                  setPedidos(prev => prev.map(p => p.id === pedidoId ? { ...p, status: novoStatus, ...extras } : p));
                 }
               }}
             />
@@ -334,7 +400,6 @@ const Almoxarife = ({ onLogout, user }) => {
       <div className="almoxarife-main">
         <Topbar
           title={TITLES[activeNav] || 'Almoxarifado'}
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           notificacoes={notificacoes}
           onMarcarLida={handleMarcarNotifLida}
           onLimparNotificacoes={handleLimparNotificacoes}

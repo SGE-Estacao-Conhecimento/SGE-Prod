@@ -223,6 +223,25 @@
   background: #B91C1C;
 }
 
+/* ===== VARIANTE DIALOG (MODAL FLUTUANTE CENTRALIZADO) ===== */
+.sge-modal-backdrop--dialog {
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+}
+
+.sge-bottom-sheet--dialog {
+  border-radius: 20px !important;
+  margin: auto !important;
+  max-height: calc(100dvh - 32px) !important;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35) !important;
+  width: 100% !important;
+}
+
+.sge-bottom-sheet--dialog .sge-bottom-sheet__header {
+  padding: 18px 20px 12px 20px;
+}
+
 /* Desktop (> 768px): Modal centralizado */
 @media (min-width: 769px) {
   .sge-modal-backdrop {

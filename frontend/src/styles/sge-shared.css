@@ -566,4 +566,282 @@
   background: #FFFFFF !important;
 }
 
+/* ===== 10. TOAST NOTIFICATION FLUTUANTE PADRONIZADO (.sge-toast) ===== */
+.sge-toast,
+.usuario-toast,
+.almoxarife-toast,
+.meus-pedidos__toast {
+  position: fixed;
+  top: 20px;
+  left: 16px;
+  right: 16px;
+  margin: 0 auto;
+  max-width: 480px;
+  z-index: 10050;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.35), 0 4px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-sizing: border-box;
+}
+
+.sge-toast--sucesso {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.35), 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+}
+
+.sge-toast--aviso,
+.usuario-toast--aviso,
+.almoxarife-toast--aviso,
+.meus-pedidos__toast--aviso {
+  background: linear-gradient(135deg, #D97706 0%, #B45309 100%) !important;
+  box-shadow: 0 16px 36px -6px rgba(217, 119, 6, 0.45), 0 6px 14px rgba(0, 0, 0, 0.1) !important;
+}
+
+.sge-toast--erro,
+.meus-pedidos__toast--erro {
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%) !important;
+  box-shadow: 0 16px 36px -6px rgba(220, 38, 38, 0.45), 0 6px 14px rgba(0, 0, 0, 0.1) !important;
+}
+
+.sge-toast__icon,
+.usuario-toast__icon,
+.almoxarife-toast__icon,
+.meus-pedidos__toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  margin-top: 1px;
+}
+
+.sge-toast__content,
+.usuario-toast__content,
+.meus-pedidos__toast-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sge-toast__header,
+.usuario-toast__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sge-toast__title,
+.usuario-toast__title,
+.meus-pedidos__toast-title,
+.almoxarife-toast__text {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: #FFFFFF;
+  line-height: 1.25;
+}
+
+.sge-toast__urgente-tag,
+.usuario-toast__urgente-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: #FEF3C7;
+  color: #92400E;
+  line-height: 1;
+}
+
+.sge-toast__desc,
+.usuario-toast__desc,
+.meus-pedidos__toast-desc {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.92);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.sge-toast__btn,
+.usuario-toast__btn,
+.meus-pedidos__toast-btn {
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 7px;
+  align-self: flex-start;
+  margin-top: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sge-toast__btn:hover,
+.usuario-toast__btn:hover,
+.meus-pedidos__toast-btn:hover {
+  background: rgba(255, 255, 255, 0.38);
+  transform: translateY(-1px);
+}
+
+.sge-toast__close,
+.usuario-toast__close,
+.meus-pedidos__toast-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.sge-toast__close:hover,
+.usuario-toast__close:hover,
+.meus-pedidos__toast-close:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ===== 11. SCROLL INFINITO & SENTINELA (.sge-infinite-scroll) ===== */
+.sge-infinite-scroll__sentinel,
+.usuario-estoque__sentinel {
+  width: 100%;
+  height: 20px;
+  pointer-events: none;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.sge-infinite-scroll__all-loaded,
+.usuario-estoque__all-loaded {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px 4px 8px;
+  margin: 0;
+  font-size: 11.5px;
+  color: #94A3B8;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.sge-infinite-scroll__all-loaded svg,
+.usuario-estoque__all-loaded svg {
+  color: #10B981;
+  flex-shrink: 0;
+}
+
+/* ===== 12. ESTADOS VAZIOS PADRONIZADOS (.sge-empty-state) ===== */
+.sge-empty-state,
+.empty-state-almoxarife,
+.usuario-estoque__empty,
+.pedidos-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 44px 20px;
+  background: #FFFFFF;
+  border: 1.5px dashed #CBD5E1;
+  border-radius: 16px;
+  box-sizing: border-box;
+}
+
+.sge-empty-state__icon-wrap,
+.empty-state-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #F1F5F9;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  border: 1px solid #E2E8F0;
+  flex-shrink: 0;
+}
+
+.sge-empty-state__title,
+.empty-state-title,
+.usuario-estoque__empty-title,
+.empty-state-almoxarife h4 {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.2px;
+}
+
+.sge-empty-state__desc,
+.empty-state-desc,
+.usuario-estoque__empty-sub,
+.empty-state-almoxarife p {
+  font-size: 13px;
+  color: #64748B;
+  max-width: 380px;
+  margin: 0 0 14px 0;
+  line-height: 1.45;
+}
+
+.sge-empty-state__btn,
+.btn-limpar-filtros,
+.btn-limpar-fav-filtro,
+.btn-ir-estoque {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sge-empty-state__btn:hover,
+.btn-limpar-filtros:hover,
+.btn-limpar-fav-filtro:hover {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+  color: #0F172A;
+}
+
+.sge-empty-state__btn:active,
+.btn-limpar-filtros:active,
+.btn-limpar-fav-filtro:active {
+  transform: scale(0.97);
+}
+
+
 

@@ -44,10 +44,10 @@ export const criarPedido = (pedido) => {
   });
 };
 
-export const atualizarStatusPedido = (id, status) =>
+export const atualizarStatusPedido = (id, status, extras = {}) =>
   request(`/api/pedidos/${id}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status })
+    body: JSON.stringify({ status, ...extras })
   });
 
 export const cancelarPedido = (id) =>

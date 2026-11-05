@@ -279,6 +279,42 @@
   color: #DC2626;
 }
 
+/* Balão de Instruções do Balcão de Retirada (Enviado pelo Almoxarife) */
+.pedido-card__mensagem-almoxarife {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-left: 3.5px solid #16A34A;
+  border-radius: 9px;
+  padding: 9px 12px;
+}
+
+.mensagem-almoxarife-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #166534;
+}
+
+.mensagem-almoxarife-header svg {
+  color: #16A34A;
+  flex-shrink: 0;
+}
+
+.mensagem-almoxarife-corpo {
+  margin: 0;
+  font-size: 12.5px;
+  color: #14532D;
+  line-height: 1.4;
+  font-style: italic;
+}
+
 /* Lista de Materiais do Card (Sanfona Opção B) */
 .pedido-card__items-container {
   display: flex;
@@ -378,6 +414,40 @@
 .pedido-item-tag--falta {
   background: #FEE2E2;
   color: #B91C1C;
+}
+
+.pedido-item-tag--sem-saldo {
+  background: #FFE4E6;
+  color: #BE123C;
+  border: 1px solid #FECDD3;
+}
+
+.pedido-item-tag--parcial {
+  background: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FCD34D;
+}
+
+.pedido-item-tag--entregue {
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+}
+
+.pedido-item-row--sem-saldo {
+  background: #FFF1F2 !important;
+  border-color: #FECDD3 !important;
+}
+
+.pedido-item-bullet--sem-saldo {
+  background: rgba(225, 29, 72, 0.12) !important;
+  color: #E11D48 !important;
+}
+
+.pedido-item-nome--sem-saldo {
+  color: #9F1239 !important;
+  text-decoration: line-through;
+  opacity: 0.85;
 }
 
 /* Botão de Sanfona / Expandir Mais Materiais */
@@ -527,151 +597,7 @@
 }
 
 /* Empty State */
-.pedidos-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 48px 20px;
-  background: #FFFFFF;
-  border: 1.5px dashed #E2E8F0;
-  border-radius: 16px;
-}
-
-.empty-state-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #F8FAFC;
-  color: #94A3B8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 14px;
-}
-
-.empty-state-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #0F172A;
-  margin: 0 0 6px;
-}
-
-.empty-state-desc {
-  font-size: 13px;
-  color: #64748B;
-  max-width: 380px;
-  margin: 0 0 18px;
-  line-height: 1.45;
-}
-
-.btn-ir-estoque {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  background: var(--accent, #017F7B);
-  color: #FFFFFF;
-  border: none;
-  border-radius: 8px;
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-ir-estoque:hover {
-  background: var(--accent-hover, #016562);
-  transform: translateY(-1px);
-}
-
-/* ===== 5. TOAST NOTIFICATION ===== */
-.meus-pedidos__toast {
-  position: fixed;
-  top: 20px;
-  left: 16px;
-  right: 16px;
-  margin: 0 auto;
-  max-width: 480px;
-  z-index: 10050;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 18px;
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  color: #FFFFFF;
-  border-radius: 14px;
-  box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.4), 0 4px 10px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-}
-
-.meus-pedidos__toast--aviso {
-  background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
-  box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.4), 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.meus-pedidos__toast--erro {
-  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
-  box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.4), 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.meus-pedidos__toast-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.meus-pedidos__toast-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.meus-pedidos__toast-title {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #FFFFFF;
-}
-
-.meus-pedidos__toast-desc {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.35;
-}
-
-.meus-pedidos__toast-btn {
-  margin-top: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  color: #FFFFFF;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 11.5px;
-  font-weight: 700;
-  cursor: pointer;
-  align-self: flex-start;
-  transition: background 0.15s;
-}
-
-.meus-pedidos__toast-btn:hover {
-  background: rgba(255, 255, 255, 0.35);
-}
-
-.meus-pedidos__toast-close {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 2px;
-}
+/* ===== EMPTY STATE & TOAST: Padronizados via sge-shared.css ===== */
 
 /* Modais de Cancelamento e Repetição */
 .cancel-modal-body,

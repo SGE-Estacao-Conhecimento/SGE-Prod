@@ -181,14 +181,25 @@ const RecebimentoLoteModal = ({
         unidade: material.unidade || 'UN',
         categoria: material.categoria || 'Geral',
         complexo: material.complexo || 'Almoxarifado Central',
+        locacao: material.locacao || '',
         localizacao: material.localizacao || '',
         saldoAtual: material.quantidade || 0,
-        qtdReceber: 1
+        qtdReceber: 1,
+        dataValidade: material.dataValidade || ''
       };
       updateDraft({
         itens: [...itens, novoItemCarrinho]
       });
     }
+  };
+
+  // Alteração da validade de um item do carrinho
+  const handleMudarValidade = (materialId, novaValidade) => {
+    updateDraft({
+      itens: itens.map((item) =>
+        item.materialId === materialId ? { ...item, dataValidade: novaValidade } : item
+      )
+    });
   };
 
   // Alteração da quantidade a receber de um item do carrinho
@@ -273,7 +284,11 @@ const RecebimentoLoteModal = ({
         unidade: item.unidade,
         saldoAnterior: item.saldoAtual,
         qtdRecebida: parseInt(item.qtdReceber, 10) || 1,
-        novoSaldo: item.saldoAtual + (parseInt(item.qtdReceber, 10) || 1)
+        novoSaldo: item.saldoAtual + (parseInt(item.qtdReceber, 10) || 1),
+        complexo: item.complexo || 'Almoxarifado Central',
+        locacao: item.locacao || '',
+        localizacao: item.localizacao || '',
+        dataValidade: item.dataValidade || ''
       }))
     };
 
@@ -805,6 +820,18 @@ const RecebimentoLoteModal = ({
                               Novo: <strong>{novoSaldo}</strong> {item.unidade}
                             </span>
                           </div>
+                        </div>
+
+                        {/* Validade do Lote (Opcional) */}
+                        <div className="recebimento-item-card__validade-row">
+                          <span className="recebimento-item-card__validade-label">Validade (Opcional):</span>
+                          <input
+                            type="date"
+                            className="recebimento-item-card__validade-input"
+                            value={item.dataValidade || ''}
+                            onChange={(e) => handleMudarValidade(item.materialId, e.target.value)}
+                            aria-label={`Validade de ${item.nome}`}
+                          />
                         </div>
                       </div>
                     );

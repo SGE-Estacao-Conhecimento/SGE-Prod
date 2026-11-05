@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   SearchFilterBar,
   FilterDrawer,
@@ -66,6 +67,36 @@ export const isUnidadeCaixa = (unidade) => {
 /**
  * Normaliza um material garantindo os campos estruturados de complexo, localização física e itens por embalagem
  */
+export const formatarDataValidade = (val) => {
+  if (!val) return 'Sem validade / Não perecível';
+  if (val.includes('-')) {
+    const [ano, mes, dia] = val.split('-');
+    return `${dia}/${mes}/${ano}`;
+  }
+  return val;
+};
+
+export const formatarDataValidadeCurta = (val) => {
+  if (!val) return '';
+  if (val.includes('-')) {
+    const [ano, mes, dia] = val.split('-');
+    return `${mes}/${ano.slice(2)}`;
+  }
+  return val;
+};
+
+export const getStatusValidade = (dataValidadeStr) => {
+  if (!dataValidadeStr) return null;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const dataVal = new Date(dataValidadeStr);
+  if (isNaN(dataVal.getTime())) return null;
+  const diffDias = Math.ceil((dataVal - hoje) / (1000 * 60 * 60 * 24));
+  if (diffDias < 0) return { label: 'Vencido', tipo: 'vencido', cor: '#DC2626', bg: '#FEE2E2' };
+  if (diffDias <= 60) return { label: `Vence em ${diffDias}d`, tipo: 'atencao', cor: '#D97706', bg: '#FEF3C7' };
+  return { label: 'Válido', tipo: 'valido', cor: '#059669', bg: '#ECFDF5' };
+};
+
 export const normalizarMaterial = (item) => {
   if (!item) return item;
   let itensPorEmbalagem = item.itensPorEmbalagem ?? item.qtdPorCaixa;
@@ -76,8 +107,16 @@ export const normalizarMaterial = (item) => {
     }
   }
 
+  const locacao = item.locacao || '';
+  const dataValidade = item.dataValidade || item.validade || '';
+
   if (item.complexo) {
-    return { ...item, itensPorEmbalagem };
+    return {
+      ...item,
+      itensPorEmbalagem,
+      locacao,
+      dataValidade
+    };
   }
   if (item.localizacao && item.localizacao.includes('•')) {
     const [comp, ...resto] = item.localizacao.split('•');
@@ -85,14 +124,18 @@ export const normalizarMaterial = (item) => {
       ...item,
       itensPorEmbalagem,
       complexo: comp.trim() || 'Almoxarifado Central',
-      localizacao: resto.join('•').trim()
+      locacao,
+      localizacao: resto.join('•').trim(),
+      dataValidade
     };
   }
   return {
     ...item,
     itensPorEmbalagem,
     complexo: 'Almoxarifado Central',
-    localizacao: item.localizacao || ''
+    locacao,
+    localizacao: item.localizacao || '',
+    dataValidade
   };
 };
 
@@ -146,7 +189,9 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     estoqueMinimo: 10,
     descricao: 'Higienização das mãos • Bico dosador pump',
     complexo: 'Depósito de Limpeza',
-    localizacao: 'Prateleira C'
+    locacao: 'Box Químicos',
+    localizacao: 'Prateleira C',
+    dataValidade: '2027-12-31'
   },
   {
     id: 5,
@@ -220,6 +265,20 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     descricao: 'Biodegradável • Uso institucional',
     complexo: 'Depósito de Limpeza',
     localizacao: 'Piso Pallet 01'
+  },
+  {
+    id: 11,
+    codigo: 'MAT-011',
+    nome: 'Protetor Solar FPS 50 120ml',
+    categoria: 'Limpeza e Higiene',
+    unidade: 'Frasco',
+    quantidade: 18,
+    estoqueMinimo: 8,
+    descricao: 'Uso ocupacional • Proteção UVA/UVB resistente à água',
+    complexo: 'Almoxarifado Central',
+    locacao: 'Nicho Farmácia',
+    localizacao: 'Prat. 01',
+    dataValidade: '2027-10-30'
   }
 ];
 
@@ -320,6 +379,7 @@ const AlmoxarifeEstoque = ({
   const [motivoMovimentacao, setMotivoMovimentacao] = useState('');
   const [historicoPorMaterial, setHistoricoPorMaterial] = useState(historicoMovimentacoes);
   const [isEditandoDetalhes, setIsEditandoDetalhes] = useState(false);
+  const [validadeMovimentacao, setValidadeMovimentacao] = useState('');
   const [detalhesForm, setDetalhesForm] = useState({
     codigo: '',
     nome: '',
@@ -328,7 +388,9 @@ const AlmoxarifeEstoque = ({
     categoria: '',
     estoqueMinimo: 0,
     complexo: 'Almoxarifado Central',
+    locacao: '',
     localizacao: '',
+    dataValidade: '',
     descricao: ''
   });
   const [novoCodigoInput, setNovoCodigoInput] = useState('');
@@ -345,17 +407,23 @@ const AlmoxarifeEstoque = ({
     quantidade: 0,
     estoqueMinimo: 5,
     complexo: 'Almoxarifado Central',
+    locacao: '',
     localizacao: '',
+    dataValidade: '',
     descricao: ''
   });
 
-  // Notificações Toast
+  // Notificações Toast Padronizadas
   const [toast, setToast] = useState(null);
   const [campoErro, setCampoErro] = useState(null);
+  const toastTimeoutRef = useRef(null);
 
   const exibirToast = (mensagem, tipo = 'sucesso') => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
     setToast({ mensagem, tipo });
-    setTimeout(() => setToast(null), 3500);
+    toastTimeoutRef.current = setTimeout(() => setToast(null), 3800);
   };
 
   // Estado do Modal de Recebimento em Lote / Doações e Rascunho Persistente em Memória
@@ -532,6 +600,7 @@ const AlmoxarifeEstoque = ({
         (item.codigo && item.codigo.toLowerCase().includes(termo)) ||
         (item.categoria && item.categoria.toLowerCase().includes(termo)) ||
         (item.complexo && item.complexo.toLowerCase().includes(termo)) ||
+        (item.locacao && item.locacao.toLowerCase().includes(termo)) ||
         (item.localizacao && item.localizacao.toLowerCase().includes(termo)) ||
         (item.descricao && item.descricao.toLowerCase().includes(termo))
       );
@@ -580,6 +649,49 @@ const AlmoxarifeEstoque = ({
     return lista;
   }, [materiais, busca, statusFiltro, ordenacaoAtual]);
 
+  // Paginação e Rolagem Infinita (Lotes de 20 materiais)
+  const ITEMS_POR_PAGINA = 20;
+  const [limiteExibicao, setLimiteExibicao] = useState(ITEMS_POR_PAGINA);
+  const sentinelRef = useRef(null);
+
+  // Reseta automaticamente a paginação ao buscar, alternar status ou ordenação
+  useEffect(() => {
+    setLimiteExibicao(ITEMS_POR_PAGINA);
+  }, [busca, statusFiltro, ordenacaoAtual]);
+
+  const materiaisExibidos = useMemo(() => {
+    return materiaisFiltrados.slice(0, limiteExibicao);
+  }, [materiaisFiltrados, limiteExibicao]);
+
+  const temMaisItens = limiteExibicao < materiaisFiltrados.length;
+
+  useEffect(() => {
+    if (!temMaisItens) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0] && entries[0].isIntersecting) {
+          setLimiteExibicao(prev => prev + ITEMS_POR_PAGINA);
+        }
+      },
+      {
+        rootMargin: '200px',
+        threshold: 0.05
+      }
+    );
+
+    const currentSentinel = sentinelRef.current;
+    if (currentSentinel) {
+      observer.observe(currentSentinel);
+    }
+
+    return () => {
+      if (currentSentinel) {
+        observer.unobserve(currentSentinel);
+      }
+    };
+  }, [temMaisItens, limiteExibicao]);
+
   // Abertura do Cockpit do Material (A Geral do SGE)
   const handleAbrirModalMovimentacao = (material) => {
     const matNormalizado = normalizarMaterial(material);
@@ -588,6 +700,7 @@ const AlmoxarifeEstoque = ({
     setTipoMovimentacao('entrada');
     setQtdMovimentacao(1);
     setMotivoMovimentacao('');
+    setValidadeMovimentacao('');
     setIsEditandoDetalhes(false);
     setNovoCodigoInput('');
     setIsConfirmarCodigoOpen(false);
@@ -599,7 +712,9 @@ const AlmoxarifeEstoque = ({
       categoria: matNormalizado.categoria || 'Escritório',
       estoqueMinimo: matNormalizado.estoqueMinimo ?? 5,
       complexo: matNormalizado.complexo || 'Almoxarifado Central',
+      locacao: matNormalizado.locacao || '',
       localizacao: matNormalizado.localizacao || '',
+      dataValidade: matNormalizado.dataValidade || '',
       descricao: matNormalizado.descricao || ''
     });
   };
@@ -625,7 +740,8 @@ const AlmoxarifeEstoque = ({
 
     const materialAtualizado = {
       ...materialModal,
-      quantidade: novaQtd
+      quantidade: novaQtd,
+      ...(tipoMovimentacao === 'entrada' && validadeMovimentacao ? { dataValidade: validadeMovimentacao } : {})
     };
 
     if (tipoMovimentacao === 'ajuste' && onAjustarEstoque) {
@@ -701,7 +817,9 @@ const AlmoxarifeEstoque = ({
       categoria: materialModal.categoria || 'Escritório',
       estoqueMinimo: materialModal.estoqueMinimo ?? 5,
       complexo: materialModal.complexo || 'Almoxarifado Central',
+      locacao: materialModal.locacao || '',
       localizacao: materialModal.localizacao || '',
+      dataValidade: materialModal.dataValidade || '',
       descricao: materialModal.descricao || ''
     });
     setNovoCodigoInput(materialModal.codigo || '');
@@ -721,7 +839,9 @@ const AlmoxarifeEstoque = ({
         categoria: materialModal.categoria || 'Escritório',
         estoqueMinimo: materialModal.estoqueMinimo ?? 5,
         complexo: materialModal.complexo || 'Almoxarifado Central',
+        locacao: materialModal.locacao || '',
         localizacao: materialModal.localizacao || '',
+        dataValidade: materialModal.dataValidade || '',
         descricao: materialModal.descricao || ''
       });
     }
@@ -776,7 +896,9 @@ const AlmoxarifeEstoque = ({
       categoria: detalhesForm.categoria || materialModal.categoria,
       estoqueMinimo: Number(detalhesForm.estoqueMinimo) || materialModal.estoqueMinimo,
       complexo: detalhesForm.complexo || materialModal.complexo || 'Almoxarifado Central',
+      locacao: detalhesForm.locacao.trim(),
       localizacao: detalhesForm.localizacao.trim(),
+      dataValidade: detalhesForm.dataValidade || '',
       descricao: detalhesForm.descricao.trim()
     };
 
@@ -876,7 +998,9 @@ const AlmoxarifeEstoque = ({
       quantidade: Number(novoItemForm.quantidade) || 0,
       estoqueMinimo: Number(novoItemForm.estoqueMinimo) || 5,
       complexo: novoItemForm.complexo || 'Almoxarifado Central',
+      locacao: novoItemForm.locacao.trim(),
       localizacao: novoItemForm.localizacao.trim(),
+      dataValidade: novoItemForm.dataValidade || '',
       descricao: novoItemForm.descricao.trim()
     };
 
@@ -896,33 +1020,60 @@ const AlmoxarifeEstoque = ({
       quantidade: 0,
       estoqueMinimo: 5,
       complexo: 'Almoxarifado Central',
+      locacao: '',
       localizacao: '',
+      dataValidade: '',
       descricao: ''
     });
   };
 
   return (
     <div className="almoxarife-estoque">
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`almoxarife-toast ${toast.tipo === 'aviso' ? 'almoxarife-toast--aviso' : ''}`}>
-          <div className="almoxarife-toast__icon">
-            {toast.tipo === 'aviso' ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
-            )}
-          </div>
-          <span className="almoxarife-toast__text">{toast.mensagem}</span>
-        </div>
-      )}
+      {/* Toast Notification Padronizado */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key="almoxarife-feedback-toast"
+            className={`sge-toast ${toast.tipo === 'aviso' ? 'sge-toast--aviso' : toast.tipo === 'erro' ? 'sge-toast--erro' : 'sge-toast--sucesso'}`}
+            initial={{ opacity: 0, y: -24, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 420, damping: 26 }}
+          >
+            <div className="sge-toast__icon">
+              {toast.tipo === 'aviso' ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              ) : toast.tipo === 'erro' ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </div>
+            <div className="sge-toast__content">
+              <span className="sge-toast__title">{toast.mensagem || toast.titulo}</span>
+              {toast.detalhe && <p className="sge-toast__desc">{toast.detalhe}</p>}
+            </div>
+            <button
+              type="button"
+              className="sge-toast__close"
+              onClick={() => setToast(null)}
+              aria-label="Fechar notificação"
+            >
+              &times;
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Seção Superior Unificada: Busca + Botão de Filtro com Sanfona (A Geral do SGE) */}
       <div className="almoxarife-estoque__top-section">
@@ -997,17 +1148,19 @@ const AlmoxarifeEstoque = ({
       {/* Lista de Tickets do Almoxarife */}
       <div className="almoxarife-estoque__ticket-list">
         {materiaisFiltrados.length === 0 ? (
-          <div className="empty-state-almoxarife">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-            </svg>
-            <h4>Nenhum material encontrado</h4>
-            <p>Tente ajustar os termos de busca ou selecione outro filtro de reposição.</p>
+          <div className="sge-empty-state empty-state-almoxarife">
+            <div className="sge-empty-state__icon-wrap">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+              </svg>
+            </div>
+            <h4 className="sge-empty-state__title">Nenhum material encontrado</h4>
+            <p className="sge-empty-state__desc">Tente ajustar os termos de busca ou selecione outro filtro de reposição.</p>
             {(busca || temFiltroAtivo) && (
               <button
                 type="button"
-                className="btn-limpar-filtros"
+                className="sge-empty-state__btn btn-limpar-filtros"
                 onClick={() => {
                   setBusca('');
                   setStatusFiltro('todos');
@@ -1018,7 +1171,8 @@ const AlmoxarifeEstoque = ({
             )}
           </div>
         ) : (
-          materiaisFiltrados.map(item => {
+          <>
+            {materiaisExibidos.map(item => {
             const status = calcularStatusReposicao(item.quantidade, item.estoqueMinimo);
             // Razão de preenchimento da barra de nível (base 2x o mínimo para escala regular)
             const metaEscala = Math.max(item.estoqueMinimo * 2, 1);
@@ -1042,36 +1196,83 @@ const AlmoxarifeEstoque = ({
                 {/* Lado Esquerdo: Identificação e Dados do Material */}
                 <div className="ticket-almoxarife__main">
                   <div className="ticket-almoxarife__body">
-                    <h3 className="ticket-almoxarife__title">{item.nome}</h3>
+                    <div className="ticket-almoxarife__title-row">
+                      <h3 className="ticket-almoxarife__title">{item.nome}</h3>
+                      {item.dataValidade && (
+                        <span
+                          className={`validade-pill ${
+                            getStatusValidade(item.dataValidade)?.tipo === 'vencido'
+                              ? 'validade-pill--vencido'
+                              : getStatusValidade(item.dataValidade)?.tipo === 'atencao'
+                              ? 'validade-pill--atencao'
+                              : 'validade-pill--valido'
+                          }`}
+                          title={`Validade: ${formatarDataValidade(item.dataValidade)}`}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                          </svg>
+                          <span>Val: {formatarDataValidadeCurta(item.dataValidade)}</span>
+                        </span>
+                      )}
+                    </div>
                     {item.descricao && (
                       <p className="ticket-almoxarife__desc">{item.descricao}</p>
                     )}
                   </div>
 
-                  <div className="ticket-almoxarife__ids">
-                    <span className="sku-badge">{item.codigo}</span>
-                    <span
-                      className="location-pill"
-                      title={
-                        item.localizacao
-                          ? `${item.complexo || 'Almoxarifado Central'} • ${item.localizacao}`
-                          : (item.complexo || 'Almoxarifado Central')
-                      }
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                        <circle cx="12" cy="10" r="3" />
+                  {/* Endereçamento WMS em 2 Linhas: Complexo (Macro) + Badges Táteis (Micro) */}
+                  <div className="ticket-almoxarife__address">
+                    <div className="ticket-almoxarife__complexo-row" title={`Complexo: ${item.complexo || 'Almoxarifado Central'}`}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 21h18" />
+                        <path d="M5 21V7l8-4v18" />
+                        <path d="M19 21V11l-6-4" />
+                        <path d="M9 9h1" />
+                        <path d="M9 13h1" />
+                        <path d="M9 17h1" />
                       </svg>
-                      <span className="location-text">
-                        {item.localizacao
-                          ? `${item.complexo || 'Almoxarifado Central'} • ${item.localizacao}`
-                          : (item.complexo || 'Almoxarifado Central')}
+                      <span className="ticket-almoxarife__complexo-text">
+                        {item.complexo || 'Almoxarifado Central'}
                       </span>
-                    </span>
+                    </div>
+
+                    <div className="ticket-almoxarife__badges-row">
+                      {item.locacao && (
+                        <span className="wms-badge wms-badge--locacao" title={`Locação: ${item.locacao}`}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m7.5 4.27 9 5.15" />
+                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                            <path d="m3.3 7 8.7 5 8.7-5" />
+                            <path d="M12 22V12" />
+                          </svg>
+                          <span>{item.locacao}</span>
+                        </span>
+                      )}
+
+                      {item.localizacao && (
+                        <span className="wms-badge wms-badge--localizacao" title={`Localização: ${item.localizacao}`}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                          <span>{item.localizacao}</span>
+                        </span>
+                      )}
+
+                      {!item.locacao && !item.localizacao && (
+                        <span className="wms-badge wms-badge--empty">
+                          Sem endereço cadastrado
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Lado Direito: Topo com Indicador de Atenção (!) + Saldo e Mínimo */}
+                {/* Lado Direito: Topo com Código SKU no Canto Superior Direito + Saldo e Mínimo */}
                 <div className="ticket-almoxarife__side">
                   <div className="ticket-almoxarife__side-top">
                     {status.chave === 'atencao' && (
@@ -1096,6 +1297,7 @@ const AlmoxarifeEstoque = ({
                         </svg>
                       </span>
                     )}
+                    <span className="sku-badge">{item.codigo}</span>
                   </div>
 
                   <div className="ticket-almoxarife__stock-wrap">
@@ -1129,8 +1331,24 @@ const AlmoxarifeEstoque = ({
                 </div>
               </div>
             );
-          })
-        )}
+          })}
+
+          {/* Scroll Infinito Automático (Sentinela invisível para carregar novos itens) */}
+          {temMaisItens && (
+            <div ref={sentinelRef} className="sge-infinite-scroll__sentinel" aria-hidden="true" />
+          )}
+
+          {/* Indicador discreto de fim da lista */}
+          {!temMaisItens && materiaisFiltrados.length > 0 && (
+            <div className="sge-infinite-scroll__all-loaded">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span>Fim dos materiais ({materiaisFiltrados.length} {materiaisFiltrados.length === 1 ? 'item' : 'itens'})</span>
+            </div>
+          )}
+        </>
+      )}
       </div>
 
       {/* Speed Dial FAB Flutuante com Ações Rápidas (A Geral do SGE) */}
@@ -1401,49 +1619,107 @@ const AlmoxarifeEstoque = ({
                     </div>
                   </div>
 
-                  {/* 3. Localização Física (Largura Total, Editável / Texto) */}
+                  {/* 3. Localização & Locação (Largura Total, Dividida 50% / 50%) */}
                   <div
-                    className={`detail-card detail-card--full ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
-                    onClick={
-                      isEditandoDetalhes
-                        ? (e) => {
-                            const el = e.currentTarget.querySelector('input');
-                            if (el && document.activeElement !== el) el.focus();
-                          }
-                        : undefined
-                    }
+                    className={`detail-card detail-card--full detail-card--split ${isEditandoDetalhes ? 'detail-card--editing-split' : ''}`}
                   >
-                    <div className="detail-card__header">
-                      <span className="detail-label">Localização Física</span>
-                      {isEditandoDetalhes && (
-                        <span className="detail-card__pencil" aria-hidden="true">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 20h9" />
-                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                          </svg>
-                        </span>
-                      )}
-                    </div>
-                    <div className="detail-card__value-wrap">
-                      {isEditandoDetalhes ? (
-                        <input
-                          type="text"
-                          className="card-btn-input"
-                          placeholder="Ex: Prat. 02, Gaveta 04..."
-                          value={detalhesForm.localizacao}
-                          onChange={e => setDetalhesForm({ ...detalhesForm, localizacao: e.target.value })}
-                          enterKeyHint="done"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              e.target.blur();
+                    {/* Metade Esquerda (50%): Localização */}
+                    <div
+                      className={`detail-split__col ${isEditandoDetalhes ? 'detail-split__col--clickable' : ''}`}
+                      onClick={
+                        isEditandoDetalhes
+                          ? (e) => {
+                              if (e.target.tagName !== 'INPUT') {
+                                const el = e.currentTarget.querySelector('input');
+                                if (el && document.activeElement !== el) el.focus();
+                              }
                             }
-                          }}
-                          aria-label="Localização Física"
-                        />
-                      ) : (
-                        <span className="detail-value">{materialModal.localizacao || 'Não especificada'}</span>
-                      )}
+                          : undefined
+                      }
+                    >
+                      <div className="detail-card__header">
+                        <span className="detail-label">Localização</span>
+                        {isEditandoDetalhes && (
+                          <span className="detail-card__pencil" aria-hidden="true">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                            </svg>
+                          </span>
+                        )}
+                      </div>
+                      <div className="detail-card__value-wrap">
+                        {isEditandoDetalhes ? (
+                          <input
+                            type="text"
+                            className="card-btn-input"
+                            placeholder="Ex: Prat. 02, Gaveta 04..."
+                            value={detalhesForm.localizacao}
+                            onChange={e => setDetalhesForm({ ...detalhesForm, localizacao: e.target.value })}
+                            enterKeyHint="done"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.target.blur();
+                              }
+                            }}
+                            aria-label="Localização"
+                          />
+                        ) : (
+                          <span className="detail-value">{materialModal.localizacao || 'Não especificada'}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Divisória Vertical Central */}
+                    <div className="detail-split__divider" aria-hidden="true" />
+
+                    {/* Metade Direita (50%): Locação */}
+                    <div
+                      className={`detail-split__col ${isEditandoDetalhes ? 'detail-split__col--clickable' : ''}`}
+                      onClick={
+                        isEditandoDetalhes
+                          ? (e) => {
+                              if (e.target.tagName !== 'INPUT') {
+                                const el = e.currentTarget.querySelector('input');
+                                if (el && document.activeElement !== el) el.focus();
+                              }
+                            }
+                          : undefined
+                      }
+                    >
+                      <div className="detail-card__header">
+                        <span className="detail-label">Locação</span>
+                        {isEditandoDetalhes && (
+                          <span className="detail-card__pencil" aria-hidden="true">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                            </svg>
+                          </span>
+                        )}
+                      </div>
+                      <div className="detail-card__value-wrap">
+                        {isEditandoDetalhes ? (
+                          <input
+                            type="text"
+                            className="card-btn-input"
+                            placeholder="Ex: Box 14, Palete 03..."
+                            value={detalhesForm.locacao}
+                            onChange={e => setDetalhesForm({ ...detalhesForm, locacao: e.target.value })}
+                            enterKeyHint="done"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.target.blur();
+                              }
+                            }}
+                            aria-label="Locação"
+                          />
+                        ) : (
+                          <span className="detail-value">{materialModal.locacao || 'Não especificada'}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1705,8 +1981,8 @@ const AlmoxarifeEstoque = ({
                     </div>
                   </div>
 
-                  {/* 6. Saldo Atual (Largura Total, Fixo / Transacional na aba Movimentar) */}
-                  <div className="detail-card detail-card--full detail-card--static">
+                  {/* 6. Saldo Atual (Fixo / Transacional na aba Movimentar) */}
+                  <div className="detail-card detail-card--static">
                     <div className="detail-card__header">
                       <span className="detail-label">Saldo Atual em Estoque</span>
                     </div>
@@ -1714,6 +1990,55 @@ const AlmoxarifeEstoque = ({
                       <span className="detail-value detail-value--accent">
                         {materialModal.quantidade} {materialModal.unidade}
                       </span>
+                    </div>
+                  </div>
+
+                  {/* 7. Validade (Opcional, Editável / Data) */}
+                  <div
+                    className={`detail-card ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
+                    onClick={
+                      isEditandoDetalhes
+                        ? (e) => {
+                            const el = e.currentTarget.querySelector('input');
+                            if (el && document.activeElement !== el) el.focus();
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="detail-card__header">
+                      <span className="detail-label">Validade (Opcional)</span>
+                      {isEditandoDetalhes && (
+                        <span className="detail-card__pencil" aria-hidden="true">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                          </svg>
+                        </span>
+                      )}
+                    </div>
+                    <div className="detail-card__value-wrap">
+                      {isEditandoDetalhes ? (
+                        <input
+                          type="date"
+                          className="card-btn-input"
+                          value={detalhesForm.dataValidade || ''}
+                          onChange={e => setDetalhesForm({ ...detalhesForm, dataValidade: e.target.value })}
+                          aria-label="Data de Validade"
+                        />
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span className="detail-value">
+                            {formatarDataValidade(materialModal.dataValidade)}
+                          </span>
+                          {materialModal.dataValidade && getStatusValidade(materialModal.dataValidade) && (
+                            <span
+                              className={`validade-pill validade-pill--${getStatusValidade(materialModal.dataValidade).tipo}`}
+                            >
+                              {getStatusValidade(materialModal.dataValidade).label}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1845,6 +2170,19 @@ const AlmoxarifeEstoque = ({
                     }}
                   />
                 </div>
+
+                {/* Data de Validade do Lote (Opcional - Entrada) */}
+                {tipoMovimentacao === 'entrada' && (
+                  <div className="modal-form-group">
+                    <label className="modal-label">Data de Validade do Lote (Opcional):</label>
+                    <input
+                      type="date"
+                      className="modal-input"
+                      value={validadeMovimentacao}
+                      onChange={e => setValidadeMovimentacao(e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -1909,12 +2247,14 @@ const AlmoxarifeEstoque = ({
         )}
       </BottomSheetModal>
 
-      {/* Modal de Confirmação de Segurança para Alteração de Código / SKU */}
+      {/* Modal de Confirmação de Segurança para Alteração de Código / SKU (Modal Flutuante) */}
       <BottomSheetModal
         isOpen={isConfirmarCodigoOpen}
         onClose={() => setIsConfirmarCodigoOpen(false)}
         title="Alterar Código / SKU"
         subtitle="Confirmação Cadastral"
+        variant="dialog"
+        maxWidth="440px"
         zIndex={11000}
         footer={
           <div style={{ display: 'flex', width: '100%', justifyContent: 'flex-end', gap: '10px' }}>
@@ -2154,23 +2494,23 @@ const AlmoxarifeEstoque = ({
               </div>
             </div>
 
-            {/* Endereçamento dividido: Complexo (Lista) + Localização Física (Texto Editável) */}
+            {/* Endereçamento dividido: Complexo (Lista) + Localização (Texto) + Locação (Texto) */}
+            <div className="modal-form-group">
+              <label className="modal-label">Complexo *</label>
+              <select
+                className="modal-input"
+                value={novoItemForm.complexo}
+                onChange={e => setNovoItemForm({ ...novoItemForm, complexo: e.target.value })}
+              >
+                {LISTA_COMPLEXOS.map(comp => (
+                  <option key={comp} value={comp}>{comp}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="modal-form-row">
               <div className="modal-form-group flex-1">
-                <label className="modal-label">Complexo *</label>
-                <select
-                  className="modal-input"
-                  value={novoItemForm.complexo}
-                  onChange={e => setNovoItemForm({ ...novoItemForm, complexo: e.target.value })}
-                >
-                  {LISTA_COMPLEXOS.map(comp => (
-                    <option key={comp} value={comp}>{comp}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="modal-form-group flex-1">
-                <label className="modal-label">Localização Física</label>
+                <label className="modal-label">Localização</label>
                 <input
                   type="text"
                   className="modal-input"
@@ -2186,6 +2526,35 @@ const AlmoxarifeEstoque = ({
                   }}
                 />
               </div>
+
+              <div className="modal-form-group flex-1">
+                <label className="modal-label">Locação</label>
+                <input
+                  type="text"
+                  className="modal-input"
+                  placeholder="Ex: Box 14, Palete 03..."
+                  value={novoItemForm.locacao}
+                  onChange={e => setNovoItemForm({ ...novoItemForm, locacao: e.target.value })}
+                  enterKeyHint="done"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.target.blur();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Validade (Opcional) */}
+            <div className="modal-form-group">
+              <label className="modal-label">Data de Validade (Opcional)</label>
+              <input
+                type="date"
+                className="modal-input"
+                value={novoItemForm.dataValidade}
+                onChange={e => setNovoItemForm({ ...novoItemForm, dataValidade: e.target.value })}
+              />
             </div>
 
             <div className="modal-form-group">

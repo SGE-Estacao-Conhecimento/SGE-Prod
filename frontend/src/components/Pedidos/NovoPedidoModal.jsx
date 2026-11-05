@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { BottomSheetModal, QuantityStepper } from '../common';
 import './NovoPedidoModal.css';
-import { useDialogAccessibility } from '../common';
 
 /**
- * Modal para criação e edição de pedidos de materiais
- * Alinhado com o padrão estético de "Cadastrar Novo Material":
- * - Header com ícone azul e título estilizado
- * - Botão de fechar circular
- * - Grid padronizado de campos (form-group, form-label, form-input, form-select)
- * - Seleção inteligente de produtos com busca e quantidade máxima disponível em estoque
- * - Footer com botões Cancelar e Submeter com ícone
+ * NovoPedidoModal — Cadastro Rápido de Pedido pelo Almoxarifado
+ * 
+ * Totalmente padronizado com o Design System do SGE:
+ * - Baseado no BottomSheetModal oficial (acessibilidade, física de mola, responsivo).
+ * - Seleção inteligente de solicitante vinculado ao setor e ramal.
+ * - Busca de materiais com autocomplete e exibição do saldo físico disponível.
+ * - Controle de volume via QuantityStepper padronizado.
+ * - Toggle de urgência tátil e justificativa operacional.
  */
-const ITEM_VAZIO = { materialId: null, materialNome: '', quantidade: 1, unidade: 'UN', quantidadeMax: null };
-
 const NovoPedidoModal = ({
   isOpen,
   onClose,
@@ -21,462 +21,491 @@ const NovoPedidoModal = ({
   materiaisDisponiveis = [],
   usuariosDisponiveis = []
 }) => {
-  const dialogRef = useDialogAccessibility({ isOpen, onClose });
-  const [formData, setFormData] = useState({
-    usuario: '',
-    prioridade: 'Normal', // Normal, Alta, Urgente
-    justificativa: '',
-    itens: [] // [{ materialId, materialNome, quantidade, unidade, quantidadeMax }]
-  });
+  const [usuarioSelecionadoId, setUsuarioSelecionadoId] = useState('');
+  const [usuarioNomeCustom, setUsuarioNomeCustom] = useState('');
+  const [setorCustom, setSetorCustom] = useState('');
+  const [urgente, setUrgente] = useState(false);
+  const [justificativa, setJustificativa] = useState('');
+  const [itens, setItens] = useState([]);
 
-  // Linha temporária para adição de itens ao pedido (lote)
-  const [itemTemp, setItemTemp] = useState(ITEM_VAZIO);
-
-  const [productSearch, setProductSearch] = useState('');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [errors, setErrors] = useState({});
+  // Busca e Autocomplete de Materiais
+  const [buscaMaterial, setBuscaMaterial] = useState('');
+  const [isDropdownAberto, setIsDropdownAberto] = useState(false);
+  const [erro, setErro] = useState('');
   const dropdownRef = useRef(null);
 
-  // Fecha dropdown de produtos ao clicar fora
+  // Fecha o dropdown ao clicar fora
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setIsDropdownOpen(false);
+        setIsDropdownAberto(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
-  // Normaliza lista de materiais
+  // Lista normalizada de materiais para seleção
   const listaMateriais = useMemo(() => {
-    return materiaisDisponiveis.map((m, idx) => {
-      if (typeof m === 'string') {
-        return {
-          id: idx + 1,
-          nome: m,
-          unidade: 'UN',
-          quantidadeMax: null
-        };
-      }
-      return {
-        id: m.id || idx + 1,
-        nome: m.nome || m.materialNome,
-        unidade: m.unidade || 'UN',
-        quantidadeMax: typeof m.quantidade === 'number' ? m.quantidade : null
-      };
-    });
+    return (materiaisDisponiveis || []).map((m, idx) => ({
+      id: m.id || idx + 1,
+      codigo: m.codigo || `MAT-${String(m.id || idx + 1).padStart(3, '0')}`,
+      nome: m.nome || m.materialNome || 'Material',
+      unidade: m.unidade || 'UN',
+      quantidade: typeof m.quantidade === 'number' ? m.quantidade : 0,
+      complexo: m.complexo || 'Almoxarifado Central',
+      locacao: m.locacao || '',
+      localizacao: m.localizacao || ''
+    }));
   }, [materiaisDisponiveis]);
 
+  // Filtro de materiais pelo termo de busca
   const materiaisFiltrados = useMemo(() => {
-    if (!productSearch.trim()) return listaMateriais;
-    const term = productSearch.toLowerCase();
-    return listaMateriais.filter(m => m.nome.toLowerCase().includes(term));
-  }, [listaMateriais, productSearch]);
+    if (!buscaMaterial.trim()) return listaMateriais.slice(0, 8);
+    const termo = buscaMaterial.toLowerCase().trim();
+    return listaMateriais.filter(m =>
+      m.nome.toLowerCase().includes(termo) ||
+      m.codigo.toLowerCase().includes(termo) ||
+      (m.locacao && m.locacao.toLowerCase().includes(termo))
+    ).slice(0, 10);
+  }, [listaMateriais, buscaMaterial]);
 
+  // Lista de usuários para seleção
+  const listaUsuarios = useMemo(() => {
+    return (usuariosDisponiveis || []).filter(u => u.ativo !== false);
+  }, [usuariosDisponiveis]);
+
+  // Inicializa dados ao abrir
   useEffect(() => {
     if (initialData) {
-      setFormData({
-        usuario: initialData.usuario || '',
-        prioridade: initialData.prioridade || 'Normal',
-        justificativa: initialData.justificativa || '',
-        itens: initialData.itens ? [...initialData.itens] : (
-          initialData.materiais
-            ? initialData.materiais.map(m => ({
-                materialId: m.materialId ?? m.produtoId ?? null,
-                materialNome: typeof m === 'string' ? m : m.materialNome,
-                quantidade: m.quantidade || 1,
-                unidade: m.unidade || 'UN',
-                quantidadeMax: m.quantidadeMax || null
-              }))
-            : []
-        )
-      });
+      const uEncontrado = listaUsuarios.find(
+        u => u.nome?.toLowerCase() === initialData.usuario?.toLowerCase()
+      );
+      if (uEncontrado) {
+        setUsuarioSelecionadoId(String(uEncontrado.id));
+        setUsuarioNomeCustom('');
+        setSetorCustom('');
+      } else {
+        setUsuarioSelecionadoId('custom');
+        setUsuarioNomeCustom(initialData.usuario || '');
+        setSetorCustom(initialData.setor || '');
+      }
+
+      setUrgente(initialData.urgente || String(initialData.prioridade).toLowerCase() === 'urgente');
+      setJustificativa(initialData.justificativa || '');
+
+      const itensIniciais = Array.isArray(initialData.itens) && initialData.itens.length > 0
+        ? initialData.itens
+        : Array.isArray(initialData.materiais) && initialData.materiais.length > 0
+        ? initialData.materiais
+        : initialData.material
+        ? [{ materialNome: initialData.material, quantidade: initialData.quantidade || 1, unidade: 'UN' }]
+        : [];
+
+      setItens(itensIniciais.map((it, idx) => {
+        const mat = listaMateriais.find(m => m.id === it.produtoId || m.nome.toLowerCase() === (it.materialNome || it.nome)?.toLowerCase());
+        return {
+          produtoId: it.produtoId || mat?.id || idx + 1,
+          materialNome: it.materialNome || it.nome || mat?.nome || 'Material',
+          quantidade: Number(it.quantidade) || 1,
+          unidade: it.unidade || mat?.unidade || 'UN',
+          saldo: mat ? mat.quantidade : 999
+        };
+      }));
     } else {
-      setFormData({
-        usuario: '',
-        prioridade: 'Normal',
-        justificativa: '',
-        itens: []
-      });
+      setUsuarioSelecionadoId(listaUsuarios.length > 0 ? String(listaUsuarios[0].id) : 'custom');
+      setUsuarioNomeCustom('');
+      setSetorCustom('');
+      setUrgente(false);
+      setJustificativa('');
+      setItens([]);
     }
-    setProductSearch('');
-    setItemTemp(ITEM_VAZIO);
-    setErrors({});
-  }, [initialData, isOpen]);
+    setBuscaMaterial('');
+    setIsDropdownAberto(false);
+    setErro('');
+  }, [isOpen, initialData, listaUsuarios, listaMateriais]);
 
   if (!isOpen) return null;
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
-    }
-  };
-
-  const handleSelectMaterial = (m) => {
-    setItemTemp(prev => ({
-      ...prev,
-      materialId: m.id,
-      materialNome: m.nome,
-      unidade: m.unidade || 'UN',
-      quantidadeMax: m.quantidadeMax
-    }));
-    setProductSearch(m.nome);
-    setIsDropdownOpen(false);
-    if (errors.item) {
-      setErrors(prev => ({ ...prev, item: null }));
-    }
-  };
-
-  const handleAddItem = () => {
-    if (!itemTemp.materialNome.trim()) {
-      setErrors(prev => ({ ...prev, item: 'Selecione um produto da lista' }));
-      return;
-    }
-
-    if (itemTemp.quantidadeMax !== null && itemTemp.quantidade > itemTemp.quantidadeMax) {
-      setErrors(prev => ({
-        ...prev,
-        item: `A quantidade não pode exceder o estoque máximo (${itemTemp.quantidadeMax} ${itemTemp.unidade})`
-      }));
-      return;
-    }
-
-    const mesmoItem = (it) => (itemTemp.materialId != null
-      ? it.materialId === itemTemp.materialId
-      : it.materialNome === itemTemp.materialNome.trim());
-    const existente = formData.itens.find(mesmoItem);
-
-    if (existente) {
-      const somada = existente.quantidade + itemTemp.quantidade;
-      if (itemTemp.quantidadeMax !== null && somada > itemTemp.quantidadeMax) {
-        setErrors(prev => ({
-          ...prev,
-          item: `Este material já está no pedido. O total (${somada}) excede o estoque (${itemTemp.quantidadeMax} ${itemTemp.unidade})`
-        }));
-        return;
+  // Adiciona material selecionado à lista do pedido
+  const handleAdicionarMaterial = (mat) => {
+    setItens(prev => {
+      const indexExistente = prev.findIndex(it => it.produtoId === mat.id);
+      if (indexExistente >= 0) {
+        const atual = prev[indexExistente];
+        const novaQtd = Math.min(mat.quantidade || 999, atual.quantidade + 1);
+        const atualizados = [...prev];
+        atualizados[indexExistente] = { ...atual, quantidade: novaQtd };
+        return atualizados;
       }
-      setFormData(prev => ({
+      return [
         ...prev,
-        itens: prev.itens.map(it => (mesmoItem(it) ? { ...it, quantidade: somada } : it))
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        itens: [
-          ...prev.itens,
-          {
-            materialId: itemTemp.materialId,
-            materialNome: itemTemp.materialNome.trim(),
-            quantidade: itemTemp.quantidade,
-            unidade: itemTemp.unidade || 'UN',
-            quantidadeMax: itemTemp.quantidadeMax
-          }
-        ]
-      }));
-    }
+        {
+          produtoId: mat.id,
+          materialNome: mat.nome,
+          quantidade: 1,
+          unidade: mat.unidade || 'UN',
+          saldo: mat.quantidade
+        }
+      ];
+    });
 
-    setItemTemp(ITEM_VAZIO);
-    setProductSearch('');
-    setErrors(prev => ({ ...prev, item: null, itens: null }));
+    setBuscaMaterial('');
+    setIsDropdownAberto(false);
+    setErro('');
   };
 
-  const handleRemoveItem = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      itens: prev.itens.filter((_, i) => i !== index)
-    }));
+  const handleUpdateQtd = (index, novaQtd) => {
+    setItens(prev => {
+      const atualizados = [...prev];
+      atualizados[index] = { ...atualizados[index], quantidade: Math.max(1, novaQtd) };
+      return atualizados;
+    });
   };
 
-  const validate = () => {
-    const newErrors = {};
-
-    if (!formData.usuario.trim()) {
-      newErrors.usuario = 'O solicitante é obrigatório';
-    }
-
-    if (!formData.itens || formData.itens.length === 0) {
-      newErrors.itens = 'Adicione ao menos um material ao pedido';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleRemoverItem = (index) => {
+    setItens(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!validate()) return;
+    let solicitanteNome = '';
+    let solicitanteSetor = '';
 
-    const dataFinal = {
+    if (usuarioSelecionadoId === 'custom') {
+      if (!usuarioNomeCustom.trim()) {
+        setErro('Informe o nome do solicitante.');
+        return;
+      }
+      solicitanteNome = usuarioNomeCustom.trim();
+      solicitanteSetor = setorCustom.trim() || 'Geral';
+    } else {
+      const u = listaUsuarios.find(item => String(item.id) === String(usuarioSelecionadoId));
+      if (!u) {
+        setErro('Selecione um solicitante.');
+        return;
+      }
+      solicitanteNome = u.nome;
+      solicitanteSetor = u.setor || 'Geral';
+    }
+
+    if (itens.length === 0) {
+      setErro('Adicione pelo menos 1 material ao pedido.');
+      return;
+    }
+
+    if (!justificativa.trim()) {
+      setErro('Informe a finalidade ou justificativa do pedido.');
+      return;
+    }
+
+    const payload = {
       ...(initialData?.id ? { id: initialData.id } : { id: Date.now() }),
-      usuario: formData.usuario.trim(),
-      prioridade: formData.prioridade,
-      justificativa: formData.justificativa.trim(),
-      itens: formData.itens,
-      materiais: formData.itens.map(i => `${i.materialNome} (${i.quantidade} ${i.unidade})`),
-      data: initialData?.data || new Date().toISOString().split('T')[0],
+      usuario: solicitanteNome,
+      setor: solicitanteSetor,
+      data: initialData?.data || new Date().toLocaleDateString('pt-BR'),
+      prioridade: urgente ? 'Urgente' : 'Normal',
+      urgente,
+      justificativa: justificativa.trim(),
       status: initialData?.status || 'Pendente',
-      dataAtualizacao: new Date().toISOString()
+      itens: itens.map(it => ({
+        produtoId: it.produtoId,
+        materialNome: it.materialNome,
+        quantidade: it.quantidade,
+        unidade: it.unidade
+      }))
     };
 
-    onSave(dataFinal);
+    onSave(payload);
     onClose();
   };
 
+  const usuarioAtual = listaUsuarios.find(u => String(u.id) === String(usuarioSelecionadoId));
+
   return (
-    <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section ref={dialogRef} className="modal-container modal-container--pedidos" role="dialog" aria-modal="true" aria-labelledby="order-modal-title" tabIndex={-1}>
-        {/* Header no mesmo padrão do cadastro de materiais */}
-        <div className="modal-header">
-          <div className="modal-header__title-wrap">
-            <div className="modal-header__icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14,2 14,8 20,8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
-            </div>
-            <h3 id="order-modal-title">{initialData ? 'Editar Pedido de Material' : 'Cadastrar Novo Pedido'}</h3>
-          </div>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Fechar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+    <BottomSheetModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={initialData ? `Editar Pedido #${initialData.id}` : 'Novo Pedido de Material'}
+      subtitle="Balcão de Atendimento"
+      maxWidth="580px"
+      badge={
+        urgente ? (
+          <span className="novo-pedido-badge-urgente">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
             </svg>
+            Urgência Ativada
+          </span>
+        ) : null
+      }
+      footer={
+        <div className="novo-pedido-footer">
+          <button
+            type="button"
+            className="novo-pedido-btn-cancel"
+            onClick={onClose}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="form-novo-pedido-almoxarife"
+            className={`novo-pedido-btn-submit ${urgente ? 'novo-pedido-btn-submit--urgente' : ''}`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            {initialData ? 'Salvar Alterações' : 'Criar Pedido'}
           </button>
         </div>
+      }
+    >
+      <form id="form-novo-pedido-almoxarife" onSubmit={handleSubmit} className="novo-pedido-form">
+        {erro && (
+          <div className="novo-pedido-erro-banner" role="alert">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{erro}</span>
+          </div>
+        )}
 
-        {/* Formulário */}
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="modal-grid">
-            {/* Solicitante */}
-            <div className="form-group">
-              <label className="form-label" htmlFor="order-requester">Solicitante *</label>
-              {usuariosDisponiveis.length > 0 ? (
-                <select
-                  id="order-requester"
-                  name="usuario"
-                  value={formData.usuario}
-                  onChange={handleChange}
-                  className={`form-select ${errors.usuario ? 'form-input--error' : ''}`}
-                  required
-                  aria-invalid={Boolean(errors.usuario)}
-                  aria-describedby={errors.usuario ? 'order-requester-error' : undefined}
-                >
-                  <option value="">Selecione o solicitante...</option>
-                  {usuariosDisponiveis.map((u, idx) => {
-                    const nome = typeof u === 'string' ? u : u.nome;
-                    return (
-                      <option key={idx} value={nome}>{nome}</option>
-                    );
-                  })}
-                </select>
-              ) : (
-                <input
-                  id="order-requester"
-                  name="usuario"
-                  type="text"
-                  placeholder="Nome do usuário solicitante"
-                  value={formData.usuario}
-                  onChange={handleChange}
-                  className={`form-input ${errors.usuario ? 'form-input--error' : ''}`}
-                  required
-                  aria-invalid={Boolean(errors.usuario)}
-                  aria-describedby={errors.usuario ? 'order-requester-error' : undefined}
-                />
-              )}
-              {errors.usuario && <span id="order-requester-error" className="form-error-msg" role="alert">{errors.usuario}</span>}
-            </div>
-
-            {/* Prioridade */}
-            <div className="form-group">
-              <label className="form-label" htmlFor="order-priority">Prioridade</label>
-              <select
-                id="order-priority"
-                name="prioridade"
-                value={formData.prioridade}
-                onChange={handleChange}
-                className="form-select"
-              >
-                <option value="Normal">Normal</option>
-                <option value="Alta">Alta</option>
-                <option value="Urgente">Urgente</option>
-              </select>
-            </div>
+        {/* 1. SELEÇÃO DE SOLICITANTE */}
+        <div className="novo-pedido-section">
+          <label className="novo-pedido-label" htmlFor="select-solicitante-almox">
+            Solicitante do Pedido <span className="campo-obrigatorio">*</span>
+          </label>
+          <div className="novo-pedido-solicitante-row">
+            <select
+              id="select-solicitante-almox"
+              className="novo-pedido-select"
+              value={usuarioSelecionadoId}
+              onChange={(e) => setUsuarioSelecionadoId(e.target.value)}
+            >
+              {listaUsuarios.map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.nome} — {u.setor || 'Geral'}{u.ramal ? ` (Ramal ${u.ramal})` : ''}
+                </option>
+              ))}
+              <option value="custom">Outro colaborador (digitar)...</option>
+            </select>
           </div>
 
-          {/* Justificativa */}
-          <div className="form-group margin-top-sm">
-            <label className="form-label" htmlFor="order-reason">Justificativa / Motivo</label>
-            <input
-              id="order-reason"
-              name="justificativa"
-              type="text"
-              placeholder="Ex: Reposição para início de semestre letivo"
-              value={formData.justificativa}
-              onChange={handleChange}
-              className="form-input"
-            />
-          </div>
+          {usuarioSelecionadoId === 'custom' && (
+            <div className="novo-pedido-custom-user-grid">
+              <div>
+                <label className="novo-pedido-sublabel">Nome Completo</label>
+                <input
+                  type="text"
+                  className="novo-pedido-input"
+                  placeholder="Ex: João da Silva"
+                  value={usuarioNomeCustom}
+                  onChange={(e) => setUsuarioNomeCustom(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="novo-pedido-sublabel">Setor</label>
+                <input
+                  type="text"
+                  className="novo-pedido-input"
+                  placeholder="Ex: Manutenção"
+                  value={setorCustom}
+                  onChange={(e) => setSetorCustom(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
 
-          {/* Seção de Itens do Pedido */}
-          <div className="pedido-itens-section margin-top-sm">
-            <div className="itens-section-header">
-              <label className="form-label">
-                Itens do Pedido <span className="required-star">*</span>
-              </label>
-              <span className="itens-counter">
-                {formData.itens.length} {formData.itens.length === 1 ? 'item adicionado' : 'itens adicionados'}
-              </span>
+          {usuarioAtual && usuarioSelecionadoId !== 'custom' && (
+            <div className="novo-pedido-solicitante-card">
+              <div className="novo-pedido-user-avatar">
+                {usuarioAtual.inicial || usuarioAtual.nome?.charAt(0) || 'U'}
+              </div>
+              <div className="novo-pedido-user-meta">
+                <span className="novo-pedido-user-name">{usuarioAtual.nome}</span>
+                <span className="novo-pedido-user-sub">
+                  {usuarioAtual.setor || 'Geral'}{usuarioAtual.ramal ? ` • Ramal ${usuarioAtual.ramal}` : ''}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 2. ADIÇÃO DE MATERIAIS COM SALDO REAL */}
+        <div className="novo-pedido-section">
+          <label className="novo-pedido-label">
+            Materiais Solicitados <span className="campo-obrigatorio">*</span>
+          </label>
+
+          {/* Campo de Busca / Autocomplete */}
+          <div className="novo-pedido-search-wrap" ref={dropdownRef}>
+            <div className="novo-pedido-input-icon-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="novo-pedido-search-icon">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                className="novo-pedido-search-input"
+                placeholder="Buscar material por nome, código ou prateleira..."
+                value={buscaMaterial}
+                onFocus={() => setIsDropdownAberto(true)}
+                onChange={(e) => {
+                  setBuscaMaterial(e.target.value);
+                  setIsDropdownAberto(true);
+                }}
+              />
             </div>
 
-            {/* Linha para adicionar item com busca de produto e quantidade máxima */}
-            <div className="adicionar-item-box" ref={dropdownRef}>
-              <div className="item-search-wrapper">
-                <input
-                  id="order-product-search"
-                  type="text"
-                  placeholder="Pesquise o produto pelo nome..."
-                  value={productSearch}
-                  onChange={(e) => {
-                    setProductSearch(e.target.value);
-                    setIsDropdownOpen(true);
-                  }}
-                  onFocus={() => setIsDropdownOpen(true)}
-                  className="form-input"
-                  aria-label="Pesquisar material"
-                  role="combobox"
-                  aria-expanded={isDropdownOpen}
-                  aria-controls="order-product-options"
-                  aria-autocomplete="list"
-                />
-
-                {isDropdownOpen && (
-                  <div id="order-product-options" className="modal-product-dropdown" role="listbox" aria-label="Materiais disponíveis">
-                    {materiaisFiltrados.length === 0 ? (
-                      <div className="modal-dropdown-empty">
-                        {listaMateriais.length === 0
-                          ? 'Nenhum material cadastrado no estoque'
-                          : 'Nenhum material encontrado'}
-                      </div>
-                    ) : (
-                      materiaisFiltrados.map(m => (
-                        <button
-                          type="button"
-                          key={m.id}
-                          className="modal-dropdown-item"
-                          onClick={() => handleSelectMaterial(m)}
-                          role="option"
-                          aria-selected={itemTemp.materialNome === m.nome}
-                        >
-                          <span className="dropdown-item-title">{m.nome}</span>
-                          <span className="dropdown-item-badge">
-                            {m.quantidadeMax !== null ? `Máx: ${m.quantidadeMax} ${m.unidade}` : m.unidade}
-                          </span>
-                        </button>
-                      ))
-                    )}
+            {/* Dropdown de Resultados com Saldo Físico */}
+            {isDropdownAberto && (
+              <div className="novo-pedido-dropdown">
+                {materiaisFiltrados.length === 0 ? (
+                  <div className="novo-pedido-dropdown-empty">
+                    Nenhum material encontrado no estoque.
                   </div>
+                ) : (
+                  materiaisFiltrados.map(mat => {
+                    const temSaldo = mat.quantidade > 0;
+                    return (
+                      <button
+                        key={mat.id}
+                        type="button"
+                        className="novo-pedido-dropdown-item"
+                        onClick={() => handleAdicionarMaterial(mat)}
+                      >
+                        <div className="novo-pedido-item-main">
+                          <span className="novo-pedido-item-sku">{mat.codigo}</span>
+                          <span className="novo-pedido-item-nome">{mat.nome}</span>
+                          <span className="novo-pedido-item-loc">
+                            {[mat.locacao, mat.localizacao].filter(Boolean).join(' • ') || mat.complexo}
+                          </span>
+                        </div>
+
+                        <div className="novo-pedido-item-stock">
+                          <span className={`novo-pedido-saldo-badge ${temSaldo ? 'saldo--ok' : 'saldo--zero'}`}>
+                            {temSaldo ? `Saldo: ${mat.quantidade} ${mat.unidade}` : 'Sem estoque'}
+                          </span>
+                          <span className="novo-pedido-add-icon">+</span>
+                        </div>
+                      </button>
+                    );
+                  })
                 )}
               </div>
-
-              {/* Quantidade */}
-              <div className="item-qtd-wrapper">
-                <input
-                  aria-label="Quantidade do material"
-                  type="number"
-                  name="quantidade"
-                  min="1"
-                  max={itemTemp.quantidadeMax || undefined}
-                  value={itemTemp.quantidade}
-                  onChange={(e) => {
-                    const val = Math.max(1, Number(e.target.value) || 1);
-                    setItemTemp(p => ({
-                      ...p,
-                      quantidade: itemTemp.quantidadeMax !== null ? Math.min(val, itemTemp.quantidadeMax) : val
-                    }));
-                  }}
-                  className="form-input"
-                  title={itemTemp.quantidadeMax !== null ? `Máximo permitido: ${itemTemp.quantidadeMax}` : ''}
-                />
-              </div>
-
-              {/* Unidade */}
-              <div className="item-und-wrapper">
-                <span className="item-unit-display">{itemTemp.unidade || 'UN'}</span>
-              </div>
-
-              {/* Botão Incluir */}
-              <button
-                type="button"
-                className="btn-add-item"
-                onClick={handleAddItem}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"/>
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                Incluir
-              </button>
-            </div>
-
-            {itemTemp.materialNome && itemTemp.quantidadeMax !== null && (
-              <span className="item-max-hint">
-                Disponível em estoque: <strong>{itemTemp.quantidadeMax} {itemTemp.unidade}</strong>
-              </span>
             )}
+          </div>
 
-            {errors.item && <span className="form-error-msg">{errors.item}</span>}
-            {errors.itens && <span className="form-error-msg">{errors.itens}</span>}
+          {/* Lista de Itens Adicionados (Layout Padronizado com a Caderneta do Usuário) */}
+          {itens.length === 0 ? (
+            <div className="novo-pedido-itens-vazio">
+              <span>Nenhum material adicionado ainda. Utilize a busca acima.</span>
+            </div>
+          ) : (
+            <div className="caderneta-itens-scroll novo-pedido-itens-lista">
+              <AnimatePresence initial={false}>
+                {itens.map((it, idx) => (
+                  <motion.div
+                    key={it.produtoId || idx}
+                    layout
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="caderneta-item-row"
+                  >
+                    <div className="caderneta-item-info">
+                      <div className="caderneta-item-nome-wrap">
+                        <span className="caderneta-item-nome" title={it.materialNome}>
+                          {it.materialNome}
+                        </span>
+                        <span className="caderneta-item-unidade">
+                          {it.unidade || 'UN'}
+                        </span>
+                      </div>
+                      <span className="caderneta-item-conversao">
+                        Saldo em estoque: <strong>{it.saldo} {it.unidade}</strong>
+                      </span>
+                    </div>
 
-            {/* Lista dos itens incluídos */}
-            {formData.itens.length > 0 ? (
-              <div className="itens-lista">
-                {formData.itens.map((it, idx) => (
-                  <div key={idx} className="item-row-badge">
-                    <span className="item-nome">{it.materialNome}</span>
-                    <span className="item-badge-qtd">{it.quantidade} {it.unidade}</span>
+                    {/* Stepper Padronizado de Quantidade */}
+                    <QuantityStepper
+                      value={it.quantidade}
+                      onChange={(novaQtd) => handleUpdateQtd(idx, novaQtd)}
+                      min={1}
+                      max={it.saldo || 9999}
+                      ariaLabel={`Quantidade de ${it.materialNome}`}
+                      className="caderneta-quantity-stepper"
+                    />
+
+                    {/* Botão Remover */}
                     <button
                       type="button"
-                      className="btn-remove-item"
-                      onClick={() => handleRemoveItem(idx)}
-                      title="Remover item"
+                      className="caderneta-item-remove"
+                      onClick={() => handleRemoverItem(idx)}
+                      title={`Remover ${it.materialNome}`}
+                      aria-label={`Remover ${it.materialNome}`}
                     >
-                      &times;
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
                     </button>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
-            ) : (
-              <div className="itens-empty-note">
-                Nenhum item adicionado a este pedido ainda.
-              </div>
-            )}
-          </div>
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
 
-          {/* Footer idêntico ao de Cadastro de Materiais */}
-          <div className="modal-footer">
-            <button type="button" className="btn-modal-cancel" onClick={onClose}>
-              Cancelar
+        {/* 3. PRIORIDADE E URGÊNCIA */}
+        <div className="novo-pedido-section">
+          <label className="novo-pedido-label">Prioridade do Atendimento</label>
+          <div className="novo-pedido-prioridade-toggle">
+            <button
+              type="button"
+              className={`prioridade-btn ${!urgente ? 'prioridade-btn--active' : ''}`}
+              onClick={() => setUrgente(false)}
+            >
+              Normal
             </button>
-            <button type="submit" className="btn-modal-submit">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="20 6 9 17 4 12"/>
+            <button
+              type="button"
+              className={`prioridade-btn prioridade-btn--urgente ${urgente ? 'prioridade-btn--urgente-active' : ''}`}
+              onClick={() => setUrgente(true)}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
-              {initialData ? 'Salvar Alterações' : 'Cadastrar Pedido'}
+              Urgente
             </button>
           </div>
-        </form>
-      </section>
-    </div>
+        </div>
+
+        {/* 4. JUSTIFICATIVA / FINALIDADE */}
+        <div className="novo-pedido-section">
+          <label className="novo-pedido-label" htmlFor="novo-pedido-justificativa">
+            Finalidade / Justificativa <span className="campo-obrigatorio">*</span>
+          </label>
+          <textarea
+            id="novo-pedido-justificativa"
+            className="novo-pedido-textarea"
+            rows={3}
+            placeholder="Ex: Atendimento presencial no balcão para reposição das salas do bloco B..."
+            value={justificativa}
+            onChange={(e) => setJustificativa(e.target.value)}
+          />
+        </div>
+      </form>
+    </BottomSheetModal>
   );
 };
 

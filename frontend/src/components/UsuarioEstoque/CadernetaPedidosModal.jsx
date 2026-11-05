@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BottomSheetModal } from '../common';
+import { BottomSheetModal, QuantityStepper } from '../common';
 import './CadernetaPedidosModal.css';
 
 /**
@@ -27,25 +27,6 @@ const CadernetaPedidosModal = ({
   const totalMateriais = itens.length;
   const totalVolumes = itens.reduce((acc, it) => acc + (Number(it.quantidade) || 0), 0);
 
-  const handleIncrement = (id, currentQtd) => {
-    onUpdateQtd(id, currentQtd + 1);
-  };
-
-  const handleDecrement = (id, currentQtd) => {
-    if (currentQtd <= 1) {
-      onRemoveItem(id);
-    } else {
-      onUpdateQtd(id, currentQtd - 1);
-    }
-  };
-
-  const handleManualQtd = (id, val) => {
-    const num = parseInt(val.replace(/\D/g, ''), 10);
-    if (!isNaN(num) && num > 0) {
-      onUpdateQtd(id, num);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (itens.length === 0) return;
@@ -62,7 +43,7 @@ const CadernetaPedidosModal = ({
         itens: itens.map(it => ({
           produtoId: it.id,
           materialNome: it.nome,
-          quantidade: it.quantidade,
+          quantidade: Math.max(1, parseInt(it.quantidade, 10) || 1),
           unidade: it.unidade || 'UN',
           itensPorEmbalagem: it.itensPorEmbalagem
         })),
@@ -200,34 +181,15 @@ const CadernetaPedidosModal = ({
                       )}
                     </div>
 
-                    {/* Stepper Inline de Quantidade */}
-                    <div className="caderneta-stepper-wrap">
-                      <button
-                        type="button"
-                        className="caderneta-stepper-btn"
-                        onClick={() => handleDecrement(item.id, item.quantidade)}
-                        aria-label="Diminuir quantidade"
-                      >
-                        &minus;
-                      </button>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        className="caderneta-stepper-input"
-                        value={item.quantidade}
-                        onChange={(e) => handleManualQtd(item.id, e.target.value)}
-                        aria-label={`Quantidade de ${item.nome}`}
-                      />
-                      <button
-                        type="button"
-                        className="caderneta-stepper-btn"
-                        onClick={() => handleIncrement(item.id, item.quantidade)}
-                        aria-label="Aumentar quantidade"
-                      >
-                        +
-                      </button>
-                    </div>
+                    {/* Stepper Padronizado de Quantidade */}
+                    <QuantityStepper
+                      value={item.quantidade}
+                      onChange={(novaQtd) => onUpdateQtd(item.id, novaQtd)}
+                      min={1}
+                      max={99999}
+                      ariaLabel={`Quantidade de ${item.nome}`}
+                      className="caderneta-quantity-stepper"
+                    />
 
                     {/* Botão Remover */}
                     <button

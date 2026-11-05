@@ -19,6 +19,7 @@ import './BottomSheetModal.css';
  * @param {React.ReactNode} [footer] - Ações do rodapé (botões Cancelar/Confirmar)
  * @param {string} [maxWidth='520px'] - Largura máxima no desktop
  * @param {string} [className=''] - Classes adicionais
+ * @param {'sheet'|'dialog'} [variant='sheet'] - 'sheet' (gaveta que sobe do chão no mobile) ou 'dialog' (modal flutuante centralizado)
  */
 const BottomSheetModal = ({
   isOpen,
@@ -31,8 +32,10 @@ const BottomSheetModal = ({
   footer,
   maxWidth = '520px',
   className = '',
-  zIndex = 10000
+  zIndex = 10000,
+  variant = 'sheet'
 }) => {
+  const isDialog = variant === 'dialog';
   const sheetRef = useRef(null);
   const backdropRef = useRef(null);
   const isDraggingRef = useRef(false);
@@ -264,7 +267,7 @@ const BottomSheetModal = ({
         <motion.div
           key="sge-modal-backdrop"
           ref={backdropRef}
-          className="sge-modal-backdrop"
+          className={`sge-modal-backdrop ${isDialog ? 'sge-modal-backdrop--dialog' : ''}`}
           style={{ zIndex }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, pointerEvents: 'auto', transition: { duration: 0.16, ease: "easeOut" } }}
@@ -274,7 +277,7 @@ const BottomSheetModal = ({
           <motion.div
             key="sge-modal-sheet"
             ref={sheetRef}
-            className={`sge-bottom-sheet ${className}`}
+            className={`sge-bottom-sheet ${isDialog ? 'sge-bottom-sheet--dialog' : ''} ${className}`}
             style={{ maxWidth }}
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1, pointerEvents: 'auto', transition: { type: "spring", damping: 28, stiffness: 380 } }}
@@ -283,34 +286,36 @@ const BottomSheetModal = ({
             role="dialog"
             aria-modal="true"
           >
-            {/* Puxador para mobile (toque ou arraste para fechar) */}
-            <div
-              className="sge-sheet-handle-wrap"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              onTouchCancel={handleTouchEnd}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
-              onClick={handleHandleClick}
-              role="button"
-              tabIndex={0}
-              aria-label="Arrastar para baixo para fechar"
-              title="Arraste para baixo para fechar"
-            >
-              <div className="sge-sheet-handle" />
-            </div>
+            {/* Puxador para mobile apenas no modo sheet (toque ou arraste para fechar) */}
+            {!isDialog && (
+              <div
+                className="sge-sheet-handle-wrap"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                onClick={handleHandleClick}
+                role="button"
+                tabIndex={0}
+                aria-label="Arrastar para baixo para fechar"
+                title="Arraste para baixo para fechar"
+              >
+                <div className="sge-sheet-handle" />
+              </div>
+            )}
 
             {/* Cabeçalho do Modal (Título primeiro, metadados/subtítulo em baixo) */}
             {(title || subtitle || badge || headerAction) && (
               <div
                 className="sge-bottom-sheet__header"
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onTouchCancel={handleTouchEnd}
+                onTouchStart={!isDialog ? handleTouchStart : undefined}
+                onTouchMove={!isDialog ? handleTouchMove : undefined}
+                onTouchEnd={!isDialog ? handleTouchEnd : undefined}
+                onTouchCancel={!isDialog ? handleTouchEnd : undefined}
               >
                 <div className="sge-bottom-sheet__header-title">
                   {title && (typeof title === 'string' ? <h3 className="sge-sheet-title">{title}</h3> : title)}

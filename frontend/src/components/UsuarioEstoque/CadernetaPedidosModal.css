@@ -171,51 +171,42 @@
   color: var(--accent, #017F7B);
 }
 
-/* Stepper Inline */
-.caderneta-stepper-wrap {
-  display: flex;
-  align-items: center;
-  background: #F1F5F9;
-  border-radius: 8px;
-  padding: 2px;
+/* Stepper Padronizado na Linha do Material */
+.caderneta-quantity-stepper.sge-stepper-container {
+  width: auto;
   flex-shrink: 0;
+  margin: 0;
+  gap: 0;
 }
 
-.caderneta-stepper-btn {
+.caderneta-quantity-stepper .sge-stepper {
+  padding: 2px;
+  border-radius: 8px;
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  gap: 2px;
+}
+
+.caderneta-quantity-stepper .sge-stepper__btn {
   width: 28px;
   height: 28px;
-  background: #FFFFFF;
-  border: 1px solid #CBD5E1;
+  min-width: 28px;
+  min-height: 28px;
   border-radius: 6px;
   font-size: 15px;
   font-weight: 700;
-  color: #1E293B;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.1s;
 }
 
-.caderneta-stepper-btn:hover {
-  background: #F8FAFC;
-  border-color: #94A3B8;
+.caderneta-quantity-stepper .sge-stepper__input-wrap {
+  min-width: 36px;
 }
 
-.caderneta-stepper-btn:active {
-  transform: scale(0.93);
-}
-
-.caderneta-stepper-input {
-  width: 38px;
+.caderneta-quantity-stepper .sge-stepper__input {
+  width: 36px;
   height: 28px;
-  background: transparent;
-  border: none;
-  text-align: center;
   font-size: 13.5px;
   font-weight: 700;
-  color: #0F172A;
-  outline: none;
+  padding: 0;
 }
 
 .caderneta-item-remove {
@@ -387,15 +378,20 @@
 }
 
 .caderneta-btn-cancel {
-  padding: 10px 16px;
+  height: 44px;
+  padding: 0 18px;
   background: #F1F5F9;
   color: #475569;
   border: 1px solid #CBD5E1;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
 }
 
 .caderneta-btn-cancel:hover {
@@ -403,41 +399,52 @@
   color: #1E293B;
 }
 
+.caderneta-btn-cancel:active {
+  transform: scale(0.97);
+}
+
 .caderneta-btn-submit {
+  height: 44px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 0 20px;
   background: var(--accent, #017F7B);
   color: #FFFFFF;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 2px 6px rgba(1, 127, 123, 0.25);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(1, 127, 123, 0.28);
+  user-select: none;
 }
 
 .caderneta-btn-submit:hover:not(:disabled) {
   background: var(--accent-hover, #016562);
-  box-shadow: 0 4px 10px rgba(1, 127, 123, 0.35);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(1, 127, 123, 0.35);
+}
+
+.caderneta-btn-submit:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .caderneta-btn-submit:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .caderneta-btn-submit--urgente {
-  background: #DC2626;
-  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+  background: #DC2626 !important;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.28) !important;
 }
 
 .caderneta-btn-submit--urgente:hover:not(:disabled) {
-  background: #B91C1C;
-  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35);
+  background: #B91C1C !important;
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.35) !important;
 }
 
 @media (max-width: 480px) {

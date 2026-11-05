@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { SearchFilterBar, FilterDrawer, FilterGroup, FilterChip, SortLoopButton } from '../common';
+import { SearchFilterBar, FilterDrawer, FilterGroup, FilterChip, SortLoopButton, QuantityStepper } from '../common';
 import './UsuarioEstoque.css';
 import { favoritoService } from '../../services/favoritos/favoritoService';
 import { corrigirTexto } from '../../utils/text';
@@ -765,13 +765,13 @@ const UsuarioEstoque = ({
         {toastMessage && (
           <motion.div
             key="usuario-feedback-toast"
-            className={`usuario-toast ${toastMessage.tipo === 'aviso-reposicao' ? 'usuario-toast--aviso' : 'usuario-toast--sucesso'}`}
+            className={`sge-toast usuario-toast ${toastMessage.tipo === 'aviso-reposicao' ? 'sge-toast--aviso' : 'sge-toast--sucesso'}`}
             initial={{ opacity: 0, y: -24, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -16, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 420, damping: 26 }}
           >
-            <div className="usuario-toast__icon">
+            <div className="sge-toast__icon usuario-toast__icon">
               {toastMessage.tipo === 'aviso-reposicao' ? (
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -963,22 +963,24 @@ const UsuarioEstoque = ({
       {/* Tabela Interativa de Materiais (Otimizada para Mobile / Celular) */}
       <div className="usuario-estoque__table-card">
         {materiaisFiltrados.length === 0 ? (
-          <div className="usuario-estoque__empty">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill={apenasFavoritos ? "rgba(245, 158, 11, 0.2)" : "none"} stroke={apenasFavoritos ? "#D97706" : "currentColor"} strokeWidth="1.5">
-              {apenasFavoritos ? (
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              ) : (
-                <>
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </>
-              )}
-            </svg>
-            <p className="usuario-estoque__empty-title">
+          <div className="sge-empty-state usuario-estoque__empty">
+            <div className="sge-empty-state__icon-wrap">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill={apenasFavoritos ? "rgba(245, 158, 11, 0.2)" : "none"} stroke={apenasFavoritos ? "#D97706" : "currentColor"} strokeWidth="1.8">
+                {apenasFavoritos ? (
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                ) : (
+                  <>
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </>
+                )}
+              </svg>
+            </div>
+            <h4 className="sge-empty-state__title">
               {apenasFavoritos
                 ? 'Nenhum material favorito encontrado'
                 : 'Nenhum material encontrado'}
-            </p>
-            <p className="usuario-estoque__empty-sub">
+            </h4>
+            <p className="sge-empty-state__desc">
               {apenasFavoritos
                 ? 'Clique no ícone de favorito de qualquer material para fixá-lo como favorito para acesso rápido.'
                 : 'Tente buscar por outro termo ou selecione "Todas" as categorias.'}
@@ -986,7 +988,7 @@ const UsuarioEstoque = ({
             {apenasFavoritos && (
               <button
                 type="button"
-                className="btn-limpar-fav-filtro"
+                className="sge-empty-state__btn btn-limpar-fav-filtro"
                 onClick={() => {
                   setApenasFavoritos(false);
                 }}
@@ -1172,47 +1174,25 @@ const UsuarioEstoque = ({
 
               {/* Formulário de Adição à Caderneta */}
               <form onSubmit={handleSalvarItemCaderneta} className="pedido-sheet__form">
-                {/* Seletor de Quantidade a pedir */}
+                {/* Seletor de Quantidade a pedir com atalhos rápidos */}
                 <div className="qty-picker-container">
-                  <label className="qty-picker-label" htmlFor="sheet-qtd-input">
+                  <label className="qty-picker-label">
                     Quantidade a pedir ({itemSelecionado.unidade || 'UN'})
                   </label>
-                  <div className="stepper-wrap">
-                    <motion.button
-                      type="button"
-                      className="stepper-btn stepper-btn--minus"
-                      onClick={handleDecrement}
-                      aria-label="Diminuir quantidade"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.86 }}
-                      transition={{ type: "spring", stiffness: 450, damping: 18 }}
-                    >
-                      &minus;
-                    </motion.button>
-                    <input
-                      id="sheet-qtd-input"
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      className="stepper-input"
-                      value={quantidade}
-                      onChange={handleQuantityChange}
-                      onBlur={handleQuantityBlur}
-                      onFocus={(e) => e.target.select()}
-                      aria-label="Quantidade"
-                    />
-                    <motion.button
-                      type="button"
-                      className="stepper-btn stepper-btn--plus"
-                      onClick={handleIncrement}
-                      aria-label="Aumentar quantidade"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.86 }}
-                      transition={{ type: "spring", stiffness: 450, damping: 18 }}
-                    >
-                      +
-                    </motion.button>
-                  </div>
+                  <QuantityStepper
+                    value={quantidade}
+                    onChange={(val) => {
+                      setQuantidade(val);
+                      if (val !== '' && !isNaN(val) && Number(val) >= 1) {
+                        setErroQtd('');
+                      }
+                    }}
+                    min={1}
+                    max={9999}
+                    unit={itemSelecionado.unidade || 'UN'}
+                    quickPills={[1, 5, 10, 25]}
+                    ariaLabel={`Quantidade de ${itemSelecionado.nome}`}
+                  />
                   {erroQtd && <span className="sheet-error">{erroQtd}</span>}
                 </div>
 
