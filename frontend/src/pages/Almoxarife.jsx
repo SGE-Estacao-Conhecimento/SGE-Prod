@@ -5,7 +5,8 @@ import AlmoxarifeEstoque from '../components/AlmoxarifeEstoque/AlmoxarifeEstoque
 import PedidosView from '../components/Pedidos/PedidosView';
 import RelatoriosView from '../components/Relatorios/RelatoriosView';
 import AlmoxarifePerfil from '../components/AlmoxarifePerfil/AlmoxarifePerfil';
-import { BottomNav, PageTabTransition, useSectionNavigation } from '../components/common';
+import NovoPedidoModal from '../components/Pedidos/NovoPedidoModal';
+import { BottomNav, PageTabTransition, useSectionNavigation, SpeedDialFAB } from '../components/common';
 import './Almoxarife.css';
 import '../components/Sidebar/Sidebar.css';
 import { useEffect } from 'react';
@@ -138,8 +139,8 @@ const Almoxarife = ({ onLogout, user }) => {
     const itens = Array.isArray(pedidoAtualizado.itens) && pedidoAtualizado.itens.length > 0
       ? pedidoAtualizado.itens
       : Array.isArray(pedidoAtualizado.materiais) && pedidoAtualizado.materiais.length > 0
-      ? pedidoAtualizado.materiais
-      : [{
+        ? pedidoAtualizado.materiais
+        : [{
           produtoId: pedidoAtualizado.produtoId || pedidoAtualizado.materialId,
           materialNome: pedidoAtualizado.materialNome || pedidoAtualizado.nome || pedidoAtualizado.material,
           quantidade: pedidoAtualizado.quantidade || 1
@@ -237,6 +238,30 @@ const Almoxarife = ({ onLogout, user }) => {
   const [activeNav, setActiveNav] = useSectionNavigation('almoxarife', ALMOXARIFE_SECTIONS, 'estoque');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Estados Globais acionados pelo SpeedDialFAB flutuante (Oculto apenas no Perfil)
+  const [isNovoPedidoModalOpen, setIsNovoPedidoModalOpen] = useState(false);
+  const [isRecebimentoModalOpen, setIsRecebimentoModalOpen] = useState(false);
+  const [isNovoMaterialModalOpen, setIsNovoMaterialModalOpen] = useState(false);
+  const [draftRemessa, setDraftRemessa] = useState({
+    tipoOrigem: 'doacao',
+    documentoDoador: '',
+    observacao: '',
+    itens: [],
+    fotos: []
+  });
+
+  const handleCriarNovoPedido = async (novoPedido) => {
+    try {
+      const criado = await pedidoService.criar(novoPedido);
+      const pedidoSalvo = criado?.id ? criado : { ...novoPedido, id: novoPedido.id || Date.now(), data: new Date().toISOString(), status: 'Pendente' };
+      setPedidos(prev => [pedidoSalvo, ...prev]);
+    } catch {
+      const fallback = { ...novoPedido, id: novoPedido.id || Date.now(), data: new Date().toISOString(), status: 'Pendente' };
+      setPedidos(prev => [fallback, ...prev]);
+    }
+    setIsNovoPedidoModalOpen(false);
+  };
+
   const handleMarcarNotifLida = (id) => {
     setNotificacoes(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n));
   };
@@ -274,6 +299,9 @@ const Almoxarife = ({ onLogout, user }) => {
               materiais={materiais}
               usuariosDisponiveis={usuarios}
               onConfirmarEntrega={handleConfirmarEntregaPedido}
+              onSave={(novo) => {
+                setPedidos(prev => [novo, ...prev]);
+              }}
               onUpdateStatus={async (pedidoId, novoStatus, extras = {}) => {
                 try {
                   const atualizado = await pedidoService.atualizarStatus(pedidoId, novoStatus, extras);
@@ -308,6 +336,12 @@ const Almoxarife = ({ onLogout, user }) => {
               historicoMovimentacoes={historicoMovimentacoes}
               onRegistrarMovimentacao={handleRegistrarMovimentacao}
               onAjustarEstoque={handleAjustarEstoque}
+              isRecebimentoModalOpen={isRecebimentoModalOpen}
+              setIsRecebimentoModalOpen={setIsRecebimentoModalOpen}
+              isNovoModalOpen={isNovoMaterialModalOpen}
+              setIsNovoModalOpen={setIsNovoMaterialModalOpen}
+              draftRemessa={draftRemessa}
+              setDraftRemessa={setDraftRemessa}
             />
           </PageTabTransition>
         );
@@ -418,6 +452,71 @@ const Almoxarife = ({ onLogout, user }) => {
           ariaLabel="Navegação do Almoxarifado"
         />
       </div>
+
+      {/* Botão Flutuante de Ações Rápidas (A Geral do SGE) - Oculto apenas no Perfil */}
+      {activeNav !== 'perfil' && (
+        <SpeedDialFAB
+          badgeCount={draftRemessa.itens.length}
+          actions={[
+            {
+              id: 'novo-pedido',
+              label: 'Novo Pedido',
+              variant: 'accent',
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14,2 14,8 20,8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
+                </svg>
+              ),
+              onClick: () => setIsNovoPedidoModalOpen(true)
+            },
+            {
+              id: 'receber-lote',
+              label: 'Receber em Lote / Doação',
+              variant: 'secondary',
+              badge: draftRemessa.itens.length > 0 ? `${draftRemessa.itens.length} no rascunho` : null,
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                  <line x1="12" y1="22.08" x2="12" y2="12" />
+                </svg>
+              ),
+              onClick: () => {
+                setActiveNav('estoque');
+                setIsRecebimentoModalOpen(true);
+              }
+            },
+            {
+              id: 'novo-material',
+              label: 'Novo Material',
+              variant: 'secondary',
+              icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              ),
+              onClick: () => {
+                setActiveNav('estoque');
+                setIsNovoMaterialModalOpen(true);
+              }
+            }
+          ]}
+          ariaLabel="Ações rápidas do Almoxarifado"
+        />
+      )}
+
+      {/* Modal de Criação de Novo Pedido acessível globalmente pelo FAB */}
+      <NovoPedidoModal
+        isOpen={isNovoPedidoModalOpen}
+        onClose={() => setIsNovoPedidoModalOpen(false)}
+        materiaisDisponiveis={materiais}
+        usuariosDisponiveis={usuarios}
+        onSave={handleCriarNovoPedido}
+      />
     </div>
   );
 };

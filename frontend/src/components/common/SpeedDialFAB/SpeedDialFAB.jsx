@@ -108,17 +108,17 @@ const SpeedDialFAB = ({
                     }}
                     whileTap={{ scale: 0.96 }}
                   >
-                    {action.icon && (
-                      <span className="sge-speed-dial__action-icon" aria-hidden="true">
-                        {action.icon}
-                      </span>
-                    )}
                     <span className="sge-speed-dial__action-label">
                       {action.label}
                     </span>
                     {action.badge && (
                       <span className="sge-speed-dial__action-badge">
                         {action.badge}
+                      </span>
+                    )}
+                    {action.icon && (
+                      <span className="sge-speed-dial__action-icon" aria-hidden="true">
+                        {action.icon}
                       </span>
                     )}
                   </motion.button>

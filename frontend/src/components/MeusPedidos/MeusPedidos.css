@@ -328,6 +328,14 @@
   gap: 6px;
 }
 
+@media (min-width: 769px) {
+  .pedido-card__items-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 8px;
+  }
+}
+
 .pedido-item-row {
   display: flex;
   align-items: center;

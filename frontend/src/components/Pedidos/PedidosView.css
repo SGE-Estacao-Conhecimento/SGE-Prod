@@ -481,18 +481,18 @@
   gap: 6px;
 }
 
-/* No Desktop / PC: distribui os materiais em 2 colunas para preencher o espaço horizontal */
+/* No Desktop / PC: distribui os materiais em colunas fluidas para preencher o espaço horizontal */
 @media (min-width: 769px) {
   .atendimento-card__itens-list {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 8px;
   }
 }
 
 @media (min-width: 1400px) {
   .atendimento-card__itens-list {
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 10px;
   }
 }

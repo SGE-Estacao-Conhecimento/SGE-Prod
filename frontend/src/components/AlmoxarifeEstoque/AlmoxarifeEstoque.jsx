@@ -8,8 +8,7 @@ import {
   SortLoopButton,
   BottomSheetModal,
   QuantityStepper,
-  SegmentedTabs,
-  SpeedDialFAB
+  SegmentedTabs
 } from '../common';
 import RecebimentoLoteModal from './RecebimentoLoteModal/RecebimentoLoteModal';
 import './AlmoxarifeEstoque.css';
@@ -358,7 +357,13 @@ const AlmoxarifeEstoque = ({
   onAtualizarMaterial,
   onRegistrarMovimentacao,
   onAjustarEstoque,
-  onNovoMaterial
+  onNovoMaterial,
+  isRecebimentoModalOpen: controlledRecebimentoOpen,
+  setIsRecebimentoModalOpen: setControlledRecebimentoOpen,
+  isNovoModalOpen: controlledNovoOpen,
+  setIsNovoModalOpen: setControlledNovoOpen,
+  draftRemessa: controlledDraftRemessa,
+  setDraftRemessa: setControlledDraftRemessa
 }) => {
   // Estado local sincronizado de materiais normalizados
   const [materiais, setMateriais] = useState(() =>
@@ -396,8 +401,10 @@ const AlmoxarifeEstoque = ({
   const [novoCodigoInput, setNovoCodigoInput] = useState('');
   const [isConfirmarCodigoOpen, setIsConfirmarCodigoOpen] = useState(false);
 
-  // Modal de cadastro de novo item
-  const [isNovoModalOpen, setIsNovoModalOpen] = useState(false);
+  // Modal de cadastro de novo item (controlado pelo FAB ou interno)
+  const [internalNovoOpen, setInternalNovoOpen] = useState(false);
+  const isNovoModalOpen = controlledNovoOpen !== undefined ? controlledNovoOpen : internalNovoOpen;
+  const setIsNovoModalOpen = setControlledNovoOpen || setInternalNovoOpen;
   const [novoItemForm, setNovoItemForm] = useState({
     codigo: '',
     nome: '',
@@ -427,14 +434,19 @@ const AlmoxarifeEstoque = ({
   };
 
   // Estado do Modal de Recebimento em Lote / Doações e Rascunho Persistente em Memória
-  const [isRecebimentoModalOpen, setIsRecebimentoModalOpen] = useState(false);
-  const [draftRemessa, setDraftRemessa] = useState({
+  const [internalRecebimentoOpen, setInternalRecebimentoOpen] = useState(false);
+  const isRecebimentoModalOpen = controlledRecebimentoOpen !== undefined ? controlledRecebimentoOpen : internalRecebimentoOpen;
+  const setIsRecebimentoModalOpen = setControlledRecebimentoOpen || setInternalRecebimentoOpen;
+
+  const [internalDraftRemessa, setInternalDraftRemessa] = useState({
     tipoOrigem: 'doacao',
     documentoDoador: '',
     observacao: '',
     itens: [],
     fotos: []
   });
+  const draftRemessa = controlledDraftRemessa !== undefined ? controlledDraftRemessa : internalDraftRemessa;
+  const setDraftRemessa = setControlledDraftRemessa || setInternalDraftRemessa;
 
   // Histórico de remessas e doações salvas para relatórios e auditorias (SGE Core)
   const [remessasHistorico, setRemessasHistorico] = useState(remessasExternas);
@@ -1350,39 +1362,6 @@ const AlmoxarifeEstoque = ({
         </>
       )}
       </div>
-
-      {/* Speed Dial FAB Flutuante com Ações Rápidas (A Geral do SGE) */}
-      <SpeedDialFAB
-        badgeCount={draftRemessa.itens.length}
-        actions={[
-          {
-            id: 'receber-lote',
-            label: 'Receber em Lote / Doação',
-            variant: 'accent',
-            icon: (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                <line x1="12" y1="22.08" x2="12" y2="12" />
-              </svg>
-            ),
-            badge: draftRemessa.itens.length > 0 ? `${draftRemessa.itens.length} no rascunho` : null,
-            onClick: () => setIsRecebimentoModalOpen(true)
-          },
-          {
-            id: 'novo-material',
-            label: 'Novo Material',
-            variant: 'secondary',
-            icon: (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            ),
-            onClick: () => setIsNovoModalOpen(true)
-          }
-        ]}
-      />
 
       {/* Cockpit do Material com 3 Abas: Detalhes, Movimentar, Histórico (A Geral do SGE) */}
       <BottomSheetModal

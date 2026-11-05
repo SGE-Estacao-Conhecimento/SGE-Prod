@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { SegmentedTabs, StatusBadge, BottomSheetModal, ExtendedFAB } from '../common';
+import { SegmentedTabs, StatusBadge, BottomSheetModal } from '../common';
 import NovoPedidoModal from './NovoPedidoModal';
 import './PedidosView.css';
 
@@ -636,8 +636,8 @@ const PedidosView = ({
               const disponibilidade = calcularDisponibilidadePedido(pedido, listaMateriais);
               const statusBadgeCode = getStatusBadgeCode(pedido.status);
               const isExpanded = !!expandedCards[pedido.id];
-              const itensVisiveis = isExpanded ? itens : itens.slice(0, 2);
-              const itensOcultosCount = itens.length - 2;
+              const itensVisiveis = isExpanded ? itens : (itens.length <= 3 ? itens : itens.slice(0, 3));
+              const itensOcultosCount = itens.length > 3 ? itens.length - 3 : 0;
               const ramal = mapaRamais[pedido.usuario?.toLowerCase()?.trim()] || null;
 
               return (
@@ -1179,19 +1179,6 @@ const PedidosView = ({
           }
           exibirToast(`Pedido #${novo.id || ''} cadastrado com sucesso!`, 'sucesso');
         }}
-      />
-
-      {/* Botão de Ação Flutuante (ExtendedFAB) para Criar Novo Pedido */}
-      <ExtendedFAB
-        label="Novo Pedido"
-        icon={
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        }
-        onClick={() => setIsNovoPedidoModalOpen(true)}
-        title="Criar novo pedido de materiais"
       />
     </div>
   );

@@ -551,9 +551,9 @@ const MeusPedidos = ({
               const isEstoqueInsuficiente = statusNorm === 'estoque-insuficiente';
               const isExpanded = !!expandedPedidos[pedido.id];
 
-              // Opção B: Mostra os 2 primeiros itens e colapsa os demais
-              const itensVisiveis = isExpanded ? itens : itens.slice(0, 2);
-              const itensOcultosCount = itens.length - 2;
+              // Mostra até 3 itens juntos; colapsa apenas quando houver mais de 3
+              const itensVisiveis = isExpanded ? itens : (itens.length <= 3 ? itens : itens.slice(0, 3));
+              const itensOcultosCount = itens.length > 3 ? itens.length - 3 : 0;
 
               return (
                 <div
