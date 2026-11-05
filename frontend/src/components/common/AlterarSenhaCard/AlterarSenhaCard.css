@@ -329,24 +329,30 @@
 }
 
 .alterar-senha-cancel-btn {
-  padding: 10px 18px;
-  background: #FFFFFF;
+  height: 44px;
+  padding: 0 18px;
+  background: #F1F5F9;
   border: 1px solid #CBD5E1;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #475569;
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .alterar-senha-cancel-btn:hover:not(:disabled) {
-  background: #F1F5F9;
+  background: #E2E8F0;
   color: #0F172A;
 }
 
 .alterar-senha-cancel-btn:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .alterar-senha-submit-btn {
@@ -355,27 +361,28 @@
   justify-content: center;
   gap: 8px;
   min-width: 160px;
-  height: 42px;
+  height: 44px;
   padding: 0 20px;
-  background: #017F7B;
-  border: 1px solid #017F7B;
-  border-radius: 8px;
+  background: var(--accent, #017F7B);
+  border: none;
+  border-radius: 10px;
   color: #FFFFFF;
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(1, 127, 123, 0.22);
-  transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(1, 127, 123, 0.28);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .alterar-senha-submit-btn:hover:not(:disabled) {
-  background: #016562;
-  border-color: #016562;
-  box-shadow: 0 4px 10px rgba(1, 127, 123, 0.32);
+  background: var(--accent-hover, #016562);
+  box-shadow: 0 6px 18px rgba(1, 127, 123, 0.35);
 }
 
 .alterar-senha-submit-btn:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .alterar-senha-submit-btn:disabled,
@@ -446,25 +453,30 @@
 .alterar-senha-popup-btn {
   width: 100%;
   height: 44px;
-  background: #017F7B;
-  border: 1px solid #017F7B;
-  border-radius: 8px;
+  background: var(--accent, #017F7B);
+  border: none;
+  border-radius: 10px;
   color: #FFFFFF;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   cursor: pointer;
   margin-top: 6px;
-  transition: all 0.12s ease;
-  box-shadow: 0 2px 6px rgba(1, 127, 123, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(1, 127, 123, 0.28);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .alterar-senha-popup-btn:hover {
-  background: #016562;
-  border-color: #016562;
+  background: var(--accent-hover, #016562);
+  box-shadow: 0 6px 18px rgba(1, 127, 123, 0.35);
 }
 
 .alterar-senha-popup-btn:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 @media (max-width: 600px) {

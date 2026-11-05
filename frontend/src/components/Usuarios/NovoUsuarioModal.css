@@ -31,6 +31,63 @@
   margin-top: 6px;
 }
 
+/* Botões do Rodapé Padronizados */
+.user-modal-container .btn-modal-cancel {
+  height: 44px;
+  padding: 0 18px;
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.user-modal-container .btn-modal-cancel:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.user-modal-container .btn-modal-cancel:active {
+  transform: scale(0.97);
+}
+
+.user-modal-container .btn-modal-submit {
+  height: 44px;
+  padding: 0 20px;
+  background: var(--accent, #017F7B);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(1, 127, 123, 0.28);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.user-modal-container .btn-modal-submit:hover {
+  background: var(--accent-hover, #016562);
+  box-shadow: 0 6px 18px rgba(1, 127, 123, 0.35);
+}
+
+.user-modal-container .btn-modal-submit:active {
+  transform: scale(0.97);
+}
+
 @media (max-width: 560px) {
   .user-form-grid {
     grid-template-columns: 1fr;

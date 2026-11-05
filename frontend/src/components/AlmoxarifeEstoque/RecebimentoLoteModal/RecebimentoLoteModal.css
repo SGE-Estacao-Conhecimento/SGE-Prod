@@ -1088,16 +1088,16 @@
 
 .recebimento-footer-btn-descartar {
   height: 44px;
-  padding: 0 16px;
+  padding: 0 18px;
   border-radius: 10px;
   background: #F1F5F9;
   border: 1px solid #CBD5E1;
   color: #64748B;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   outline: none;
-  transition: all 0.15s ease;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -1190,20 +1190,22 @@
 
 .recebimento-footer-btn-voltar {
   height: 44px;
-  padding: 0 14px;
+  padding: 0 16px;
   border-radius: 10px;
   background: #F1F5F9;
   border: 1px solid #CBD5E1;
   color: #475569;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   outline: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.15s ease;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .recebimento-footer-btn-voltar:hover {
@@ -1501,24 +1503,54 @@
 
 .recebimento-confirm-btn-cancelar {
   flex: 1;
-  height: 38px;
-  border-radius: 8px;
+  height: 44px;
+  border-radius: 10px;
   background: #F1F5F9;
   color: #475569;
-  border: none;
-  font-size: 12.5px;
-  font-weight: 600;
+  border: 1px solid #CBD5E1;
+  font-size: 13.5px;
+  font-weight: 700;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.recebimento-confirm-btn-cancelar:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.recebimento-confirm-btn-cancelar:active {
+  transform: scale(0.97);
 }
 
 .recebimento-confirm-btn-descartar {
   flex: 1;
-  height: 38px;
-  border-radius: 8px;
-  background: #EF4444;
+  height: 44px;
+  border-radius: 10px;
+  background: #DC2626;
   color: #FFFFFF;
   border: none;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.28);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.recebimento-confirm-btn-descartar:hover {
+  background: #B91C1C;
+}
+
+.recebimento-confirm-btn-descartar:active {
+  transform: scale(0.97);
 }
