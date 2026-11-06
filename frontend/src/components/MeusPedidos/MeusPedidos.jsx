@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { StatusBadge, BottomSheetModal, SortLoopButton, SegmentedTabs } from '../common';
+import { StatusBadge, BottomSheetModal, SortLoopButton, UnderlineTabs } from '../common';
 import { DEMO_MATERIAIS } from '../../data/demoData';
 import './MeusPedidos.css';
 
@@ -355,8 +355,34 @@ const MeusPedidos = ({
     });
   }, [pedidos, statusFilter, searchTerm, ordenacao]);
 
+  const touchStartRef = useRef({ x: 0, y: 0 });
+
+  const handleTouchStart = (e) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    };
+  };
+
+  const handleTouchEnd = (e) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
+    // Bloqueio direcional para preservar o scroll vertical nativo
+    if (Math.abs(deltaX) > 48 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      if (deltaX < 0 && statusFilter === 'andamento') {
+        setStatusFilter('historico');
+      } else if (deltaX > 0 && statusFilter === 'historico') {
+        setStatusFilter('andamento');
+      }
+    }
+  };
+
   return (
-    <div className="meus-pedidos-container">
+    <div
+      className="meus-pedidos-container"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Toast flutuante de feedback */}
       <AnimatePresence>
         {toastFeedback && (
@@ -410,9 +436,9 @@ const MeusPedidos = ({
         )}
       </AnimatePresence>
 
-      {/* Abas Padronizadas: Em Andamento vs Histórico */}
+      {/* Abas Padronizadas: Em Andamento vs Histórico (UnderlineTabs com indicador animado) */}
       <div className="meus-pedidos__tabs-container">
-        <SegmentedTabs
+        <UnderlineTabs
           tabs={[
             {
               id: 'andamento',
@@ -439,7 +465,8 @@ const MeusPedidos = ({
           ]}
           activeTab={statusFilter}
           onChange={setStatusFilter}
-          layoutId="meusPedidosSegmentedIndicator"
+          layoutId="meusPedidosUnderlineIndicator"
+          ariaLabel="Filtro de pedidos"
         />
       </div>
 
@@ -662,7 +689,7 @@ const MeusPedidos = ({
                                     ? `0 de ${item.quantidade} (Sem Estoque)`
                                     : isItemParcial
                                     ? `${item.quantidadeAtendida} de ${item.quantidade} ${item.unidade || 'UN'} entregues`
-                                    : `${item.quantidade} ${item.unidade || 'UN'} ✓`}
+                                    : `${item.quantidade} ${item.unidade || 'UN'} (Entregue)`}
                                 </span>
                               ) : (
                                 <>

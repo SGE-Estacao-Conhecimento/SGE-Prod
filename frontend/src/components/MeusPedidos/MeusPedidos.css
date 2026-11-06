@@ -12,12 +12,13 @@
   margin: 0 auto;
 }
 
-/* ===== 1. ABAS PADRONIZADAS (SEGMENTED TABS) ===== */
+/* ===== 1. ABAS PADRONIZADAS (UNDERLINE TABS) ===== */
 .meus-pedidos__tabs-container {
   width: 100%;
+  margin-bottom: 4px;
 }
 
-.meus-pedidos__tabs-container .sge-segmented-tabs {
+.meus-pedidos__tabs-container .sge-underline-tabs {
   width: 100%;
 }
 

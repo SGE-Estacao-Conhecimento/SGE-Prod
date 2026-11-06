@@ -17,6 +17,7 @@ export { default as StatCard } from './StatCard/StatCard';
 export { default as QuantityStepper } from './QuantityStepper/QuantityStepper';
 export { default as BottomSheetModal } from './BottomSheetModal/BottomSheetModal';
 export { default as SegmentedTabs } from './SegmentedTabs/SegmentedTabs';
+export { default as UnderlineTabs } from './UnderlineTabs/UnderlineTabs';
 export { default as SpeedDialFAB } from './SpeedDialFAB/SpeedDialFAB';
 export { default as ConfirmDialog } from './ConfirmDialog/ConfirmDialog';
 export { default as ForgotPasswordModal } from './ForgotPasswordModal/ForgotPasswordModal';

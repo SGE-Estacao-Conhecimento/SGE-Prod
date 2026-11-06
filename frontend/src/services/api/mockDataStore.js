@@ -469,11 +469,16 @@ class MockDataStore {
       observacao: observacao || `Registro de ${tipo}`
     };
 
-    // Ajusta o saldo físico do material
+    // Ajusta o saldo físico do material (bens duráveis não sofrem saída física em atendimentos)
     if (mat) {
       let novaQtd = Number(mat.quantidade || 0);
-      if (tipo === 'entrada') novaQtd += qtd;
-      else if (tipo === 'saida') novaQtd = Math.max(0, novaQtd - qtd);
+      if (tipo === 'entrada') {
+        novaQtd += qtd;
+      } else if (tipo === 'saida') {
+        if (!mat.bemDuravel) {
+          novaQtd = Math.max(0, novaQtd - qtd);
+        }
+      }
       mat.quantidade = novaQtd;
       safeSet(STORAGE_KEYS.MATERIAIS, this._materiais);
     }

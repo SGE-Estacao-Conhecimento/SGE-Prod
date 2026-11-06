@@ -8,7 +8,7 @@ import {
   SortLoopButton,
   BottomSheetModal,
   QuantityStepper,
-  SegmentedTabs
+  UnderlineTabs
 } from '../common';
 import RecebimentoLoteModal from './RecebimentoLoteModal/RecebimentoLoteModal';
 import './AlmoxarifeEstoque.css';
@@ -108,33 +108,39 @@ export const normalizarMaterial = (item) => {
 
   const locacao = item.locacao || '';
   const dataValidade = item.dataValidade || item.validade || '';
+  const bemDuravel = item.bemDuravel !== undefined
+    ? !!item.bemDuravel
+    : (item.categoria === 'Patrimônio' || item.categoria === 'Equipamentos' || String(item.nome).toLowerCase().includes('grampeador') || String(item.nome).toLowerCase().includes('projetor') || String(item.nome).toLowerCase().includes('cabo hdmi') || String(item.nome).toLowerCase().includes('furadeira'));
 
   if (item.complexo) {
     return {
       ...item,
+      bemDuravel,
       itensPorEmbalagem,
       locacao,
-      dataValidade
+      dataValidade: bemDuravel ? '' : dataValidade
     };
   }
   if (item.localizacao && item.localizacao.includes('•')) {
     const [comp, ...resto] = item.localizacao.split('•');
     return {
       ...item,
+      bemDuravel,
       itensPorEmbalagem,
       complexo: comp.trim() || 'Almoxarifado Central',
       locacao,
       localizacao: resto.join('•').trim(),
-      dataValidade
+      dataValidade: bemDuravel ? '' : dataValidade
     };
   }
   return {
     ...item,
+    bemDuravel,
     itensPorEmbalagem,
     complexo: 'Almoxarifado Central',
     locacao,
     localizacao: item.localizacao || '',
-    dataValidade
+    dataValidade: bemDuravel ? '' : dataValidade
   };
 };
 
@@ -202,7 +208,8 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     estoqueMinimo: 6,
     descricao: 'Estrutura metálica • Compatível com grampos 26/6',
     complexo: 'Almoxarifado Central',
-    localizacao: 'Armário A • Gaveta 04'
+    localizacao: 'Armário A • Gaveta 04',
+    bemDuravel: true
   },
   {
     id: 6,
@@ -214,7 +221,8 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     estoqueMinimo: 12,
     descricao: '45mm x 50 metros • Embalagem e reforço',
     complexo: 'Almoxarifado Central',
-    localizacao: 'Corredor 2 • Caixa Fitas'
+    localizacao: 'Corredor 2 • Caixa Fitas',
+    bemDuravel: false
   },
   {
     id: 7,
@@ -226,7 +234,8 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     estoqueMinimo: 4,
     descricao: 'Alta velocidade 4K Ultra HD • Pontas banhadas a ouro',
     complexo: 'Complexo Administrativo',
-    localizacao: 'Bancada TI • Gaveteiro 02'
+    localizacao: 'Bancada TI • Gaveteiro 02',
+    bemDuravel: true
   },
   {
     id: 8,
@@ -238,7 +247,8 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     estoqueMinimo: 8,
     descricao: 'Base magnética e feltro de alta densidade',
     complexo: 'Complexo Educacional',
-    localizacao: 'Armário Didático B • Prat. 02'
+    localizacao: 'Armário Didático B • Prat. 02',
+    bemDuravel: false
   },
   {
     id: 9,
@@ -251,7 +261,8 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     estoqueMinimo: 12,
     descricao: 'Caixa com 5.000 unidades • Tratamento antiferrugem',
     complexo: 'Almoxarifado Central',
-    localizacao: 'Armário A • Gaveta 04'
+    localizacao: 'Armário A • Gaveta 04',
+    bemDuravel: false
   },
   {
     id: 10,
@@ -263,7 +274,8 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     estoqueMinimo: 4,
     descricao: 'Biodegradável • Uso institucional',
     complexo: 'Depósito de Limpeza',
-    localizacao: 'Piso Pallet 01'
+    localizacao: 'Piso Pallet 01',
+    bemDuravel: false
   },
   {
     id: 11,
@@ -277,7 +289,36 @@ const _MOCK_MATERIAIS_ALMOXARIFE = [
     complexo: 'Almoxarifado Central',
     locacao: 'Nicho Farmácia',
     localizacao: 'Prat. 01',
-    dataValidade: '2027-10-30'
+    dataValidade: '2027-10-30',
+    bemDuravel: false
+  },
+  {
+    id: 12,
+    codigo: 'PAT-001',
+    nome: 'Projetor Multimídia Epson',
+    categoria: 'Informática / TI',
+    unidade: 'UN',
+    quantidade: 3,
+    estoqueMinimo: 1,
+    descricao: 'Projetor 3600 Lumens • Patrimônio Institucional',
+    complexo: 'Complexo Educacional',
+    locacao: 'Rack Audiovisual',
+    localizacao: 'Armário AV - Prat 1',
+    bemDuravel: true
+  },
+  {
+    id: 13,
+    codigo: 'PAT-002',
+    nome: 'Furadeira de Impacto Bosch',
+    categoria: 'Manutenção',
+    unidade: 'UN',
+    quantidade: 2,
+    estoqueMinimo: 1,
+    descricao: 'Furadeira 650W • Ferramenta permanente de manutenção',
+    complexo: 'Galpão de Manutenção',
+    locacao: 'Bancada Manutenção',
+    localizacao: 'Painel de Ferramentas',
+    bemDuravel: true
   }
 ];
 
@@ -376,10 +417,41 @@ const AlmoxarifeEstoque = ({
   const [statusFiltro, setStatusFiltro] = useState('todos');
   const [indiceOrdenacao, setIndiceOrdenacao] = useState(0);
 
+  // Divisão de Estoque: Materiais de Consumo vs Bens Duráveis / Patrimônio
+  const [abaEstoque, setAbaEstoque] = useState('consumo'); // 'consumo' | 'duraveis'
+
+  // Gestos touch / arrasto para troca fluida de abas no estoque
+  const touchEstoqueStartRef = useRef({ x: 0, y: 0 });
+
+  const handleEstoqueTouchStart = (e) => {
+    touchEstoqueStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    };
+  };
+
+  const handleEstoqueTouchEnd = (e) => {
+    const deltaX = e.changedTouches[0].clientX - touchEstoqueStartRef.current.x;
+    const deltaY = e.changedTouches[0].clientY - touchEstoqueStartRef.current.y;
+    // Bloqueio direcional para preservar o scroll vertical nativo
+    if (Math.abs(deltaX) > 48 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      if (deltaX < 0 && abaEstoque === 'consumo') {
+        setAbaEstoque('duraveis');
+      } else if (deltaX > 0 && abaEstoque === 'duraveis') {
+        setAbaEstoque('consumo');
+      }
+    }
+  };
+
+  // Modal de Solicitação de Baixa Patrimonial (Bens Duráveis)
+  const [baixaModalMaterial, setBaixaModalMaterial] = useState(null);
+  const [motivoBaixa, setMotivoBaixa] = useState('Avaria irreparável');
+  const [obsBaixa, setObsBaixa] = useState('');
+
   // Estados de controle do modal (Cockpit do Material com 3 Abas)
   const [materialModal, setMaterialModal] = useState(null);
   const [materialModalTab, setMaterialModalTab] = useState('detalhes'); // 'detalhes' | 'movimentar' | 'historico'
-  const [tipoMovimentacao, setTipoMovimentacao] = useState('entrada'); // 'entrada', 'saida', 'ajuste'
+  const [tipoMovimentacao, setTipoMovimentacao] = useState('entrada'); // 'entrada', 'ajuste'
   const [qtdMovimentacao, setQtdMovimentacao] = useState(1);
   const [motivoMovimentacao, setMotivoMovimentacao] = useState('');
   const [historicoPorMaterial, setHistoricoPorMaterial] = useState(historicoMovimentacoes);
@@ -396,7 +468,8 @@ const AlmoxarifeEstoque = ({
     locacao: '',
     localizacao: '',
     dataValidade: '',
-    descricao: ''
+    descricao: '',
+    bemDuravel: false
   });
   const [novoCodigoInput, setNovoCodigoInput] = useState('');
   const [isConfirmarCodigoOpen, setIsConfirmarCodigoOpen] = useState(false);
@@ -417,7 +490,8 @@ const AlmoxarifeEstoque = ({
     locacao: '',
     localizacao: '',
     dataValidade: '',
-    descricao: ''
+    descricao: '',
+    bemDuravel: false
   });
 
   // Notificações Toast Padronizadas
@@ -566,14 +640,35 @@ const AlmoxarifeEstoque = ({
     }
   }, [historicoMovimentacoes]);
 
-  // Contadores para os chips de filtro operacional
+  // Contagem geral para as abas de topo
+  const totalConsumo = useMemo(() => materiais.filter(m => !m.bemDuravel).length, [materiais]);
+  const totalDuraveis = useMemo(() => materiais.filter(m => !!m.bemDuravel).length, [materiais]);
+
+  // Contagem de resultados na OUTRA aba para o cross-search banner
+  const crossSearchResults = useMemo(() => {
+    if (!busca.trim()) return 0;
+    const termo = busca.toLowerCase().trim();
+    const outraAba = abaEstoque === 'consumo' ? 'duraveis' : 'consumo';
+    return materiais
+      .filter(item => outraAba === 'consumo' ? !item.bemDuravel : !!item.bemDuravel)
+      .filter(item =>
+        item.nome.toLowerCase().includes(termo) ||
+        (item.codigo && item.codigo.toLowerCase().includes(termo)) ||
+        (item.categoria && item.categoria.toLowerCase().includes(termo)) ||
+        (item.descricao && item.descricao.toLowerCase().includes(termo))
+      ).length;
+  }, [materiais, busca, abaEstoque]);
+
+  // Contadores para os chips de filtro operacional da aba ativa
   const metricasStatus = useMemo(() => {
     let semEstoque = 0;
     let estoqueBaixo = 0;
     let atencao = 0;
     let regular = 0;
 
-    materiais.forEach(m => {
+    const materiaisDaAba = materiais.filter(m => abaEstoque === 'consumo' ? !m.bemDuravel : !!m.bemDuravel);
+
+    materiaisDaAba.forEach(m => {
       const st = calcularStatusReposicao(m.quantidade, m.estoqueMinimo);
       if (st.chave === 'sem_estoque') semEstoque++;
       else if (st.chave === 'estoque_baixo') estoqueBaixo++;
@@ -582,13 +677,13 @@ const AlmoxarifeEstoque = ({
     });
 
     return {
-      todos: materiais.length,
+      todos: materiaisDaAba.length,
       semEstoque,
       estoqueBaixo,
       atencao,
       regular
     };
-  }, [materiais]);
+  }, [materiais, abaEstoque]);
 
   // Verifica se há filtro ativo aplicado diferente do padrão
   const temFiltroAtivo = statusFiltro !== 'todos';
@@ -600,9 +695,11 @@ const AlmoxarifeEstoque = ({
 
   const ordenacaoAtual = OPCOES_ORDENACAO_ALMOXARIFE[indiceOrdenacao];
 
-  // Filtragem e ordenação dos materiais
+  // Filtragem e ordenação dos materiais da aba ativa
   const materiaisFiltrados = useMemo(() => {
-    let lista = [...materiais];
+    let lista = materiais.filter(item =>
+      abaEstoque === 'consumo' ? !item.bemDuravel : !!item.bemDuravel
+    );
 
     // Busca textual multi-critério (nome, código/SKU, complexo, localização física, categoria)
     if (busca.trim()) {
@@ -659,7 +756,7 @@ const AlmoxarifeEstoque = ({
     }
 
     return lista;
-  }, [materiais, busca, statusFiltro, ordenacaoAtual]);
+  }, [materiais, busca, statusFiltro, ordenacaoAtual, abaEstoque]);
 
   // Paginação e Rolagem Infinita (Lotes de 20 materiais)
   const ITEMS_POR_PAGINA = 20;
@@ -810,12 +907,36 @@ const AlmoxarifeEstoque = ({
 
     const mensagens = {
       entrada: `Entrada confirmada: saldo atual ${novaQtd} ${materialModal.unidade}`,
-      saida: `Saída confirmada: saldo atual ${novaQtd} ${materialModal.unidade}`,
       ajuste: `Balanço concluído: novo saldo ${novaQtd} ${materialModal.unidade}`
     };
 
-    exibirToast(mensagens[tipoMovimentacao]);
+    exibirToast(mensagens[tipoMovimentacao] || 'Operação realizada com sucesso!');
     setMaterialModal(null);
+  };
+
+  // Confirmação da solicitação de baixa patrimonial enviada para homologação administrativa
+  const handleConfirmarSolicitacaoBaixa = () => {
+    if (!baixaModalMaterial) return;
+    const nome = baixaModalMaterial.nome;
+    const agora = new Date();
+    const horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const novaEntradaHistorico = {
+      id: `baixa-req-${Date.now()}`,
+      tipo: 'ajuste',
+      qtd: 1,
+      data: `Hoje, ${horaFormatada}`,
+      responsavel: 'Almoxarife',
+      motivo: `Solicitação de Baixa Patrimonial enviada ao Administrativo (${motivoBaixa}${obsBaixa.trim() ? `: ${obsBaixa.trim()}` : ''})`
+    };
+
+    setHistoricoPorMaterial(prev => ({
+      ...prev,
+      [baixaModalMaterial.id]: [novaEntradaHistorico, ...(prev[baixaModalMaterial.id] || [])]
+    }));
+
+    exibirToast(`Solicitação de baixa de "${nome}" encaminhada ao setor Administrativo!`);
+    setBaixaModalMaterial(null);
+    setObsBaixa('');
   };
 
   // Iniciar modo de edição no Detalhes com dados atuais sincronizados
@@ -832,7 +953,8 @@ const AlmoxarifeEstoque = ({
       locacao: materialModal.locacao || '',
       localizacao: materialModal.localizacao || '',
       dataValidade: materialModal.dataValidade || '',
-      descricao: materialModal.descricao || ''
+      descricao: materialModal.descricao || '',
+      bemDuravel: !!materialModal.bemDuravel
     });
     setNovoCodigoInput(materialModal.codigo || '');
     setIsConfirmarCodigoOpen(false);
@@ -854,7 +976,8 @@ const AlmoxarifeEstoque = ({
         locacao: materialModal.locacao || '',
         localizacao: materialModal.localizacao || '',
         dataValidade: materialModal.dataValidade || '',
-        descricao: materialModal.descricao || ''
+        descricao: materialModal.descricao || '',
+        bemDuravel: !!materialModal.bemDuravel
       });
     }
     setNovoCodigoInput('');
@@ -898,6 +1021,7 @@ const AlmoxarifeEstoque = ({
     const codigoFormatado = detalhesForm.codigo.trim() || materialModal.codigo;
     const nomeFormatado = detalhesForm.nome.trim() || materialModal.nome;
     const itensPorEmbalagemNum = ehIndividual ? undefined : qtdNum;
+    const ehBemDuravel = !!detalhesForm.bemDuravel;
 
     const materialAtualizado = {
       ...materialModal,
@@ -910,8 +1034,9 @@ const AlmoxarifeEstoque = ({
       complexo: detalhesForm.complexo || materialModal.complexo || 'Almoxarifado Central',
       locacao: detalhesForm.locacao.trim(),
       localizacao: detalhesForm.localizacao.trim(),
-      dataValidade: detalhesForm.dataValidade || '',
-      descricao: detalhesForm.descricao.trim()
+      dataValidade: ehBemDuravel ? '' : (detalhesForm.dataValidade || ''),
+      descricao: detalhesForm.descricao.trim(),
+      bemDuravel: ehBemDuravel
     };
 
     setMateriais(prev =>
@@ -1000,6 +1125,8 @@ const AlmoxarifeEstoque = ({
     const codigoGerado = novoItemForm.codigo.trim() || `MAT-${String(novoId).padStart(3, '0')}`;
     const itensPorEmbalagemNum = ehIndividual ? undefined : qtdNum;
 
+    const ehBemDuravel = !!novoItemForm.bemDuravel;
+
     const novoMaterial = {
       id: novoId,
       codigo: codigoGerado,
@@ -1012,8 +1139,9 @@ const AlmoxarifeEstoque = ({
       complexo: novoItemForm.complexo || 'Almoxarifado Central',
       locacao: novoItemForm.locacao.trim(),
       localizacao: novoItemForm.localizacao.trim(),
-      dataValidade: novoItemForm.dataValidade || '',
-      descricao: novoItemForm.descricao.trim()
+      dataValidade: ehBemDuravel ? '' : (novoItemForm.dataValidade || ''),
+      descricao: novoItemForm.descricao.trim(),
+      bemDuravel: ehBemDuravel
     };
 
     setMateriais(prev => [novoMaterial, ...prev]);
@@ -1035,12 +1163,17 @@ const AlmoxarifeEstoque = ({
       locacao: '',
       localizacao: '',
       dataValidade: '',
-      descricao: ''
+      descricao: '',
+      bemDuravel: abaEstoque === 'duraveis'
     });
   };
 
   return (
-    <div className="almoxarife-estoque">
+    <div
+      className="almoxarife-estoque"
+      onTouchStart={handleEstoqueTouchStart}
+      onTouchEnd={handleEstoqueTouchEnd}
+    >
       {/* Toast Notification Padronizado */}
       <AnimatePresence>
         {toast && (
@@ -1086,6 +1219,42 @@ const AlmoxarifeEstoque = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Abas Superiores: Materiais de Consumo vs Bens Duráveis / Patrimônio */}
+      <div className="almoxarife-estoque__categoria-tabs">
+        <UnderlineTabs
+          tabs={[
+            {
+              id: 'consumo',
+              label: 'Materiais de Consumo',
+              badge: totalConsumo,
+              icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                </svg>
+              )
+            },
+            {
+              id: 'duraveis',
+              label: 'Bens Duráveis / Patrimônio',
+              badge: totalDuraveis,
+              icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+              )
+            }
+          ]}
+          activeTab={abaEstoque}
+          onChange={(tab) => {
+            setAbaEstoque(tab);
+            setLimiteExibicao(ITEMS_POR_PAGINA);
+          }}
+          layoutId="estoqueCategoriaTabs"
+          ariaLabel="Categorias de estoque"
+        />
+      </div>
 
       {/* Seção Superior Unificada: Busca + Botão de Filtro com Sanfona (A Geral do SGE) */}
       <div className="almoxarife-estoque__top-section">
@@ -1156,6 +1325,29 @@ const AlmoxarifeEstoque = ({
           onToggleSort={alternarOrdenacao}
         />
       </div>
+
+      {/* Banner de Busca Cruzada entre Abas */}
+      {crossSearchResults > 0 && materiaisFiltrados.length === 0 && (
+        <div className="almox-cross-search-banner">
+          <div className="almox-cross-search-info">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            <span>
+              Nenhum item em <strong>{abaEstoque === 'consumo' ? 'Consumo' : 'Bens Duráveis'}</strong>, mas encontramos <strong>{crossSearchResults}</strong> {crossSearchResults === 1 ? 'item' : 'itens'} em <strong>{abaEstoque === 'consumo' ? 'Bens Duráveis' : 'Materiais de Consumo'}</strong> para "{busca}"
+            </span>
+          </div>
+          <button
+            type="button"
+            className="almox-cross-search-btn"
+            onClick={() => setAbaEstoque(abaEstoque === 'consumo' ? 'duraveis' : 'consumo')}
+          >
+            Ver em {abaEstoque === 'consumo' ? 'Bens Duráveis' : 'Consumo'} &rarr;
+          </button>
+        </div>
+      )}
 
       {/* Lista de Tickets do Almoxarife */}
       <div className="almoxarife-estoque__ticket-list">
@@ -1372,42 +1564,60 @@ const AlmoxarifeEstoque = ({
         }}
         title={
           materialModal ? (
-            <div
-              className={`modal-title-btn-box ${
-                materialModalTab !== 'detalhes'
-                  ? 'modal-title-btn-box--plain'
-                  : isEditandoDetalhes
-                  ? 'modal-title-btn-box--editing'
-                  : 'modal-title-btn-box--view'
-              }`}
-            >
-              {isEditandoDetalhes ? (
-                <>
-                  <input
-                    type="text"
-                    className="modal-title-btn-input"
-                    value={detalhesForm.nome}
-                    onChange={e => setDetalhesForm(prev => ({ ...prev, nome: e.target.value }))}
-                    placeholder="Nome do material..."
-                    enterKeyHint="done"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        e.target.blur();
-                      }
-                    }}
-                    aria-label="Editar nome do material"
-                  />
-                  <span className="modal-title-btn-pencil" aria-hidden="true" title="Editando nome">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                    </svg>
+            <div className="almox-cockpit-header">
+              <div
+                className={`modal-title-btn-box ${
+                  materialModalTab !== 'detalhes'
+                    ? 'modal-title-btn-box--plain'
+                    : isEditandoDetalhes
+                    ? 'modal-title-btn-box--editing'
+                    : 'modal-title-btn-box--view'
+                }`}
+              >
+                {isEditandoDetalhes ? (
+                  <>
+                    <input
+                      type="text"
+                      className="modal-title-btn-input"
+                      value={detalhesForm.nome}
+                      onChange={e => setDetalhesForm(prev => ({ ...prev, nome: e.target.value }))}
+                      placeholder="Nome do material..."
+                      enterKeyHint="done"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.target.blur();
+                        }
+                      }}
+                      aria-label="Editar nome do material"
+                    />
+                    <span className="modal-title-btn-pencil" aria-hidden="true" title="Editando nome">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                    </span>
+                  </>
+                ) : (
+                  <span className="modal-title-btn-text">{materialModal.nome}</span>
+                )}
+              </div>
+
+              {/* Barra persistente de Estoque Atual e Estoque Mínimo (visível e fixa em todas as abas) */}
+              <div className="almox-cockpit-stock-bar">
+                <span className={`almox-cockpit-stock-pill almox-cockpit-stock-pill--${calcularStatusReposicao(materialModal.quantidade, materialModal.estoqueMinimo).classe}`}>
+                  <span className="almox-cockpit-stock-dot" />
+                  Estoque Atual: <strong>{materialModal.quantidade} {materialModal.unidade}</strong>
+                </span>
+                <span className="almox-cockpit-min-pill">
+                  Estoque Mínimo: <strong>{materialModal.estoqueMinimo} {materialModal.unidade}</strong>
+                </span>
+                {materialModal.bemDuravel && (
+                  <span className="almox-cockpit-durable-tag">
+                    Bem Durável
                   </span>
-                </>
-              ) : (
-                <span className="modal-title-btn-text">{materialModal.nome}</span>
-              )}
+                )}
+              </div>
             </div>
           ) : ''
         }
@@ -1468,10 +1678,8 @@ const AlmoxarifeEstoque = ({
                   type="button"
                   className="btn-modal-confirm"
                   onClick={handleConfirmarMovimentacao}
-                  disabled={tipoMovimentacao === 'saida' && materialModal?.quantidade <= 0}
                 >
                   {tipoMovimentacao === 'entrada' && 'Confirmar Entrada'}
-                  {tipoMovimentacao === 'saida' && 'Confirmar Saída'}
                   {tipoMovimentacao === 'ajuste' && 'Confirmar Balanço'}
                 </button>
               </>
@@ -1502,11 +1710,11 @@ const AlmoxarifeEstoque = ({
           <div className="almoxarife-modal__body" style={{ padding: 0 }}>
             {/* Navegação entre Abas do Cockpit (1º Detalhes, 2º Movimentar, 3º Histórico) */}
             <div style={{ marginBottom: '10px' }}>
-              <SegmentedTabs
+              <UnderlineTabs
                 tabs={abasCockpit}
                 activeTab={materialModalTab}
                 onChange={handleMudarAbaCockpit}
-                layoutId="almoxMaterialModalTabIndicator"
+                layoutId="almoxMaterialCockpitIndicator"
                 size="md"
                 ariaLabel="Seções do material"
               />
@@ -1972,20 +2180,21 @@ const AlmoxarifeEstoque = ({
                     </div>
                   </div>
 
-                  {/* 7. Validade (Opcional, Editável / Data) */}
+                  {/* Classificação: Bem Durável vs Material de Consumo */}
                   <div
                     className={`detail-card ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
                     onClick={
                       isEditandoDetalhes
-                        ? (e) => {
-                            const el = e.currentTarget.querySelector('input');
-                            if (el && document.activeElement !== el) el.focus();
-                          }
+                        ? () => setDetalhesForm(prev => ({
+                            ...prev,
+                            bemDuravel: !prev.bemDuravel,
+                            dataValidade: !prev.bemDuravel ? '' : prev.dataValidade
+                          }))
                         : undefined
                     }
                   >
                     <div className="detail-card__header">
-                      <span className="detail-label">Validade (Opcional)</span>
+                      <span className="detail-label">Classificação</span>
                       {isEditandoDetalhes && (
                         <span className="detail-card__pencil" aria-hidden="true">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1997,6 +2206,57 @@ const AlmoxarifeEstoque = ({
                     </div>
                     <div className="detail-card__value-wrap">
                       {isEditandoDetalhes ? (
+                        <label className="durable-toggle-label" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={!!detalhesForm.bemDuravel}
+                            onChange={e => setDetalhesForm(prev => ({
+                              ...prev,
+                              bemDuravel: e.target.checked,
+                              dataValidade: e.target.checked ? '' : prev.dataValidade
+                            }))}
+                          />
+                          <span className="durable-toggle-text">
+                            {detalhesForm.bemDuravel ? 'Bem Durável / Patrimônio' : 'Material de Consumo'}
+                          </span>
+                        </label>
+                      ) : (
+                        <span className={`detail-value ${materialModal.bemDuravel ? 'detail-value--durable' : ''}`}>
+                          {materialModal.bemDuravel ? 'Bem Durável / Patrimônio' : 'Material de Consumo'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 7. Validade (Opcional, Editável / Data) */}
+                  <div
+                    className={`detail-card ${isEditandoDetalhes && !(isEditandoDetalhes ? detalhesForm.bemDuravel : materialModal.bemDuravel) ? 'detail-card--button detail-card--editing' : ''}`}
+                    onClick={
+                      isEditandoDetalhes && !detalhesForm.bemDuravel
+                        ? (e) => {
+                            const el = e.currentTarget.querySelector('input');
+                            if (el && document.activeElement !== el) el.focus();
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="detail-card__header">
+                      <span className="detail-label">Validade (Opcional)</span>
+                      {isEditandoDetalhes && !detalhesForm.bemDuravel && (
+                        <span className="detail-card__pencil" aria-hidden="true">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                          </svg>
+                        </span>
+                      )}
+                    </div>
+                    <div className="detail-card__value-wrap">
+                      {(isEditandoDetalhes ? detalhesForm.bemDuravel : materialModal.bemDuravel) ? (
+                        <span className="detail-value detail-value--muted">
+                          Não se aplica (Bem Durável)
+                        </span>
+                      ) : isEditandoDetalhes ? (
                         <input
                           type="date"
                           className="card-btn-input"
@@ -2069,22 +2329,11 @@ const AlmoxarifeEstoque = ({
               </div>
             )}
 
-            {/* ABA 2: MOVIMENTAR & AJUSTAR (SEM LOCALIZAÇÃO REPETIDA) */}
+            {/* ABA 2: MOVIMENTAR & AJUSTAR (APENAS ENTRADA E BALANÇO) */}
             {materialModalTab === 'movimentar' && (
               <div className="modal-tab-content">
-                {/* Saldo Atual */}
-                <div className="modal-balance-card">
-                  <span className="balance-label">Estoque Atual</span>
-                  <span className="balance-value">
-                    <strong>{materialModal.quantidade}</strong> {materialModal.unidade}
-                  </span>
-                  <span className="balance-min">
-                    Estoque Mínimo de Segurança: {materialModal.estoqueMinimo} {materialModal.unidade}
-                  </span>
-                </div>
-
-                {/* Seletor de Tipo de Movimentação */}
-                <div className="mov-type-selector">
+                {/* Seletor de Tipo de Movimentação (Saída manual eliminada por regra de negócio) */}
+                <div className="mov-type-selector mov-type-selector--two">
                   <button
                     type="button"
                     className={`type-btn ${tipoMovimentacao === 'entrada' ? 'type-btn--active-entrada' : ''}`}
@@ -2094,17 +2343,10 @@ const AlmoxarifeEstoque = ({
                   </button>
                   <button
                     type="button"
-                    className={`type-btn ${tipoMovimentacao === 'saida' ? 'type-btn--active-saida' : ''}`}
-                    onClick={() => setTipoMovimentacao('saida')}
-                  >
-                    Saída (−)
-                  </button>
-                  <button
-                    type="button"
                     className={`type-btn ${tipoMovimentacao === 'ajuste' ? 'type-btn--active-ajuste' : ''}`}
                     onClick={() => setTipoMovimentacao('ajuste')}
                   >
-                    Balanço (=)
+                    Balanço / Inventário (=)
                   </button>
                 </div>
 
@@ -2112,14 +2354,12 @@ const AlmoxarifeEstoque = ({
                 <div className="modal-form-group">
                   <label className="modal-label">
                     {tipoMovimentacao === 'entrada' && 'Quantidade a Adicionar:'}
-                    {tipoMovimentacao === 'saida' && 'Quantidade a Retirar:'}
                     {tipoMovimentacao === 'ajuste' && 'Novo Saldo Real Contado:'}
                   </label>
                   <QuantityStepper
                     value={qtdMovimentacao}
                     onChange={setQtdMovimentacao}
                     min={tipoMovimentacao === 'ajuste' ? 0 : 1}
-                    max={tipoMovimentacao === 'saida' ? materialModal.quantidade : undefined}
                     unit={materialModal.unidade}
                     quickPills={tipoMovimentacao === 'ajuste' ? [0, 5, 10, 20] : [1, 5, 10, 25]}
                   />
@@ -2134,8 +2374,6 @@ const AlmoxarifeEstoque = ({
                     placeholder={
                       tipoMovimentacao === 'entrada'
                         ? 'Ex: Recebimento de fornecedor, devolução...'
-                        : tipoMovimentacao === 'saida'
-                        ? 'Ex: Baixa avulsa, avaria, descarte...'
                         : 'Ex: Contagem física de inventário...'
                     }
                     value={motivoMovimentacao}
@@ -2150,8 +2388,8 @@ const AlmoxarifeEstoque = ({
                   />
                 </div>
 
-                {/* Data de Validade do Lote (Opcional - Entrada) */}
-                {tipoMovimentacao === 'entrada' && (
+                {/* Data de Validade do Lote (Opcional - Entrada, apenas para insumos perecíveis) */}
+                {tipoMovimentacao === 'entrada' && !materialModal.bemDuravel && (
                   <div className="modal-form-group">
                     <label className="modal-label">Data de Validade do Lote (Opcional):</label>
                     <input
@@ -2160,6 +2398,32 @@ const AlmoxarifeEstoque = ({
                       value={validadeMovimentacao}
                       onChange={e => setValidadeMovimentacao(e.target.value)}
                     />
+                  </div>
+                )}
+
+                {/* Sessão Exclusiva para Bens Duráveis: Solicitação de Baixa Patrimonial */}
+                {materialModal.bemDuravel && (
+                  <div className="durable-writeoff-section">
+                    <div className="durable-writeoff-header">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      </svg>
+                      <strong>Baixa Patrimonial Definitiva</strong>
+                    </div>
+                    <p className="durable-writeoff-desc">
+                      Bens duráveis não saem do estoque por consumo em pedidos comuns. Para baixas definitivas (avaria irreparável, obsolescência ou extravio), envie uma solicitação para homologação pelo setor <strong>Administrativo</strong>.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-solicitar-baixa"
+                      onClick={() => {
+                        setBaixaModalMaterial(materialModal);
+                        setMotivoBaixa('Avaria irreparável');
+                        setObsBaixa('');
+                      }}
+                    >
+                      Solicitar Baixa Patrimonial
+                    </button>
                   </div>
                 )}
               </div>
@@ -2525,16 +2789,42 @@ const AlmoxarifeEstoque = ({
               </div>
             </div>
 
-            {/* Validade (Opcional) */}
+            {/* Classificação: Bem Durável vs Material de Consumo */}
             <div className="modal-form-group">
-              <label className="modal-label">Data de Validade (Opcional)</label>
-              <input
-                type="date"
-                className="modal-input"
-                value={novoItemForm.dataValidade}
-                onChange={e => setNovoItemForm({ ...novoItemForm, dataValidade: e.target.value })}
-              />
+              <label className="durable-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={!!novoItemForm.bemDuravel}
+                  onChange={e => setNovoItemForm(prev => ({
+                    ...prev,
+                    bemDuravel: e.target.checked,
+                    dataValidade: e.target.checked ? '' : prev.dataValidade
+                  }))}
+                />
+                <span className="durable-checkbox-text">
+                  <strong>Bem Durável / Patrimônio</strong> (Equipamento permanente não consumível em pedidos)
+                </span>
+              </label>
             </div>
+
+            {/* Validade (Opcional - apenas para materiais de consumo) */}
+            {!novoItemForm.bemDuravel ? (
+              <div className="modal-form-group">
+                <label className="modal-label">Data de Validade (Opcional)</label>
+                <input
+                  type="date"
+                  className="modal-input"
+                  value={novoItemForm.dataValidade}
+                  onChange={e => setNovoItemForm({ ...novoItemForm, dataValidade: e.target.value })}
+                />
+              </div>
+            ) : (
+              <div className="modal-form-group">
+                <span className="durable-help-text">
+                  Bens duráveis são permanentes e não possuem controle de validade ou perecibilidade.
+                </span>
+              </div>
+            )}
 
             <div className="modal-form-group">
               <label className="modal-label">Descrição / Especificação</label>
@@ -2555,6 +2845,76 @@ const AlmoxarifeEstoque = ({
             </div>
           </div>
         </form>
+      </BottomSheetModal>
+
+      {/* Modal de Solicitação de Baixa Patrimonial (Bens Duráveis) */}
+      <BottomSheetModal
+        isOpen={!!baixaModalMaterial}
+        onClose={() => setBaixaModalMaterial(null)}
+        title="Solicitar Baixa Patrimonial"
+        subtitle={baixaModalMaterial?.nome}
+        variant="dialog"
+        maxWidth="480px"
+        zIndex={11500}
+        footer={
+          <div style={{ display: 'flex', width: '100%', justifyContent: 'flex-end', gap: '10px' }}>
+            <button
+              type="button"
+              className="btn-modal-cancel"
+              onClick={() => setBaixaModalMaterial(null)}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn-modal-confirm btn-modal-confirm--danger"
+              onClick={handleConfirmarSolicitacaoBaixa}
+            >
+              Enviar ao Administrativo
+            </button>
+          </div>
+        }
+      >
+        {baixaModalMaterial && (
+          <div className="baixa-modal-content">
+            <div className="baixa-modal-alert">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <div className="baixa-modal-alert-text">
+                A baixa definitiva de um bem patrimonial retira o item do patrimônio ativo e requer homologação obrigatória pelo setor <strong>Administrativo</strong>.
+              </div>
+            </div>
+
+            <div className="modal-form-group">
+              <label className="modal-label">Motivo da Baixa *</label>
+              <select
+                className="modal-input"
+                value={motivoBaixa}
+                onChange={e => setMotivoBaixa(e.target.value)}
+              >
+                <option value="Avaria irreparável">Avaria irreparável / Danificado</option>
+                <option value="Obsolescência técnica">Obsolescência técnica / Fim de vida útil</option>
+                <option value="Extravio">Extravio / Não localizado no inventário</option>
+                <option value="Descarte regulamentar">Descarte regulamentar</option>
+                <option value="Outro motivo">Outro motivo</option>
+              </select>
+            </div>
+
+            <div className="modal-form-group">
+              <label className="modal-label">Justificativa / Laudo Técnico (Opcional):</label>
+              <textarea
+                rows={3}
+                className="modal-input modal-textarea"
+                placeholder="Descreva o estado do equipamento ou contexto da baixa..."
+                value={obsBaixa}
+                onChange={e => setObsBaixa(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
       </BottomSheetModal>
 
       {/* Modal de Entrada em Lote, Compras e Doações (Padrão Ouro do SGE) */}

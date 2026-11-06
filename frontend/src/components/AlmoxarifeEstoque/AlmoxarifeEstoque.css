@@ -1636,3 +1636,270 @@
     opacity: 1;
   }
 }
+
+/* ==========================================================================
+   BENS DURÁVEIS, ABAS DE ESTOQUE E COCKPIT EXPANDIDO (SGE A GERAL)
+   ========================================================================== */
+
+/* Abas Superiores de Estoque */
+.almoxarife-estoque__categoria-tabs {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+/* Banner de Busca Cruzada */
+.almox-cross-search-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.almox-cross-search-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1E40AF;
+  font-size: 13px;
+}
+
+.almox-cross-search-info svg {
+  flex-shrink: 0;
+  color: #2563EB;
+}
+
+.almox-cross-search-btn {
+  background: #2563EB;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.almox-cross-search-btn:hover {
+  background: #1D4ED8;
+}
+
+/* Cabeçalho do Cockpit com Estoque Persistente */
+.almox-cockpit-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.almox-cockpit-stock-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.almox-cockpit-stock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #F1F5F9;
+  color: #334155;
+  border: 1px solid #E2E8F0;
+}
+
+.almox-cockpit-stock-pill strong {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.almox-cockpit-stock-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.almox-cockpit-stock-pill--status-sem {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #FECACA;
+}
+
+.almox-cockpit-stock-pill--status-baixo {
+  background: #FEF3C7;
+  color: #D97706;
+  border-color: #FDE68A;
+}
+
+.almox-cockpit-stock-pill--status-atencao {
+  background: #FEFCE8;
+  color: #CA8A04;
+  border-color: #FEF08A;
+}
+
+.almox-cockpit-stock-pill--status-regular {
+  background: #ECFDF5;
+  color: #059669;
+  border-color: #A7F3D0;
+}
+
+.almox-cockpit-min-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #64748B;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+
+.almox-cockpit-min-pill strong {
+  color: #334155;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.almox-cockpit-durable-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #EDE9FE;
+  color: #6D28D9;
+  border: 1px solid #DDD6FE;
+  letter-spacing: -0.2px;
+}
+
+/* Seletor de Movimentação em 2 Botões */
+.mov-type-selector--two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Seção de Solicitação de Baixa Patrimonial */
+.durable-writeoff-section {
+  margin-top: 18px;
+  padding: 14px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.durable-writeoff-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #92400E;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.durable-writeoff-desc {
+  font-size: 12px;
+  color: #78350F;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.btn-solicitar-baixa {
+  padding: 8px 14px;
+  background: #D97706;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 0.15s ease;
+}
+
+.btn-solicitar-baixa:hover {
+  background: #B45309;
+}
+
+/* Controles de Form / Checkbox para Bens Duráveis */
+.durable-toggle-label,
+.durable-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.durable-toggle-label input,
+.durable-checkbox-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent, #017F7B);
+  cursor: pointer;
+}
+
+.durable-toggle-text,
+.durable-checkbox-text {
+  font-size: 13px;
+  color: #0F172A;
+}
+
+.durable-help-text {
+  font-size: 12px;
+  color: #64748B;
+  font-style: italic;
+}
+
+.detail-value--durable {
+  color: #6D28D9 !important;
+  font-weight: 700;
+}
+
+/* Modal de Baixa Patrimonial */
+.baixa-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0;
+}
+
+.baixa-modal-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+}
+
+.baixa-modal-alert-text {
+  font-size: 12.5px;
+  color: #991B1B;
+  line-height: 1.4;
+}
+
+.btn-modal-confirm--danger {
+  background: #DC2626 !important;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.28) !important;
+}
+
+.btn-modal-confirm--danger:hover {
+  background: #B91C1C !important;
+}

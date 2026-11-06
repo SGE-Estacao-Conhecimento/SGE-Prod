@@ -1,0 +1,162 @@
+/* ==========================================================================
+   SGE UnderlineTabs (Design System SGE)
+   Directives: AGENTS.md (No Emojis, Radius 10px+, Tactile :active scale 0.98, WCAG AA)
+   ========================================================================== */
+
+.sge-underline-tabs {
+  width: 100%;
+  position: relative;
+  border-bottom: 1px solid var(--border, #E2E8F0);
+  background: transparent;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.sge-underline-tabs__track {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sge-underline-tabs__track::-webkit-scrollbar {
+  display: none;
+}
+
+/* Botão individual de aba */
+.sge-underline-tab {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px 10px 14px;
+  min-height: 36px;
+  border-radius: 8px 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.sge-underline-tab:hover:not(.sge-underline-tab--active) {
+  color: #0F172A;
+  background: #F8FAFC;
+}
+
+.sge-underline-tab:active {
+  transform: scale(0.98);
+  transition: transform 0.08s ease;
+}
+
+.sge-underline-tab--active {
+  color: var(--accent, #017F7B) !important;
+  font-weight: 700;
+}
+
+/* Conteúdo interno da aba */
+.sge-underline-tab__content {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sge-underline-tab__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sge-underline-tab__label {
+  letter-spacing: -0.2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Badges numéricos */
+.sge-underline-tab__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #E2E8F0;
+  color: #475569;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sge-underline-tab__badge--active {
+  background: #E6F4F3;
+  color: var(--accent, #017F7B);
+}
+
+/* Barra indicadora inferior animada (Framer Motion) */
+.sge-underline-tab__indicator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: var(--accent, #017F7B);
+  border-radius: 9999px;
+  z-index: 2;
+}
+
+/* Variante Pequena (sm) */
+.sge-underline-tabs--sm .sge-underline-tab {
+  min-height: 32px;
+  padding: 6px 10px 8px 10px;
+  font-size: 12px;
+}
+
+.sge-underline-tabs--sm .sge-underline-tab__indicator {
+  height: 2px;
+}
+
+/* Responsividade para Telas Estreitas */
+@media (max-width: 440px) {
+  .sge-underline-tab {
+    padding: 7px 8px 9px 8px;
+    font-size: 12px;
+  }
+
+  .sge-underline-tab__content {
+    gap: 4px;
+  }
+
+  .sge-underline-tab__icon svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+@media (max-width: 360px) {
+  .sge-underline-tab {
+    padding: 6px 4px 8px 4px;
+    font-size: 11px;
+    min-height: 32px;
+  }
+}
+

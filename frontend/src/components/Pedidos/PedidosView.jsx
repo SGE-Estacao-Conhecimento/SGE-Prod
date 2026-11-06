@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { SegmentedTabs, StatusBadge, BottomSheetModal } from '../common';
+import { UnderlineTabs, StatusBadge, BottomSheetModal } from '../common';
 import NovoPedidoModal from './NovoPedidoModal';
 import './PedidosView.css';
 
@@ -284,13 +284,38 @@ const PedidosView = ({
     }).length;
   }, [pedidos]);
 
-  // Abas do SegmentedTabs (Aba 'Separação' com 9 caracteres perfeitamente simétrica)
+  // Abas do UnderlineTabs (Esteira WMS)
   const tabsConfig = useMemo(() => [
     { id: 'novos', label: 'Novos', badge: contagemPorAba.novos || undefined },
     { id: 'separacao', label: 'Separação', badge: contagemPorAba.separacao || undefined },
     { id: 'prontos', label: 'Prontos', badge: contagemPorAba.prontos || undefined },
     { id: 'historico', label: 'Histórico', badge: contagemPorAba.historico || undefined }
   ], [contagemPorAba]);
+
+  // Gestos touch / arrasto para troca fluida de abas na esteira WMS
+  const touchStartRef = useRef({ x: 0, y: 0 });
+  const ETAPAS_ESTEIRA = ['novos', 'separacao', 'prontos', 'historico'];
+
+  const handleTouchStart = (e) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    };
+  };
+
+  const handleTouchEnd = (e) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
+    // Bloqueio direcional para preservar o scroll vertical nativo
+    if (Math.abs(deltaX) > 48 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      const idx = ETAPAS_ESTEIRA.indexOf(abaAtiva);
+      if (deltaX < 0 && idx < ETAPAS_ESTEIRA.length - 1) {
+        setAbaAtiva(ETAPAS_ESTEIRA[idx + 1]);
+      } else if (deltaX > 0 && idx > 0) {
+        setAbaAtiva(ETAPAS_ESTEIRA[idx - 1]);
+      }
+    }
+  };
 
   // Mapeamento de ramal por usuário para exibição rápida no card sem gaveta
   const mapaRamais = useMemo(() => {
@@ -332,11 +357,34 @@ const PedidosView = ({
     });
   }, [pedidos, abaAtiva, apenasUrgentes, setorSelecionado, busca]);
 
-  // Alterna o checklist de um item na etapa de separação
-  const handleToggleItemSeparado = (pedidoId, itemKey) => {
+  // Obtém a quantidade conferida de um item na etapa de separação
+  const getQtdSeparada = (pedidoId, itemKey, qtdPedida) => {
+    const val = itensSeparados[pedidoId]?.[itemKey];
+    if (val === undefined || val === null) return 0;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'object' && val.qtd !== undefined) return Number(val.qtd) || 0;
+    if (val === true) return qtdPedida;
+    return 0;
+  };
+
+  // Alterna o checklist de um item na etapa de separação (1 clique = 100% ou 0%)
+  const handleToggleItemSeparado = (pedidoId, itemKey, qtdPedida) => {
     setItensSeparados(prev => {
       const pedidoChecks = { ...(prev[pedidoId] || {}) };
-      pedidoChecks[itemKey] = !pedidoChecks[itemKey];
+      const atual = getQtdSeparada(pedidoId, itemKey, qtdPedida);
+      const novo = atual > 0 ? 0 : qtdPedida;
+      pedidoChecks[itemKey] = { separado: novo > 0, qtd: novo };
+      return { ...prev, [pedidoId]: pedidoChecks };
+    });
+  };
+
+  // Ajuste fino / parcial de quantidade na conferência de separação
+  const handleAjustarQtdSeparada = (pedidoId, itemKey, delta, qtdPedida) => {
+    setItensSeparados(prev => {
+      const pedidoChecks = { ...(prev[pedidoId] || {}) };
+      const atual = getQtdSeparada(pedidoId, itemKey, qtdPedida);
+      const novo = Math.max(0, Math.min(qtdPedida, atual + delta));
+      pedidoChecks[itemKey] = { separado: novo > 0, qtd: novo };
       return { ...prev, [pedidoId]: pedidoChecks };
     });
   };
@@ -392,11 +440,18 @@ const PedidosView = ({
     const itensOriginais = normalizarItensPedido(pedido);
 
     let temAlgumFaltando = false;
-    const itensAtualizados = itensOriginais.map(it => {
+    const itensAtualizados = itensOriginais.map((it, idx) => {
+      const itemKey = it.key || `it-${it.produtoId || it.id || idx}`;
+      const qtdPedida = Number(it.quantidade) || 1;
+      const sepQtd = getQtdSeparada(pedido.id, itemKey, qtdPedida);
+
       const mat = encontrarMaterialCorrespondente(it, listaMateriais);
       const saldo = mat ? Number(mat.quantidade) || 0 : 0;
-      const qtdPedida = Number(it.quantidade) || 1;
-      const qtdEntregue = Math.min(saldo, qtdPedida);
+
+      // Se houve contagem no picking, honra a separação física do almoxarife
+      const qtdEntregue = (itensSeparados[pedido.id] && itensSeparados[pedido.id][itemKey] !== undefined)
+        ? Math.min(saldo, sepQtd)
+        : Math.min(saldo, qtdPedida);
 
       if (qtdEntregue < qtdPedida) {
         temAlgumFaltando = true;
@@ -472,7 +527,11 @@ const PedidosView = ({
   };
 
   return (
-    <div className="atendimento-container">
+    <div
+      className="atendimento-container"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Toast Flutuante de Feedback */}
       {feedbackToast && (
         <div className={`atendimento-toast atendimento-toast--${feedbackToast.tipo}`} role="status">
@@ -501,15 +560,15 @@ const PedidosView = ({
         </div>
       )}
 
-      {/* Navegação por Abas da Esteira WMS (SegmentedTabs) */}
+      {/* Navegação por Abas da Esteira WMS (UnderlineTabs com indicador animado) */}
       <div className="atendimento-tabs-wrap">
-        <SegmentedTabs
+        <UnderlineTabs
           tabs={tabsConfig}
           activeTab={abaAtiva}
           onChange={(novaAba) => setAbaAtiva(novaAba)}
-          layoutId="atendimentoWmsTabs"
+          layoutId="pedidosWmsUnderlineIndicator"
           size="md"
-          className="atendimento-segmented-tabs"
+          className="atendimento-underline-tabs"
           ariaLabel="Fases do Atendimento de Pedidos"
         />
       </div>
@@ -728,7 +787,10 @@ const PedidosView = ({
                         const saldoEstoque = mat ? Number(mat.quantidade) || 0 : 0;
                         const temSaldo = saldoEstoque >= qtdPedida;
                         const itemKey = it.key || `item-${idx}`;
-                        const isSeparado = !!itensSeparados[pedido.id]?.[itemKey];
+                        const qtdSeparada = getQtdSeparada(pedido.id, itemKey, qtdPedida);
+                        const isTotalSeparado = qtdSeparada >= qtdPedida;
+                        const isParcialSeparado = qtdSeparada > 0 && qtdSeparada < qtdPedida;
+                        const isSeparado = qtdSeparada > 0;
                         const isFalta = !temSaldo || (it.quantidadeAtendida !== undefined && it.quantidadeAtendida === 0);
 
                         return (
@@ -740,27 +802,31 @@ const PedidosView = ({
                           >
                             {/* Indicador / Ação na esquerda do item dependendo da fase */}
                             {abaAtiva === 'separacao' ? (
-                              /* Checkbox tátil de Picking na aba "Separação" */
+                              /* Checkbox tátil de Picking na aba "Separação" com suporte a 1 clique total */
                               <label
                                 className="picking-checkbox-wrap"
-                                title={isSeparado ? 'Desmarcar conferência' : 'Marcar material coletado da prateleira'}
+                                title={isSeparado ? 'Desmarcar conferência' : 'Conferir item coletado da prateleira'}
                               >
                                 <input
                                   type="checkbox"
                                   className="picking-checkbox-input"
-                                  checked={isSeparado}
-                                  onChange={() => handleToggleItemSeparado(pedido.id, itemKey)}
+                                  checked={isTotalSeparado}
+                                  onChange={() => handleToggleItemSeparado(pedido.id, itemKey, qtdPedida)}
                                 />
-                                <span className="picking-checkbox-custom">
-                                  {isSeparado && (
+                                <span className={`picking-checkbox-custom ${isParcialSeparado ? 'picking-checkbox-custom--parcial' : ''}`}>
+                                  {isTotalSeparado ? (
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                       <polyline points="20 6 9 17 4 12" />
                                     </svg>
-                                  )}
+                                  ) : isParcialSeparado ? (
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                      <line x1="5" y1="12" x2="19" y2="12" />
+                                    </svg>
+                                  ) : null}
                                 </span>
                               </label>
                             ) : abaAtiva === 'prontos' ? (
-                              /* Símbolo V (✓) ou X (✕) na aba "Prontos" */
+                              /* Ícone de status na aba "Prontos" */
                               temSaldo ? (
                                 <span className="atendimento-item-status-icon atendimento-item-status-icon--ok" title="Item conferido e pronto para retirada">
                                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -776,7 +842,7 @@ const PedidosView = ({
                                 </span>
                               )
                             ) : abaAtiva === 'historico' ? (
-                              /* Símbolo V (✓) ou X (✕) no Histórico */
+                              /* Ícone de status no Histórico */
                               it.quantidadeAtendida !== undefined ? (
                                 it.quantidadeAtendida > 0 ? (
                                   <span className="atendimento-item-status-icon atendimento-item-status-icon--ok" title="Item entregue ao solicitante">
@@ -830,8 +896,53 @@ const PedidosView = ({
                                 </span>
 
                                 <div className="atendimento-item-qtd-wrap">
-                                  {/* Se já estiver no histórico, exibe a quantidade real entregue */}
-                                  {it.quantidadeAtendida !== undefined ? (
+                                  {/* Se estiver na etapa de Separação: controle tátil de conferência de quantidade */}
+                                  {abaAtiva === 'separacao' ? (
+                                    <div className="picking-stepper-wrap">
+                                      <button
+                                        type="button"
+                                        className="picking-step-btn"
+                                        onClick={() => handleAjustarQtdSeparada(pedido.id, itemKey, -1, qtdPedida)}
+                                        disabled={qtdSeparada <= 0}
+                                        title="Reduzir quantidade separada"
+                                        aria-label="Reduzir quantidade separada"
+                                      >
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+                                          <line x1="5" y1="12" x2="19" y2="12" />
+                                        </svg>
+                                      </button>
+                                      <span className="picking-step-val">
+                                        <strong>{qtdSeparada}</strong> / {qtdPedida} {it.unidade}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        className="picking-step-btn"
+                                        onClick={() => handleAjustarQtdSeparada(pedido.id, itemKey, 1, qtdPedida)}
+                                        disabled={qtdSeparada >= qtdPedida}
+                                        title="Aumentar quantidade separada"
+                                        aria-label="Aumentar quantidade separada"
+                                      >
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+                                          <line x1="12" y1="5" x2="12" y2="19" />
+                                          <line x1="5" y1="12" x2="19" y2="12" />
+                                        </svg>
+                                      </button>
+                                      {isTotalSeparado ? (
+                                        <span className="picking-status-badge picking-status-badge--completo">
+                                          Separado
+                                        </span>
+                                      ) : isParcialSeparado ? (
+                                        <span className="picking-status-badge picking-status-badge--parcial">
+                                          Parcial
+                                        </span>
+                                      ) : (
+                                        <span className="picking-status-badge picking-status-badge--pendente">
+                                          Pendente
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : it.quantidadeAtendida !== undefined ? (
+                                    /* Se já estiver no histórico, exibe a quantidade real entregue */
                                     <span className={`atendimento-item-entregue-tag ${it.quantidadeAtendida < qtdPedida ? 'entregue-tag--parcial' : 'entregue-tag--ok'}`}>
                                       {it.quantidadeAtendida === 0
                                         ? `0 de ${qtdPedida} (Sem Estoque)`

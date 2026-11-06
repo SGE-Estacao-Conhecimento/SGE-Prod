@@ -155,6 +155,11 @@ const Almoxarife = ({ onLogout, user }) => {
         (it.materialNome && String(m.nome).toLowerCase().trim() === String(it.materialNome).toLowerCase().trim())
       );
 
+      // Bens duráveis / patrimoniais são alocados sem consumo ou perda de saldo físico
+      if (mat?.bemDuravel) {
+        continue;
+      }
+
       const matId = mat ? mat.id : (it.produtoId || it.materialId);
       const matNome = mat ? mat.nome : (it.materialNome || it.nome || 'Material');
 

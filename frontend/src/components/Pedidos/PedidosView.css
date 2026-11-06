@@ -1187,3 +1187,87 @@
     gap: 3px;
   }
 }
+
+/* ===== CONTROLES TÁTEIS DE CONFERÊNCIA E PICKING (ABA SEPARAÇÃO) ===== */
+.picking-checkbox-custom--parcial {
+  background: #FEF3C7 !important;
+  border-color: #D97706 !important;
+  color: #D97706 !important;
+}
+
+.picking-stepper-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+
+.picking-step-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #334155;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.12s ease;
+}
+
+.picking-step-btn:hover:not(:disabled) {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+  color: #0F172A;
+}
+
+.picking-step-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: #E2E8F0;
+}
+
+.picking-step-val {
+  font-size: 11.5px;
+  color: #475569;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+.picking-step-val strong {
+  color: #0F172A;
+  font-weight: 700;
+}
+
+.picking-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.picking-status-badge--completo {
+  background: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+}
+
+.picking-status-badge--parcial {
+  background: #FFFBEB;
+  color: #D97706;
+  border: 1px solid #FDE68A;
+}
+
+.picking-status-badge--pendente {
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+}
