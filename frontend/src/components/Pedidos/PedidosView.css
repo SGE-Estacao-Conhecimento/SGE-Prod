@@ -807,6 +807,9 @@
 }
 
 .historico-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12px;
   font-weight: 700;
   padding: 4px 10px;
