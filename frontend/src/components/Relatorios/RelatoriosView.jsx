@@ -30,6 +30,7 @@ const normalizarDataParaIso = (dataStr) => {
  * - Padrão em 2 Telas: Tela 1 (Configuração & Parâmetros) -> Tela 2 (Extrato Completo & Exportações).
  * - Sem títulos ou subtítulos redundantes dentro da página.
  * - Cards limpos e objetivos sem badges de taxonomia desnecessários.
+ * - Exportação integral de todos os metadados: Complexo, Locação, Localização, Validade, Déficit, etc.
  */
 const RelatoriosView = ({
   dadosEstoque = [],
@@ -189,7 +190,7 @@ const RelatoriosView = ({
     }
   };
 
-  // 1. Processamento: Posição de Estoque & Reposição
+  // 1. Processamento: Posição de Estoque & Reposição (com Complexo, Locação, Localização e Validade)
   const dadosRelatorioEstoque = useMemo(() => {
     if (relatorioSelecionado !== 'estoque') return [];
     const termo = buscaTexto.trim().toLowerCase();
@@ -215,7 +216,9 @@ const RelatoriosView = ({
           const matchCod = String(m.codigo || '').toLowerCase().includes(termo);
           const matchNome = String(m.nome || '').toLowerCase().includes(termo);
           const matchLoc = String(m.localizacao || '').toLowerCase().includes(termo);
-          if (!matchCod && !matchNome && !matchLoc) return false;
+          const matchLocacao = String(m.locacao || '').toLowerCase().includes(termo);
+          const matchComp = String(m.complexo || '').toLowerCase().includes(termo);
+          if (!matchCod && !matchNome && !matchLoc && !matchLocacao && !matchComp) return false;
         }
 
         return true;
@@ -226,13 +229,34 @@ const RelatoriosView = ({
         const deficit = Math.max(0, min - saldo);
         const situacao = saldo === 0 ? 'Sem Estoque' : saldo <= min ? 'Estoque Baixo' : 'Normal';
 
+        // Normalização completa do endereçamento físico WMS (Complexo, Locação, Localização)
+        let comp = m.complexo || '';
+        let loc = m.localizacao || '';
+        if (!comp && loc.includes('•')) {
+          const parts = loc.split('•');
+          comp = parts[0].trim();
+          loc = parts.slice(1).join('•').trim();
+        }
+        if (!comp) comp = 'Almoxarifado Central';
+
+        const locacao = m.locacao || '—';
+        const validadeFormatada = m.dataValidade
+          ? normalizarDataParaIso(m.dataValidade)?.split('-').reverse().join('/') || m.dataValidade
+          : m.bemDuravel
+          ? 'Não se aplica'
+          : '—';
+
         return {
           id: m.id,
           codigo: m.codigo || `MAT-${m.id}`,
           nome: m.nome,
           categoria: m.categoria || 'Geral',
           tipoBem: m.bemDuravel ? 'Bem Durável' : 'Consumo',
-          localizacao: m.localizacao || 'Almoxarifado Central',
+          complexo: comp,
+          locacao,
+          localizacao: loc || '—',
+          validade: validadeFormatada,
+          itensPorEmbalagem: m.itensPorEmbalagem || 1,
           quantidade: saldo,
           estoqueMinimo: min,
           deficitSugerido: deficit,
@@ -315,10 +339,16 @@ const RelatoriosView = ({
     });
   }, [relatorioSelecionado, dadosPedidos, dadosEstoque, dataInicio, dataFim, filtroSetor, filtroTipoBem, buscaTexto]);
 
-  // 3. Processamento: Extrato de Movimentações (Kardex)
+  // 3. Processamento: Extrato de Movimentações (Kardex com SKU e Unidade)
   const dadosRelatorioMovimentacoes = useMemo(() => {
     if (relatorioSelecionado !== 'movimentacoes') return [];
     const termo = buscaTexto.trim().toLowerCase();
+
+    const mapMateriais = new Map();
+    dadosEstoque.forEach(mat => {
+      mapMateriais.set(String(mat.id), mat);
+      mapMateriais.set(String(mat.nome).toLowerCase(), mat);
+    });
 
     return dadosMovimentacoes
       .filter(m => {
@@ -341,18 +371,23 @@ const RelatoriosView = ({
 
         return true;
       })
-      .map(m => ({
-        id: m.id,
-        data: m.data ? new Date(m.data).toLocaleString('pt-BR') : '—',
-        material: m.produtoNome || `Produto #${m.produtoId}`,
-        tipo: m.tipo,
-        quantidade: m.quantidade,
-        responsavel: m.funcionarioNome || 'Almoxarife',
-        observacao: m.observacao || 'Movimentação padrão de estoque'
-      }));
-  }, [relatorioSelecionado, dadosMovimentacoes, dataInicio, dataFim, filtroTipoMovimento, buscaTexto]);
+      .map(m => {
+        const matInfo = mapMateriais.get(String(m.produtoId)) || mapMateriais.get(String(m.produtoNome).toLowerCase());
+        return {
+          id: m.id,
+          data: m.data ? new Date(m.data).toLocaleString('pt-BR') : '—',
+          codigo: matInfo?.codigo || '—',
+          material: m.produtoNome || `Produto #${m.produtoId}`,
+          tipo: m.tipo,
+          quantidade: m.quantidade,
+          unidade: matInfo?.unidade || 'un',
+          responsavel: m.funcionarioNome || 'Almoxarife',
+          observacao: m.observacao || 'Movimentação padrão de estoque'
+        };
+      });
+  }, [relatorioSelecionado, dadosMovimentacoes, dadosEstoque, dataInicio, dataFim, filtroTipoMovimento, buscaTexto]);
 
-  // 4. Processamento: Atendimento de Pedidos e Eficiência WMS
+  // 4. Processamento: Atendimento de Pedidos e Eficiência WMS (com Ramal e Instruções)
   const dadosRelatorioPedidos = useMemo(() => {
     if (relatorioSelecionado !== 'pedidos') return [];
     const termo = buscaTexto.trim().toLowerCase();
@@ -391,15 +426,17 @@ const RelatoriosView = ({
           data: p.data || '—',
           usuario: p.usuario || 'Usuário Solicitante',
           setor: p.setor || 'Geral',
+          ramal: p.ramal || '',
           itensDescricao: itensLista,
           prioridade: p.prioridade || 'Normal',
           status: p.status || 'Pendente',
+          mensagemAlmoxarife: p.mensagemAlmoxarife || '',
           justificativa: p.justificativa || p.motivoRecusa || '—'
         };
       });
   }, [relatorioSelecionado, dadosPedidos, dataInicio, dataFim, filtroSetor, filtroStatusPedido, buscaTexto]);
 
-  // 5. Processamento: Cadastro de Usuários (Admin)
+  // 5. Processamento: Cadastro de Usuários (Admin com Ramal)
   const dadosRelatorioUsuarios = useMemo(() => {
     if (relatorioSelecionado !== 'usuarios') return [];
     const termo = buscaTexto.trim().toLowerCase();
@@ -425,6 +462,7 @@ const RelatoriosView = ({
         email: u.email,
         perfil: u.perfil,
         setor: u.setor || 'Geral',
+        ramal: u.ramal || '—',
         dataCadastro: u.dataCadastro || '—',
         status: u.ativo ? 'Ativo' : 'Inativo'
       }));
@@ -449,7 +487,7 @@ const RelatoriosView = ({
     dadosRelatorioUsuarios
   ]);
 
-  // Exportação em Planilha Excel
+  // Exportação em Planilha Excel (Totalmente Completa com Todos os Metadados)
   const handleExportarExcel = () => {
     if (registrosAtuais.length === 0) {
       setAlertaDownload('Não há registros para exportar com os filtros atuais.');
@@ -466,11 +504,15 @@ const RelatoriosView = ({
           'Material': r.nome,
           'Tipo de Bem': r.tipoBem,
           'Categoria': r.categoria,
+          'Complexo': r.complexo,
+          'Locação': r.locacao,
           'Localização': r.localizacao,
-          'Saldo Atual': r.quantidade,
+          'Validade': r.validade,
+          'Itens p/ Embalagem': r.itensPorEmbalagem,
+          'Saldo Físico': r.quantidade,
+          'Unidade': r.unidade,
           'Estoque Mínimo': r.estoqueMinimo,
           'Déficit Reposição': r.deficitSugerido,
-          'Unidade': r.unidade,
           'Situação': r.situacao
         }));
       } else if (relatorioSelecionado === 'consumo_setor') {
@@ -479,29 +521,34 @@ const RelatoriosView = ({
           'Material Entregue': r.material,
           'Tipo de Bem': r.tipoBem,
           'Categoria': r.categoria,
-          'Qtd. Entregue': r.quantidadeEntregue,
+          'Qtd. Total Entregue': r.quantidadeEntregue,
           'Unidade': r.unidade,
-          'Nº Solicitações': r.pedidosCount
+          'Nº de Pedidos Atendidos': r.pedidosCount,
+          'Média p/ Pedido': (r.quantidadeEntregue / Math.max(1, r.pedidosCount)).toFixed(1)
         }));
       } else if (relatorioSelecionado === 'movimentacoes') {
         rows = registrosAtuais.map(r => ({
-          'Nº Registro': r.id,
+          'Nº Registro': `#${r.id}`,
           'Data / Hora': r.data,
+          'Código SKU': r.codigo,
           'Material': r.material,
           'Tipo Operação': r.tipo.toUpperCase(),
           'Quantidade': r.quantidade,
+          'Unidade': r.unidade,
           'Responsável': r.responsavel,
           'Documento / Justificativa': r.observacao
         }));
       } else if (relatorioSelecionado === 'pedidos') {
         rows = registrosAtuais.map(r => ({
           'Nº Pedido': `#${r.id}`,
-          'Data': r.data,
+          'Data Solicitação': r.data,
           'Solicitante': r.usuario,
           'Setor': r.setor,
+          'Ramal': r.ramal || '—',
           'Materiais Atendidos': r.itensDescricao,
           'Prioridade': r.prioridade,
           'Status WMS': r.status,
+          'Instrução Almoxarife': r.mensagemAlmoxarife || '—',
           'Observações / Justificativa': r.justificativa
         }));
       } else if (relatorioSelecionado === 'usuarios') {
@@ -511,6 +558,7 @@ const RelatoriosView = ({
           'E-mail': r.email,
           'Perfil': r.perfil,
           'Setor': r.setor,
+          'Ramal': r.ramal || '—',
           'Data Cadastro': r.dataCadastro,
           'Status': r.status
         }));
@@ -859,11 +907,11 @@ const RelatoriosView = ({
                     className="relatorio-input"
                     placeholder={
                       relatorioSelecionado === 'estoque'
-                        ? 'Buscar por material, código SKU ou prateleira...'
+                        ? 'Buscar por SKU, material, complexo, locação ou prateleira...'
                         : relatorioSelecionado === 'consumo_setor'
                         ? 'Buscar por material ou setor...'
                         : relatorioSelecionado === 'movimentacoes'
-                        ? 'Buscar por material, responsável ou motivo...'
+                        ? 'Buscar por material, SKU, responsável ou motivo...'
                         : relatorioSelecionado === 'pedidos'
                         ? 'Buscar por solicitante, setor ou número...'
                         : 'Buscar por nome, e-mail ou setor...'
@@ -1004,7 +1052,7 @@ const RelatoriosView = ({
           ) : (
             <div className="relatorios-table-card">
               <div className="relatorios-table-scroll">
-                {/* 1. Tabela: Posição de Estoque */}
+                {/* 1. Tabela: Posição de Estoque (com Complexo, Locação, Localização e Validade) */}
                 {relatorioSelecionado === 'estoque' && (
                   <table className="relatorios-data-table">
                     <thead>
@@ -1013,10 +1061,13 @@ const RelatoriosView = ({
                         <th>Material</th>
                         <th>Tipo de Bem</th>
                         <th>Categoria</th>
+                        <th>Complexo</th>
+                        <th>Locação</th>
                         <th>Localização</th>
+                        <th>Validade</th>
                         <th style={{ textAlign: 'right' }}>Saldo Atual</th>
                         <th style={{ textAlign: 'right' }}>Estoque Mín.</th>
-                        <th style={{ textAlign: 'right' }}>Déficit Reposição</th>
+                        <th style={{ textAlign: 'right' }}>Déficit</th>
                         <th style={{ textAlign: 'center' }}>Situação</th>
                       </tr>
                     </thead>
@@ -1034,7 +1085,14 @@ const RelatoriosView = ({
                               </span>
                             </td>
                             <td>{r.categoria}</td>
+                            <td>{r.complexo}</td>
+                            <td><strong>{r.locacao}</strong></td>
                             <td>{r.localizacao}</td>
+                            <td>
+                              <span style={{ fontSize: '11.5px', color: r.validade.includes('/') ? '#0F172A' : '#64748B' }}>
+                                {r.validade}
+                              </span>
+                            </td>
                             <td style={{ textAlign: 'right' }}><strong>{r.quantidade}</strong> {r.unidade}</td>
                             <td style={{ textAlign: 'right', color: '#64748B' }}>{r.estoqueMinimo} {r.unidade}</td>
                             <td style={{ textAlign: 'right' }}>
@@ -1090,13 +1148,14 @@ const RelatoriosView = ({
                   </table>
                 )}
 
-                {/* 3. Tabela: Extrato de Movimentações (Kardex) */}
+                {/* 3. Tabela: Extrato de Movimentações (Kardex com SKU e Unidade) */}
                 {relatorioSelecionado === 'movimentacoes' && (
                   <table className="relatorios-data-table">
                     <thead>
                       <tr>
                         <th>Nº Registro</th>
                         <th>Data / Hora</th>
+                        <th>Código SKU</th>
                         <th>Material</th>
                         <th>Operação</th>
                         <th style={{ textAlign: 'right' }}>Quantidade</th>
@@ -1111,6 +1170,7 @@ const RelatoriosView = ({
                           <tr key={r.id}>
                             <td><code>#{r.id}</code></td>
                             <td>{r.data}</td>
+                            <td><code>{r.codigo}</code></td>
                             <td><strong>{r.material}</strong></td>
                             <td>
                               <span className={`relatorios-badge ${tipoLower === 'entrada' ? 'relatorios-badge--entrada' : tipoLower === 'saida' ? 'relatorios-badge--saida' : 'relatorios-badge--ajuste'}`}>
@@ -1118,7 +1178,7 @@ const RelatoriosView = ({
                               </span>
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                              <strong>{tipoLower === 'entrada' ? `+${r.quantidade}` : tipoLower === 'saida' ? `-${r.quantidade}` : `±${r.quantidade}`}</strong>
+                              <strong>{tipoLower === 'entrada' ? `+${r.quantidade}` : tipoLower === 'saida' ? `-${r.quantidade}` : `±${r.quantidade}`}</strong> {r.unidade}
                             </td>
                             <td>{r.responsavel}</td>
                             <td>{r.observacao}</td>
@@ -1129,7 +1189,7 @@ const RelatoriosView = ({
                   </table>
                 )}
 
-                {/* 4. Tabela: Atendimento de Pedidos */}
+                {/* 4. Tabela: Atendimento de Pedidos (com Ramal e Instruções) */}
                 {relatorioSelecionado === 'pedidos' && (
                   <table className="relatorios-data-table">
                     <thead>
@@ -1138,10 +1198,11 @@ const RelatoriosView = ({
                         <th>Data</th>
                         <th>Solicitante</th>
                         <th>Setor</th>
+                        <th>Ramal</th>
                         <th>Materiais Solicitados / Atendidos</th>
                         <th>Prioridade</th>
                         <th style={{ textAlign: 'center' }}>Status WMS</th>
-                        <th>Observações</th>
+                        <th>Instruções / Justificativa</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1151,7 +1212,8 @@ const RelatoriosView = ({
                           <td>{r.data}</td>
                           <td><strong>{r.usuario}</strong></td>
                           <td>{r.setor}</td>
-                          <td style={{ maxWidth: '320px' }}>{r.itensDescricao}</td>
+                          <td>{r.ramal || '—'}</td>
+                          <td style={{ maxWidth: '300px' }}>{r.itensDescricao}</td>
                           <td>
                             {r.prioridade === 'Urgente' ? (
                               <span className="relatorios-status-tag status-tag--critico">Urgente</span>
@@ -1164,14 +1226,14 @@ const RelatoriosView = ({
                               {r.status}
                             </span>
                           </td>
-                          <td>{r.justificativa}</td>
+                          <td>{r.mensagemAlmoxarife || r.justificativa}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 )}
 
-                {/* 5. Tabela: Cadastro de Usuários (Admin) */}
+                {/* 5. Tabela: Cadastro de Usuários (Admin com Ramal) */}
                 {relatorioSelecionado === 'usuarios' && (
                   <table className="relatorios-data-table">
                     <thead>
@@ -1181,6 +1243,7 @@ const RelatoriosView = ({
                         <th>E-mail</th>
                         <th>Perfil</th>
                         <th>Setor</th>
+                        <th>Ramal</th>
                         <th>Data Cadastro</th>
                         <th style={{ textAlign: 'center' }}>Status</th>
                       </tr>
@@ -1193,6 +1256,7 @@ const RelatoriosView = ({
                           <td>{r.email}</td>
                           <td><span className="relatorios-badge relatorios-badge--consumo">{r.perfil}</span></td>
                           <td>{r.setor}</td>
+                          <td>{r.ramal || '—'}</td>
                           <td>{r.dataCadastro}</td>
                           <td style={{ textAlign: 'center' }}>
                             <span className={`relatorios-status-tag ${r.status === 'Ativo' ? 'status-tag--normal' : 'status-tag--critico'}`}>
