@@ -1,19 +1,35 @@
 import React, { useState, useMemo } from 'react';
-import './RelatoriosView.css';
 import * as XLSX from 'xlsx';
+import './RelatoriosView.css';
 
 const USUARIOS_VAZIOS = [];
 
 /**
- * RelatoriosView
- * Módulo de Emissão e Consulta de Relatórios (RF-004)
- * Sem dados estáticos / 100% dinâmico (Clean Dynamic Integration)
- *
- * Props esperadas do backend (C# / MySQL):
- * @param {Array} dadosEstoque - Lista atual de materiais do estoque
- * @param {Array} dadosPedidos - Lista de pedidos registrados
- * @param {Array} dadosUsuarios - Lista de usuários do sistema
- * @param {Function} onGerarRelatorio - Callback para solicitar geração/exportação ao backend
+ * Converte qualquer formato de data presente no sistema para formato ISO YYYY-MM-DD
+ */
+const normalizarDataParaIso = (dataStr) => {
+  if (!dataStr) return null;
+  if (dataStr instanceof Date) {
+    return isNaN(dataStr.getTime()) ? null : dataStr.toISOString().split('T')[0];
+  }
+  const str = String(dataStr).trim();
+  if (str.includes('T')) return str.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    const [d, m, y] = str.split('/');
+    return `${y}-${m}-${d}`;
+  }
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
+  return null;
+};
+
+/**
+ * Central de Emissão de Relatórios Parametrizada do SGE
+ * 
+ * - Padrão em 2 Telas: Tela 1 (Configuração & Parâmetros) -> Tela 2 (Extrato Completo & Exportações).
+ * - Sem títulos ou subtítulos redundantes dentro da página.
+ * - Cards limpos e objetivos sem badges de taxonomia desnecessários.
  */
 const RelatoriosView = ({
   dadosEstoque = [],
@@ -25,802 +41,1174 @@ const RelatoriosView = ({
 }) => {
   const usuarios = dadosUsuarios ?? USUARIOS_VAZIOS;
   const podeVerUsuarios = Array.isArray(dadosUsuarios);
-  // Aba de relatório selecionada: 'estoque' | 'pedidos' | 'usuarios' | 'movimentacoes'
-  const [tipoRelatorio, setTipoRelatorio] = useState('estoque');
 
-  // Filtros dinâmicos comuns
+  // Catálogo dos Relatórios Disponíveis (sem badges de taxonomia redundantes)
+  const catalogos = useMemo(() => {
+    const list = [
+      {
+        id: 'estoque',
+        titulo: 'Posição de Estoque & Reposição',
+        subtitulo: 'Saldos físicos atuais, estoque mínimo, alertas de ruptura e déficit sugerido para compras'
+      },
+      {
+        id: 'consumo_setor',
+        titulo: 'Consumo por Setor Escolar',
+        subtitulo: 'Levantamento consolidado de materiais entregues por centro de custo para prestação de contas'
+      },
+      {
+        id: 'movimentacoes',
+        titulo: 'Extrato de Movimentações (Kardex)',
+        subtitulo: 'Rastreabilidade cronológica de entradas (remessas/doações), saídas de pedidos e balanços físicos'
+      },
+      {
+        id: 'pedidos',
+        titulo: 'Atendimento de Pedidos e Eficiência WMS',
+        subtitulo: 'Métricas de atendimento de solicitações, entregas totais, parciais e motivos de recusas'
+      }
+    ];
+
+    if (podeVerUsuarios) {
+      list.push({
+        id: 'usuarios',
+        titulo: 'Cadastro e Acessos de Usuários',
+        subtitulo: 'Relação de logins cadastrados, perfis de autorização, setores e atividade no sistema'
+      });
+    }
+
+    return list;
+  }, [podeVerUsuarios]);
+
+  // Controle de Tela Ativa: 'configuracao' | 'extrato'
+  const [faseTela, setFaseTela] = useState('configuracao');
+
+  // Relatório selecionado atualmente
+  const [relatorioSelecionado, setRelatorioSelecionado] = useState('estoque');
+
+  // Parâmetros de Consulta
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const [atalhoDataAtivo, setAtalhoDataAtivo] = useState('tudo');
+
+  // Filtros Específicos
+  const [filtroTipoBem, setFiltroTipoBem] = useState('todos'); // 'todos' | 'consumo' | 'duravel'
+  const [filtroSaldoStatus, setFiltroSaldoStatus] = useState('todos'); // 'todos' | 'criticos' | 'zerados' | 'normais'
   const [filtroCategoria, setFiltroCategoria] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState('');
+  const [filtroSetor, setFiltroSetor] = useState('');
+  const [filtroStatusPedido, setFiltroStatusPedido] = useState('todos');
+  const [filtroTipoMovimento, setFiltroTipoMovimento] = useState('todos');
   const [filtroPerfil, setFiltroPerfil] = useState('');
+  const [filtroStatusUsuario, setFiltroStatusUsuario] = useState('todos');
   const [buscaTexto, setBuscaTexto] = useState('');
 
-  // Estado de prévia / resultado do relatório gerado
-  const [isGerado, setIsGerado] = useState(false);
-  const [loading, setLoading] = useState(false);
+  // Controle de Feedback e Timestamp
+  const [dataHoraGeracao, setDataHoraGeracao] = useState(new Date());
   const [alertaDownload, setAlertaDownload] = useState(null);
 
-  // Categorias disponíveis extraídas dinamicamente dos dados do estoque
+  // Lista dinâmica de categorias a partir do estoque
   const categoriasDisponiveis = useMemo(() => {
-    const cats = dadosEstoque.map(m => m.categoria).filter(Boolean);
-    return Array.from(new Set(cats));
+    const set = new Set();
+    dadosEstoque.forEach(m => {
+      if (m.categoria) set.add(m.categoria);
+    });
+    return Array.from(set);
   }, [dadosEstoque]);
 
-  // Coleção de remessas e doações salvas no sistema (SGE Core)
-  const dadosRemessas = dadosRemessasExternas;
+  // Lista dinâmica de setores a partir dos pedidos e usuários
+  const setoresDisponiveis = useMemo(() => {
+    const set = new Set(['Educação Infantil', 'Ensino Fundamental', 'Coordenação', 'Apoio / Limpeza']);
+    dadosPedidos.forEach(p => { if (p.setor) set.add(p.setor); });
+    usuarios.forEach(u => { if (u.setor) set.add(u.setor); });
+    return Array.from(set);
+  }, [dadosPedidos, usuarios]);
 
-  // KPIs dinâmicos gerais com base nas coleções recebidas
-  const kpis = useMemo(() => {
-    return {
-      totalItensEstoque: dadosEstoque.length,
-      itensBaixoEstoque: dadosEstoque.filter(m => m.quantidade <= m.estoqueMinimo).length,
-      totalPedidos: dadosPedidos.length,
-      pedidosPendentes: dadosPedidos.filter(p => p.status === 'Pendente').length,
-      totalUsuarios: usuarios.length,
-      usuariosAtivos: usuarios.filter(u => u.ativo).length,
-      totalRemessas: dadosRemessas.length,
-      totalDoacoes: dadosRemessas.filter(r => r.tipoOrigem === 'doacao').length
-    };
-  }, [dadosEstoque, dadosPedidos, usuarios, dadosRemessas]);
+  // Aplica atalhos de data predefinidos
+  const handleAplicarAtalhoData = (tipo) => {
+    setAtalhoDataAtivo(tipo);
+    const hoje = new Date();
+    const hojeIso = hoje.toISOString().split('T')[0];
 
-  // Registros filtrados dinamicamente para o relatório ativo
-  const registrosFiltrados = useMemo(() => {
-    if (tipoRelatorio === 'estoque') {
-      return dadosEstoque.filter(m => {
-        const matchBusca = !buscaTexto ||
-          m.nome.toLowerCase().includes(buscaTexto.toLowerCase()) ||
-          m.codigo.toLowerCase().includes(buscaTexto.toLowerCase());
-        const matchCat = !filtroCategoria || m.categoria === filtroCategoria;
-        let itemStatus = m.quantidade === 0 ? 'Sem Estoque' : m.quantidade <= m.estoqueMinimo ? 'Estoque Baixo' : 'Normal';
-        const matchSt = !filtroStatus || itemStatus === filtroStatus;
-        return matchBusca && matchCat && matchSt;
-      });
-    }
-
-    if (tipoRelatorio === 'pedidos') {
-      return dadosPedidos.filter(p => {
-        const matchBusca = !buscaTexto ||
-          String(p.id).includes(buscaTexto) ||
-          (p.usuario && p.usuario.toLowerCase().includes(buscaTexto.toLowerCase())) ||
-          (p.setor && p.setor.toLowerCase().includes(buscaTexto.toLowerCase()));
-        const matchSt = !filtroStatus || p.status === filtroStatus;
-        
-        let matchData = true;
-        if (dataInicio && p.data && p.data < dataInicio) matchData = false;
-        if (dataFim && p.data && p.data > dataFim) matchData = false;
-
-        return matchBusca && matchSt && matchData;
-      });
-    }
-
-    if (tipoRelatorio === 'usuarios') {
-      return usuarios.filter(u => {
-        const matchBusca = !buscaTexto ||
-          u.nome.toLowerCase().includes(buscaTexto.toLowerCase()) ||
-          u.email.toLowerCase().includes(buscaTexto.toLowerCase()) ||
-          (u.setor && u.setor.toLowerCase().includes(buscaTexto.toLowerCase()));
-        const matchPerfil = !filtroPerfil || u.perfil === filtroPerfil;
-        const statusUsuario = u.ativo ? 'Ativo' : 'Inativo';
-        const matchSt = !filtroStatus || statusUsuario === filtroStatus;
-        return matchBusca && matchPerfil && matchSt;
-      });
-    }
-
-    if (tipoRelatorio === 'remessas') {
-      return dadosRemessas.filter(r => {
-        const termo = buscaTexto.trim().toLowerCase();
-        const matchBusca = !termo ||
-          String(r.id).toLowerCase().includes(termo) ||
-          (r.documentoDoador && r.documentoDoador.toLowerCase().includes(termo)) ||
-          r.itens?.some(i => i.nome.toLowerCase().includes(termo) || (i.codigo && i.codigo.toLowerCase().includes(termo)));
-        const matchTipo = !filtroCategoria || (filtroCategoria === 'doacao' ? r.tipoOrigem === 'doacao' : filtroCategoria === 'compra_nf' ? r.tipoOrigem === 'compra_nf' : true);
-
-        let matchData = true;
-        if (dataInicio && r.data && r.data < dataInicio) matchData = false;
-        if (dataFim && r.data && r.data > dataFim) matchData = false;
-
-        return matchBusca && matchTipo && matchData;
-      });
-    }
-
-    if (tipoRelatorio === 'movimentacoes') {
-      return dadosMovimentacoes.filter(m => {
-        const termo = buscaTexto.trim().toLowerCase();
-        const matchBusca = !termo ||
-          String(m.id || '').includes(termo) ||
-          String(m.produtoNome || '').toLowerCase().includes(termo) ||
-          String(m.funcionarioNome || '').toLowerCase().includes(termo) ||
-          String(m.observacao || '').toLowerCase().includes(termo);
-        const matchTipo = !filtroStatus || String(m.tipo || '').toLowerCase() === filtroStatus.toLowerCase();
-        const data = m.data ? new Date(m.data) : null;
-        const matchData = (!dataInicio || !data || data >= new Date(dataInicio)) &&
-          (!dataFim || !data || data <= new Date(`${dataFim}T23:59:59`));
-        return matchBusca && matchTipo && matchData;
-      });
-    }
-
-    return [];
-  }, [tipoRelatorio, dadosEstoque, dadosPedidos, usuarios, dadosRemessas, dadosMovimentacoes, buscaTexto, filtroCategoria, filtroStatus, filtroPerfil, dataInicio, dataFim]);
-
-  const handleGerarRelatorio = () => {
-    setLoading(true);
-    setIsGerado(true);
-    setLoading(false);
-    if (onGerarRelatorio) {
-      onGerarRelatorio({
-        tipo: tipoRelatorio,
-        filtros: { dataInicio, dataFim, filtroCategoria, filtroStatus, filtroPerfil, buscaTexto }
-      });
+    if (tipo === 'este_mes') {
+      const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
+      setDataInicio(inicio);
+      setDataFim(hojeIso);
+    } else if (tipo === 'mes_anterior') {
+      const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1).toISOString().split('T')[0];
+      const fim = new Date(hoje.getFullYear(), hoje.getMonth(), 0).toISOString().split('T')[0];
+      setDataInicio(inicio);
+      setDataFim(fim);
+    } else if (tipo === 'ultimos_30') {
+      const trintaDiasAtras = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      setDataInicio(trintaDiasAtras);
+      setDataFim(hojeIso);
+    } else if (tipo === 'ano_atual') {
+      const inicio = `${hoje.getFullYear()}-01-01`;
+      setDataInicio(inicio);
+      setDataFim(hojeIso);
+    } else if (tipo === 'tudo') {
+      setDataInicio('');
+      setDataFim('');
     }
   };
 
-  const handleExportar = async (formato) => {
-    setAlertaDownload(`Gerando exportação em ${formato.toUpperCase()}...`);
-    try {
-      if (formato === 'PDF') {
-        setAlertaDownload(null);
-        window.setTimeout(() => window.print(), 100);
-        return;
-      }
-      if (formato === 'Excel') {
-        const rows = registrosFiltrados.map((item) => {
-          if (tipoRelatorio === 'movimentacoes') return {
-            ID: item.id,
-            Data: item.data ? new Date(item.data).toLocaleString('pt-BR') : '',
-            Material: item.produtoNome || `Produto #${item.produtoId}`,
-            Tipo: item.tipo,
-            Quantidade: item.quantidade,
-            Responsável: item.funcionarioNome || '',
-            Observação: item.observacao || ''
-          };
-          if (tipoRelatorio === 'estoque') return {
-            Código: item.codigo,
-            Material: item.nome,
-            Categoria: item.categoria,
-            Localização: item.localizacao || '',
-            Quantidade: item.quantidade,
-            'Estoque mínimo': item.estoqueMinimo,
-            Situação: item.quantidade === 0 ? 'Sem estoque' : item.quantidade <= item.estoqueMinimo ? 'Estoque baixo' : 'Normal'
-          };
-          if (tipoRelatorio === 'pedidos') return {
-            Pedido: item.id,
-            Data: item.data || '',
-            Solicitante: item.usuario,
-            Setor: item.setor,
-            Prioridade: item.prioridade || 'Normal',
-            Status: item.status
-          };
-          if (tipoRelatorio === 'usuarios') return {
-            ID: item.id,
-            Nome: item.nome,
-            Email: item.email,
-            Perfil: item.perfil,
-            Setor: item.setor,
-            Status: item.ativo ? 'Ativo' : 'Inativo'
-          };
-          return {
-            Remessa: item.id,
-            Data: item.dataFormatada || item.data || '',
-            Tipo: item.tipoOrigem,
-            Documento: item.documentoDoador || '',
-            Materiais: item.itens?.map(i => i.nome).join(', ') || ''
-          };
-        });
-        const worksheet = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Informação: 'Nenhum registro encontrado' }]);
-        const columns = Object.keys(rows[0] || { Informação: '' });
-        worksheet['!cols'] = columns.map((column) => ({ wch: Math.min(Math.max(column.length + 4, 14), 34) }));
-        worksheet['!autofilter'] = { ref: `A1:${XLSX.utils.encode_col(columns.length - 1)}${Math.max(rows.length, 1) + 1}` };
-        worksheet['!freeze'] = { xSplit: 0, ySplit: 1 };
-        const headerRange = XLSX.utils.decode_range(worksheet['!ref']);
-        for (let column = headerRange.s.c; column <= headerRange.e.c; column += 1) {
-          const cell = worksheet[XLSX.utils.encode_cell({ r: 0, c: column })];
-          if (cell) {
-            cell.s = {
-              fill: { fgColor: { rgb: '017F7B' } },
-              font: { bold: true, color: { rgb: 'FFFFFF' } },
-              alignment: { horizontal: 'center' }
-            };
-          }
-        }
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório');
-        XLSX.writeFile(workbook, `relatorio-${tipoRelatorio}.xlsx`);
-      }
-      setAlertaDownload(`Relatório exportado em ${formato.toUpperCase()} com sucesso!`);
-      setTimeout(() => setAlertaDownload(null), 3000);
-    } catch (error) {
-      setAlertaDownload(error.message);
-    }
-  };
-
-  const limparFiltros = () => {
+  // Limpa os parâmetros específicos
+  const handleLimparParametros = () => {
     setDataInicio('');
     setDataFim('');
+    setAtalhoDataAtivo('tudo');
+    setFiltroTipoBem('todos');
+    setFiltroSaldoStatus('todos');
     setFiltroCategoria('');
-    setFiltroStatus('');
+    setFiltroSetor('');
+    setFiltroStatusPedido('todos');
+    setFiltroTipoMovimento('todos');
     setFiltroPerfil('');
+    setFiltroStatusUsuario('todos');
     setBuscaTexto('');
-    setIsGerado(false);
   };
+
+  // Execução do Relatório: avança para a Tela 2 (Extrato)
+  const handleExecutarRelatorio = () => {
+    setDataHoraGeracao(new Date());
+    setFaseTela('extrato');
+    if (onGerarRelatorio) {
+      onGerarRelatorio({
+        tipo: relatorioSelecionado,
+        parametros: {
+          dataInicio,
+          dataFim,
+          filtroTipoBem,
+          filtroSaldoStatus,
+          filtroCategoria,
+          filtroSetor,
+          filtroStatusPedido,
+          filtroTipoMovimento,
+          filtroPerfil,
+          buscaTexto
+        }
+      });
+    }
+  };
+
+  // 1. Processamento: Posição de Estoque & Reposição
+  const dadosRelatorioEstoque = useMemo(() => {
+    if (relatorioSelecionado !== 'estoque') return [];
+    const termo = buscaTexto.trim().toLowerCase();
+
+    return dadosEstoque
+      .filter(m => {
+        // Tipo de bem
+        if (filtroTipoBem === 'duravel' && !m.bemDuravel) return false;
+        if (filtroTipoBem === 'consumo' && m.bemDuravel) return false;
+
+        // Categoria
+        if (filtroCategoria && m.categoria !== filtroCategoria) return false;
+
+        // Saldo
+        const saldo = Number(m.quantidade) || 0;
+        const min = Number(m.estoqueMinimo) || 0;
+        if (filtroSaldoStatus === 'criticos' && saldo > min) return false;
+        if (filtroSaldoStatus === 'zerados' && saldo > 0) return false;
+        if (filtroSaldoStatus === 'normais' && (saldo <= min || saldo === 0)) return false;
+
+        // Busca
+        if (termo) {
+          const matchCod = String(m.codigo || '').toLowerCase().includes(termo);
+          const matchNome = String(m.nome || '').toLowerCase().includes(termo);
+          const matchLoc = String(m.localizacao || '').toLowerCase().includes(termo);
+          if (!matchCod && !matchNome && !matchLoc) return false;
+        }
+
+        return true;
+      })
+      .map(m => {
+        const saldo = Number(m.quantidade) || 0;
+        const min = Number(m.estoqueMinimo) || 0;
+        const deficit = Math.max(0, min - saldo);
+        const situacao = saldo === 0 ? 'Sem Estoque' : saldo <= min ? 'Estoque Baixo' : 'Normal';
+
+        return {
+          id: m.id,
+          codigo: m.codigo || `MAT-${m.id}`,
+          nome: m.nome,
+          categoria: m.categoria || 'Geral',
+          tipoBem: m.bemDuravel ? 'Bem Durável' : 'Consumo',
+          localizacao: m.localizacao || 'Almoxarifado Central',
+          quantidade: saldo,
+          estoqueMinimo: min,
+          deficitSugerido: deficit,
+          unidade: m.unidade || 'un',
+          situacao
+        };
+      });
+  }, [relatorioSelecionado, dadosEstoque, filtroTipoBem, filtroSaldoStatus, filtroCategoria, buscaTexto]);
+
+  // 2. Processamento: Consumo por Setor Escolar
+  const dadosRelatorioConsumoSetor = useMemo(() => {
+    if (relatorioSelecionado !== 'consumo_setor') return [];
+    const termo = buscaTexto.trim().toLowerCase();
+
+    const mapMateriais = new Map();
+    dadosEstoque.forEach(m => {
+      mapMateriais.set(String(m.id), m);
+      mapMateriais.set(String(m.nome).toLowerCase(), m);
+    });
+
+    const agregador = new Map();
+
+    dadosPedidos.forEach(p => {
+      const dataIso = normalizarDataParaIso(p.data);
+      if (dataInicio && dataIso && dataIso < dataInicio) return;
+      if (dataFim && dataIso && dataIso > dataFim) return;
+
+      const setorPedido = p.setor || 'Geral';
+      if (filtroSetor && setorPedido !== filtroSetor) return;
+
+      const st = String(p.status || '').toLowerCase();
+      const foiAtendido = st.includes('atendido') || st.includes('entregue') || st.includes('conclu') || st.includes('pronto');
+      if (!foiAtendido) return;
+
+      const itensLista = Array.isArray(p.itens) && p.itens.length > 0
+        ? p.itens
+        : Array.isArray(p.materiais)
+        ? p.materiais.map(m => ({ materialNome: m, quantidade: 1 }))
+        : [];
+
+      itensLista.forEach(it => {
+        const matNome = it.materialNome || it.nome || 'Material Diverso';
+        const matInfo = mapMateriais.get(String(it.produtoId)) || mapMateriais.get(matNome.toLowerCase());
+        const isDuravel = matInfo?.bemDuravel ?? false;
+
+        if (filtroTipoBem === 'duravel' && !isDuravel) return;
+        if (filtroTipoBem === 'consumo' && isDuravel) return;
+
+        if (termo) {
+          const matchNome = matNome.toLowerCase().includes(termo);
+          const matchSetor = setorPedido.toLowerCase().includes(termo);
+          if (!matchNome && !matchSetor) return;
+        }
+
+        const qtdAtendida = Number(it.quantidadeAtendida !== undefined ? it.quantidadeAtendida : it.quantidade) || 1;
+        if (qtdAtendida <= 0) return;
+
+        const chave = `${setorPedido}___${matNome}`;
+        if (!agregador.has(chave)) {
+          agregador.set(chave, {
+            setor: setorPedido,
+            material: matNome,
+            categoria: matInfo?.categoria || 'Geral',
+            tipoBem: isDuravel ? 'Bem Durável' : 'Consumo',
+            unidade: it.unidade || matInfo?.unidade || 'un',
+            quantidadeEntregue: 0,
+            pedidosCount: 0
+          });
+        }
+
+        const reg = agregador.get(chave);
+        reg.quantidadeEntregue += qtdAtendida;
+        reg.pedidosCount += 1;
+      });
+    });
+
+    return Array.from(agregador.values()).sort((a, b) => {
+      if (a.setor !== b.setor) return a.setor.localeCompare(b.setor);
+      return b.quantidadeEntregue - a.quantidadeEntregue;
+    });
+  }, [relatorioSelecionado, dadosPedidos, dadosEstoque, dataInicio, dataFim, filtroSetor, filtroTipoBem, buscaTexto]);
+
+  // 3. Processamento: Extrato de Movimentações (Kardex)
+  const dadosRelatorioMovimentacoes = useMemo(() => {
+    if (relatorioSelecionado !== 'movimentacoes') return [];
+    const termo = buscaTexto.trim().toLowerCase();
+
+    return dadosMovimentacoes
+      .filter(m => {
+        const dataIso = normalizarDataParaIso(m.data);
+        if (dataInicio && dataIso && dataIso < dataInicio) return;
+        if (dataFim && dataIso && dataIso > dataFim) return;
+
+        const tipoMov = String(m.tipo || '').toLowerCase();
+        if (filtroTipoMovimento === 'entrada' && tipoMov !== 'entrada') return false;
+        if (filtroTipoMovimento === 'saida' && tipoMov !== 'saida') return false;
+        if (filtroTipoMovimento === 'ajuste' && tipoMov !== 'ajuste') return false;
+
+        if (termo) {
+          const matchMat = String(m.produtoNome || '').toLowerCase().includes(termo);
+          const matchResp = String(m.funcionarioNome || '').toLowerCase().includes(termo);
+          const matchObs = String(m.observacao || '').toLowerCase().includes(termo);
+          const matchId = String(m.id || '').toLowerCase().includes(termo);
+          if (!matchMat && !matchResp && !matchObs && !matchId) return false;
+        }
+
+        return true;
+      })
+      .map(m => ({
+        id: m.id,
+        data: m.data ? new Date(m.data).toLocaleString('pt-BR') : '—',
+        material: m.produtoNome || `Produto #${m.produtoId}`,
+        tipo: m.tipo,
+        quantidade: m.quantidade,
+        responsavel: m.funcionarioNome || 'Almoxarife',
+        observacao: m.observacao || 'Movimentação padrão de estoque'
+      }));
+  }, [relatorioSelecionado, dadosMovimentacoes, dataInicio, dataFim, filtroTipoMovimento, buscaTexto]);
+
+  // 4. Processamento: Atendimento de Pedidos e Eficiência WMS
+  const dadosRelatorioPedidos = useMemo(() => {
+    if (relatorioSelecionado !== 'pedidos') return [];
+    const termo = buscaTexto.trim().toLowerCase();
+
+    return dadosPedidos
+      .filter(p => {
+        const dataIso = normalizarDataParaIso(p.data);
+        if (dataInicio && dataIso && dataIso < dataInicio) return;
+        if (dataFim && dataIso && dataIso > dataFim) return;
+
+        if (filtroSetor && p.setor !== filtroSetor) return false;
+
+        const st = String(p.status || '').toLowerCase();
+        if (filtroStatusPedido === 'atendido' && !st.includes('atendido')) return false;
+        if (filtroStatusPedido === 'recusado' && !st.includes('recus') && !st.includes('cancel')) return false;
+        if (filtroStatusPedido === 'pendente' && !st.includes('pendente')) return false;
+
+        if (termo) {
+          const matchId = String(p.id).includes(termo);
+          const matchUser = String(p.usuario || '').toLowerCase().includes(termo);
+          const matchSetor = String(p.setor || '').toLowerCase().includes(termo);
+          if (!matchId && !matchUser && !matchSetor) return false;
+        }
+
+        return true;
+      })
+      .map(p => {
+        const itensLista = Array.isArray(p.itens) && p.itens.length > 0
+          ? p.itens.map(i => `${i.materialNome} (${i.quantidadeAtendida ?? i.quantidade})`).join(', ')
+          : Array.isArray(p.materiais)
+          ? p.materiais.join(', ')
+          : '—';
+
+        return {
+          id: p.id,
+          data: p.data || '—',
+          usuario: p.usuario || 'Usuário Solicitante',
+          setor: p.setor || 'Geral',
+          itensDescricao: itensLista,
+          prioridade: p.prioridade || 'Normal',
+          status: p.status || 'Pendente',
+          justificativa: p.justificativa || p.motivoRecusa || '—'
+        };
+      });
+  }, [relatorioSelecionado, dadosPedidos, dataInicio, dataFim, filtroSetor, filtroStatusPedido, buscaTexto]);
+
+  // 5. Processamento: Cadastro de Usuários (Admin)
+  const dadosRelatorioUsuarios = useMemo(() => {
+    if (relatorioSelecionado !== 'usuarios') return [];
+    const termo = buscaTexto.trim().toLowerCase();
+
+    return usuarios
+      .filter(u => {
+        if (filtroPerfil && u.perfil !== filtroPerfil) return false;
+        if (filtroStatusUsuario === 'ativo' && !u.ativo) return false;
+        if (filtroStatusUsuario === 'inativo' && u.ativo) return false;
+
+        if (termo) {
+          const matchNome = String(u.nome || '').toLowerCase().includes(termo);
+          const matchEmail = String(u.email || '').toLowerCase().includes(termo);
+          const matchSetor = String(u.setor || '').toLowerCase().includes(termo);
+          if (!matchNome && !matchEmail && !matchSetor) return false;
+        }
+
+        return true;
+      })
+      .map(u => ({
+        id: u.id,
+        nome: u.nome,
+        email: u.email,
+        perfil: u.perfil,
+        setor: u.setor || 'Geral',
+        dataCadastro: u.dataCadastro || '—',
+        status: u.ativo ? 'Ativo' : 'Inativo'
+      }));
+  }, [relatorioSelecionado, usuarios, filtroPerfil, filtroStatusUsuario, buscaTexto]);
+
+  // Registros Ativos do Relatório
+  const registrosAtuais = useMemo(() => {
+    switch (relatorioSelecionado) {
+      case 'estoque': return dadosRelatorioEstoque;
+      case 'consumo_setor': return dadosRelatorioConsumoSetor;
+      case 'movimentacoes': return dadosRelatorioMovimentacoes;
+      case 'pedidos': return dadosRelatorioPedidos;
+      case 'usuarios': return dadosRelatorioUsuarios;
+      default: return [];
+    }
+  }, [
+    relatorioSelecionado,
+    dadosRelatorioEstoque,
+    dadosRelatorioConsumoSetor,
+    dadosRelatorioMovimentacoes,
+    dadosRelatorioPedidos,
+    dadosRelatorioUsuarios
+  ]);
+
+  // Exportação em Planilha Excel
+  const handleExportarExcel = () => {
+    if (registrosAtuais.length === 0) {
+      setAlertaDownload('Não há registros para exportar com os filtros atuais.');
+      setTimeout(() => setAlertaDownload(null), 3500);
+      return;
+    }
+
+    setAlertaDownload('Gerando planilha Excel (.xlsx)...');
+    try {
+      let rows = [];
+      if (relatorioSelecionado === 'estoque') {
+        rows = registrosAtuais.map(r => ({
+          'Código SKU': r.codigo,
+          'Material': r.nome,
+          'Tipo de Bem': r.tipoBem,
+          'Categoria': r.categoria,
+          'Localização': r.localizacao,
+          'Saldo Atual': r.quantidade,
+          'Estoque Mínimo': r.estoqueMinimo,
+          'Déficit Reposição': r.deficitSugerido,
+          'Unidade': r.unidade,
+          'Situação': r.situacao
+        }));
+      } else if (relatorioSelecionado === 'consumo_setor') {
+        rows = registrosAtuais.map(r => ({
+          'Setor Escolar': r.setor,
+          'Material Entregue': r.material,
+          'Tipo de Bem': r.tipoBem,
+          'Categoria': r.categoria,
+          'Qtd. Entregue': r.quantidadeEntregue,
+          'Unidade': r.unidade,
+          'Nº Solicitações': r.pedidosCount
+        }));
+      } else if (relatorioSelecionado === 'movimentacoes') {
+        rows = registrosAtuais.map(r => ({
+          'Nº Registro': r.id,
+          'Data / Hora': r.data,
+          'Material': r.material,
+          'Tipo Operação': r.tipo.toUpperCase(),
+          'Quantidade': r.quantidade,
+          'Responsável': r.responsavel,
+          'Documento / Justificativa': r.observacao
+        }));
+      } else if (relatorioSelecionado === 'pedidos') {
+        rows = registrosAtuais.map(r => ({
+          'Nº Pedido': `#${r.id}`,
+          'Data': r.data,
+          'Solicitante': r.usuario,
+          'Setor': r.setor,
+          'Materiais Atendidos': r.itensDescricao,
+          'Prioridade': r.prioridade,
+          'Status WMS': r.status,
+          'Observações / Justificativa': r.justificativa
+        }));
+      } else if (relatorioSelecionado === 'usuarios') {
+        rows = registrosAtuais.map(r => ({
+          'ID': r.id,
+          'Nome': r.nome,
+          'E-mail': r.email,
+          'Perfil': r.perfil,
+          'Setor': r.setor,
+          'Data Cadastro': r.dataCadastro,
+          'Status': r.status
+        }));
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const columns = Object.keys(rows[0] || {});
+      worksheet['!cols'] = columns.map(c => ({ wch: Math.min(Math.max(c.length + 4, 14), 40) }));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório');
+      XLSX.writeFile(workbook, `relatorio_${relatorioSelecionado}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      setAlertaDownload('Planilha exportada com sucesso!');
+      setTimeout(() => setAlertaDownload(null), 3500);
+    } catch (e) {
+      setAlertaDownload(`Falha na exportação: ${e.message}`);
+      setTimeout(() => setAlertaDownload(null), 3500);
+    }
+  };
+
+  const handleImprimir = () => {
+    window.print();
+  };
+
+  const relatorioAtualConfig = catalogos.find(c => c.id === relatorioSelecionado) || catalogos[0];
 
   return (
     <div className="relatorios-page-container">
-      {/* Header */}
-      <div className="relatorios-page-header">
-        <div>
-          <h1 className="relatorios-page-title">Relatórios e Indicadores do Sistema</h1>
-          <p className="relatorios-page-subtitle">
-            Configure parâmetros, gere consultas consolidadas e exporte dados operacionais em PDF ou Excel.
-          </p>
+      {/* Toast flutuante de notificação */}
+      {alertaDownload && (
+        <div className="relatorio-download-toast" role="status" aria-live="polite">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          {alertaDownload}
         </div>
+      )}
 
-        {alertaDownload && (
-          <div className="download-toast" role="status" aria-live="polite">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            {alertaDownload}
+      {/* =========================================================================
+          TELA 1: CONFIGURAÇÃO DO RELATÓRIO E PARÂMETROS
+          ========================================================================= */}
+      {faseTela === 'configuracao' && (
+        <div className="relatorios-config-screen">
+          {/* Seletor de Relatórios (Cards Limpos sem Badges) */}
+          <div className="relatorios-catalog-section">
+            <span className="relatorios-section-eyebrow">SELECIONE O RELATÓRIO</span>
+            <div className="relatorios-catalog-grid">
+              {catalogos.map(cat => {
+                const isSelected = relatorioSelecionado === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className={`relatorio-catalog-card ${isSelected ? 'relatorio-catalog-card--selected' : ''}`}
+                    onClick={() => setRelatorioSelecionado(cat.id)}
+                  >
+                    <div className="relatorio-catalog-card__top">
+                      <h3 className="relatorio-catalog-card__title">{cat.titulo}</h3>
+                      {isSelected && (
+                        <span className="relatorio-catalog-card__check" title="Relatório ativo">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                      )}
+                    </div>
+                    <p className="relatorio-catalog-card__desc">{cat.subtitulo}</p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Cards de Resumo Operacional */}
-      <div className="relatorios-kpis-grid">
-        <button type="button" className="relatorio-kpi-card" onClick={() => { setTipoRelatorio('estoque'); setIsGerado(false); }}>
-          <div className="relatorio-kpi-icon relatorio-kpi-icon--estoque">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            </svg>
-          </div>
-          <div className="relatorio-kpi-body">
-            <span className="relatorio-kpi-label">Materiais Cadastrados</span>
-            <div className="relatorio-kpi-val">{kpis.totalItensEstoque}</div>
-            <small className="relatorio-kpi-sub">
-              {kpis.itensBaixoEstoque > 0 ? (
-                <span className="text-warning">{kpis.itensBaixoEstoque} em atenção / crítico</span>
-              ) : (
-                'Estoque balanceado'
+          {/* Painel de Parâmetros Direcionados */}
+          <div className="relatorios-params-card">
+            <div className="relatorios-params-header">
+              <div>
+                <span className="relatorios-section-eyebrow">PARÂMETROS DA CONSULTA</span>
+                <h2 className="relatorios-params-title">{relatorioAtualConfig.titulo}</h2>
+              </div>
+              <button
+                type="button"
+                className="relatorios-btn-clear"
+                onClick={handleLimparParametros}
+                title="Redefinir parâmetros para o padrão"
+              >
+                Limpar Parâmetros
+              </button>
+            </div>
+
+            {/* Atalhos Rápidos de Período */}
+            {(relatorioSelecionado === 'consumo_setor' || relatorioSelecionado === 'movimentacoes' || relatorioSelecionado === 'pedidos') && (
+              <div className="relatorios-date-shortcuts">
+                <span className="relatorios-date-shortcuts-label">Atalhos de Período:</span>
+                <div className="relatorios-date-chips">
+                  <button
+                    type="button"
+                    className={`relatorios-chip ${atalhoDataAtivo === 'este_mes' ? 'relatorios-chip--active' : ''}`}
+                    onClick={() => handleAplicarAtalhoData('este_mes')}
+                  >
+                    Este Mês
+                  </button>
+                  <button
+                    type="button"
+                    className={`relatorios-chip ${atalhoDataAtivo === 'mes_anterior' ? 'relatorios-chip--active' : ''}`}
+                    onClick={() => handleAplicarAtalhoData('mes_anterior')}
+                  >
+                    Mês Anterior
+                  </button>
+                  <button
+                    type="button"
+                    className={`relatorios-chip ${atalhoDataAtivo === 'ultimos_30' ? 'relatorios-chip--active' : ''}`}
+                    onClick={() => handleAplicarAtalhoData('ultimos_30')}
+                  >
+                    Últimos 30 Dias
+                  </button>
+                  <button
+                    type="button"
+                    className={`relatorios-chip ${atalhoDataAtivo === 'ano_atual' ? 'relatorios-chip--active' : ''}`}
+                    onClick={() => handleAplicarAtalhoData('ano_atual')}
+                  >
+                    Ano Corrente
+                  </button>
+                  <button
+                    type="button"
+                    className={`relatorios-chip ${atalhoDataAtivo === 'tudo' ? 'relatorios-chip--active' : ''}`}
+                    onClick={() => handleAplicarAtalhoData('tudo')}
+                  >
+                    Todo o Histórico
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Grade de Campos */}
+            <div className="relatorios-fields-grid">
+              {/* Datas */}
+              {(relatorioSelecionado === 'consumo_setor' || relatorioSelecionado === 'movimentacoes' || relatorioSelecionado === 'pedidos') && (
+                <>
+                  <div className="relatorio-field">
+                    <label className="relatorio-label" htmlFor="param-data-inicio">Data Inicial</label>
+                    <input
+                      id="param-data-inicio"
+                      type="date"
+                      className="relatorio-input"
+                      value={dataInicio}
+                      onChange={(e) => {
+                        setDataInicio(e.target.value);
+                        setAtalhoDataAtivo('custom');
+                      }}
+                    />
+                  </div>
+                  <div className="relatorio-field">
+                    <label className="relatorio-label" htmlFor="param-data-fim">Data Final</label>
+                    <input
+                      id="param-data-fim"
+                      type="date"
+                      className="relatorio-input"
+                      value={dataFim}
+                      onChange={(e) => {
+                        setDataFim(e.target.value);
+                        setAtalhoDataAtivo('custom');
+                      }}
+                    />
+                  </div>
+                </>
               )}
-            </small>
-          </div>
-        </button>
 
-        <button type="button" className="relatorio-kpi-card" onClick={() => { setTipoRelatorio('pedidos'); setIsGerado(false); }}>
-          <div className="relatorio-kpi-icon relatorio-kpi-icon--pedidos">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-            </svg>
-          </div>
-          <div className="relatorio-kpi-body">
-            <span className="relatorio-kpi-label">Total de Solicitações</span>
-            <div className="relatorio-kpi-val">{kpis.totalPedidos}</div>
-            <small className="relatorio-kpi-sub">
-              {kpis.pedidosPendentes > 0 ? (
-                <span className="text-warning">{kpis.pedidosPendentes} aguardando atendimento</span>
-              ) : (
-                'Nenhum pedido pendente'
+              {/* Filtros específicos de Estoque */}
+              {relatorioSelecionado === 'estoque' && (
+                <>
+                  <div className="relatorio-field">
+                    <label className="relatorio-label" htmlFor="param-tipo-bem">Tipo de Material</label>
+                    <select
+                      id="param-tipo-bem"
+                      className="relatorio-select"
+                      value={filtroTipoBem}
+                      onChange={(e) => setFiltroTipoBem(e.target.value)}
+                    >
+                      <option value="todos">Todos os Materiais</option>
+                      <option value="consumo">Apenas Material de Consumo</option>
+                      <option value="duravel">Apenas Bens Duráveis / Patrimônio</option>
+                    </select>
+                  </div>
+
+                  <div className="relatorio-field">
+                    <label className="relatorio-label" htmlFor="param-saldo-status">Situação de Saldo</label>
+                    <select
+                      id="param-saldo-status"
+                      className="relatorio-select"
+                      value={filtroSaldoStatus}
+                      onChange={(e) => setFiltroSaldoStatus(e.target.value)}
+                    >
+                      <option value="todos">Todos os Níveis de Saldo</option>
+                      <option value="criticos">Apenas Críticos (Abaixo do Mínimo / Zerados)</option>
+                      <option value="zerados">Apenas Zerados (Sem Saldo)</option>
+                      <option value="normais">Saldo Regular / Normal</option>
+                    </select>
+                  </div>
+
+                  <div className="relatorio-field">
+                    <label className="relatorio-label" htmlFor="param-categoria">Categoria</label>
+                    <select
+                      id="param-categoria"
+                      className="relatorio-select"
+                      value={filtroCategoria}
+                      onChange={(e) => setFiltroCategoria(e.target.value)}
+                    >
+                      <option value="">Todas as Categorias</option>
+                      {categoriasDisponiveis.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
               )}
-            </small>
-          </div>
-        </button>
 
-        {podeVerUsuarios && <button type="button" className="relatorio-kpi-card" onClick={() => { setTipoRelatorio('usuarios'); setIsGerado(false); }}>
-          <div className="relatorio-kpi-icon relatorio-kpi-icon--usuarios">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </div>
-          <div className="relatorio-kpi-body">
-            <span className="relatorio-kpi-label">Usuários Ativos</span>
-            <div className="relatorio-kpi-val">{kpis.usuariosAtivos}</div>
-            <small className="relatorio-kpi-sub">{kpis.totalUsuarios} registrados no sistema</small>
-          </div>
-        </button>}
+              {/* Filtros específicos de Consumo por Setor */}
+              {relatorioSelecionado === 'consumo_setor' && (
+                <>
+                  <div className="relatorio-field">
+                    <label className="relatorio-label" htmlFor="param-setor">Setor Escolar</label>
+                    <select
+                      id="param-setor"
+                      className="relatorio-select"
+                      value={filtroSetor}
+                      onChange={(e) => setFiltroSetor(e.target.value)}
+                    >
+                      <option value="">Todos os Setores</option>
+                      {setoresDisponiveis.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
 
-        <button type="button" className="relatorio-kpi-card" onClick={() => { setTipoRelatorio('remessas'); setIsGerado(false); }}>
-          <div className="relatorio-kpi-icon relatorio-kpi-icon--total" style={{ background: '#E6F4F3', color: '#017F7B' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-              <line x1="12" y1="22.08" x2="12" y2="12" />
-            </svg>
-          </div>
-          <div className="relatorio-kpi-body">
-            <span className="relatorio-kpi-label">Remessas & Doações</span>
-            <div className="relatorio-kpi-val">{kpis.totalRemessas}</div>
-            <small className="relatorio-kpi-sub">
-              {kpis.totalDoacoes > 0 ? (
-                <span style={{ color: '#017F7B', fontWeight: 600 }}>{kpis.totalDoacoes} doações registradas</span>
-              ) : (
-                'Remessas e compras no lote'
+                  <div className="relatorio-field">
+                    <label className="relatorio-label" htmlFor="param-consumo-tipo-bem">Tipo de Material</label>
+                    <select
+                      id="param-consumo-tipo-bem"
+                      className="relatorio-select"
+                      value={filtroTipoBem}
+                      onChange={(e) => setFiltroTipoBem(e.target.value)}
+                    >
+                      <option value="todos">Todos os Materiais</option>
+                      <option value="consumo">Apenas Material de Consumo</option>
+                      <option value="duravel">Apenas Bens Duráveis</option>
+                    </select>
+                  </div>
+                </>
               )}
-            </small>
+
+              {/* Filtros específicos de Movimentações */}
+              {relatorioSelecionado === 'movimentacoes' && (
+                <div className="relatorio-field">
+                  <label className="relatorio-label" htmlFor="param-tipo-movimento">Tipo de Operação</label>
+                  <select
+                    id="param-tipo-movimento"
+                    className="relatorio-select"
+                    value={filtroTipoMovimento}
+                    onChange={(e) => setFiltroTipoMovimento(e.target.value)}
+                  >
+                    <option value="todos">Todas as Operações</option>
+                    <option value="entrada">Entradas (Remessas / Doações)</option>
+                    <option value="saida">Saídas (Atendimento de Pedidos)</option>
+                    <option value="ajuste">Ajuste / Balanço Físico de Inventário</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Filtros específicos de Atendimento de Pedidos */}
+              {relatorioSelecionado === 'pedidos' && (
+                <>
+                  <div className="relatorio-field">
+                    <label className="relatorio-label" htmlFor="param-status-pedido">Status do Pedido</label>
+                    <select
+                      id="param-status-pedido"
+                      className="relatorio-select"
+                      value={filtroStatusPedido}
+                      onChange={(e) => setFiltroStatusPedido(e.target.value)}
+                    >
+                      <option value="todos">Todos os Status</option>
+                      <option value="atendido">Atendidos / Concluídos</option>
+                      <option value="pendente">Aguardando Atendimento</option>
+                      <option value="recusado">Cancelados ou Recusados</option>
+                    </select>
+                  </div>
+
+                  <div className="relatorio-field">
+                    <label className="relatorio-label" htmlFor="param-pedido-setor">Setor Solicitante</label>
+                    <select
+                      id="param-pedido-setor"
+                      className="relatorio-select"
+                      value={filtroSetor}
+                      onChange={(e) => setFiltroSetor(e.target.value)}
+                    >
+                      <option value="">Todos os Setores</option>
+                      {setoresDisponiveis.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Filtros de Usuários (Admin) */}
+              {relatorioSelecionado === 'usuarios' && (
+                <>
+                  <div className="relatorio-field">
+                    <label className="relatorio-label" htmlFor="param-usuario-perfil">Perfil de Acesso</label>
+                    <select
+                      id="param-usuario-perfil"
+                      className="relatorio-select"
+                      value={filtroPerfil}
+                      onChange={(e) => setFiltroPerfil(e.target.value)}
+                    >
+                      <option value="">Todos os Perfis</option>
+                      <option value="Administrativo">Administrativo</option>
+                      <option value="Almoxarifado">Almoxarifado</option>
+                      <option value="Usuário">Usuário</option>
+                    </select>
+                  </div>
+
+                  <div className="relatorio-field">
+                    <label className="relatorio-label" htmlFor="param-usuario-status">Situação da Conta</label>
+                    <select
+                      id="param-usuario-status"
+                      className="relatorio-select"
+                      value={filtroStatusUsuario}
+                      onChange={(e) => setFiltroStatusUsuario(e.target.value)}
+                    >
+                      <option value="todos">Todas</option>
+                      <option value="ativo">Apenas Ativos</option>
+                      <option value="inativo">Apenas Inativos</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Campo universal de busca textual */}
+              <div className="relatorio-field relatorio-field--search">
+                <label className="relatorio-label" htmlFor="param-busca">Termo de Busca</label>
+                <div className="relatorio-search-wrap">
+                  <input
+                    id="param-busca"
+                    type="text"
+                    className="relatorio-input"
+                    placeholder={
+                      relatorioSelecionado === 'estoque'
+                        ? 'Buscar por material, código SKU ou prateleira...'
+                        : relatorioSelecionado === 'consumo_setor'
+                        ? 'Buscar por material ou setor...'
+                        : relatorioSelecionado === 'movimentacoes'
+                        ? 'Buscar por material, responsável ou motivo...'
+                        : relatorioSelecionado === 'pedidos'
+                        ? 'Buscar por solicitante, setor ou número...'
+                        : 'Buscar por nome, e-mail ou setor...'
+                    }
+                    value={buscaTexto}
+                    onChange={(e) => setBuscaTexto(e.target.value)}
+                  />
+                  {buscaTexto && (
+                    <button
+                      type="button"
+                      className="relatorio-search-clear"
+                      onClick={() => setBuscaTexto('')}
+                      aria-label="Limpar busca"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Ação de Disparo: Avança para Tela 2 */}
+            <div className="relatorios-params-actions">
+              <button
+                type="button"
+                className="relatorios-btn-submit"
+                onClick={handleExecutarRelatorio}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                Visualizar Relatório
+              </button>
+            </div>
           </div>
-        </button>
-      </div>
-
-      {/* Painel seletor de tipo de relatório e filtros */}
-      <div className="relatorios-builder-card">
-        <div className="relatorios-type-tabs">
-          <button
-            className={`relatorios-tab-btn ${tipoRelatorio === 'estoque' ? 'relatorios-tab-btn--active' : ''}`}
-            onClick={() => { setTipoRelatorio('estoque'); setIsGerado(false); }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            </svg>
-            Relatório de Estoque e Saldo
-          </button>
-
-          <button
-            className={`relatorios-tab-btn ${tipoRelatorio === 'pedidos' ? 'relatorios-tab-btn--active' : ''}`}
-            onClick={() => { setTipoRelatorio('pedidos'); setIsGerado(false); }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-            </svg>
-            Histórico e Atendimento de Pedidos
-          </button>
-
-          {podeVerUsuarios && <button
-            className={`relatorios-tab-btn ${tipoRelatorio === 'usuarios' ? 'relatorios-tab-btn--active' : ''}`}
-            onClick={() => { setTipoRelatorio('usuarios'); setIsGerado(false); }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-            </svg>
-            Controle de Acessos e Usuários
-          </button>}
-
-          <button
-            className={`relatorios-tab-btn ${tipoRelatorio === 'remessas' ? 'relatorios-tab-btn--active' : ''}`}
-            onClick={() => { setTipoRelatorio('remessas'); setIsGerado(false); }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-              <line x1="12" y1="22.08" x2="12" y2="12" />
-            </svg>
-            Remessas, Entradas e Doações
-          </button>
-
-          <button
-            className={`relatorios-tab-btn ${tipoRelatorio === 'movimentacoes' ? 'relatorios-tab-btn--active' : ''}`}
-            onClick={() => { setTipoRelatorio('movimentacoes'); setIsGerado(false); }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 12h18" /><path d="M12 3v18" /><path d="m7 7 5-4 5 4" /><path d="m7 17 5 4 5-4" />
-            </svg>
-            Movimentações de Estoque
-          </button>
         </div>
+      )}
 
-        {/* Formulário de Parâmetros e Filtros Dinâmicos */}
-        <div className="relatorios-filters-row">
-          <div className="filter-field filter-field--search">
-            <label className="filter-label" htmlFor="relatorio-busca">Termo de Busca</label>
-            <div className="filter-input-wrap">
-              <input
-                type="text"
-                id="relatorio-busca"
-                placeholder={
-                  tipoRelatorio === 'estoque'
-                    ? 'Buscar por material, código...'
-                    : tipoRelatorio === 'pedidos'
-                    ? 'Buscar por solicitante, setor, ID...'
-                    : 'Buscar por nome, e-mail, setor...'
-                }
-                value={buscaTexto}
-                onChange={e => setBuscaTexto(e.target.value)}
-                className="filter-input"
-              />
-              {buscaTexto && (
-                <button type="button" className="btn-clear-input" onClick={() => setBuscaTexto('')} aria-label="Limpar termo de busca">&times;</button>
-              )}
-            </div>
-          </div>
-
-          {tipoRelatorio === 'estoque' && (
-            <div className="filter-field">
-              <label className="filter-label" htmlFor="relatorio-categoria">Categoria</label>
-              <select
-                id="relatorio-categoria"
-                value={filtroCategoria}
-                onChange={e => setFiltroCategoria(e.target.value)}
-                className="filter-select"
-              >
-                <option value="">Todas as categorias</option>
-                {categoriasDisponiveis.map((c, i) => (
-                  <option key={i} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {tipoRelatorio === 'pedidos' && (
-            <>
-              <div className="filter-field">
-                <label className="filter-label" htmlFor="relatorio-data-inicio">Data Início</label>
-                <input
-                  id="relatorio-data-inicio"
-                  type="date"
-                  value={dataInicio}
-                  onChange={e => setDataInicio(e.target.value)}
-                  className="filter-input"
-                />
-              </div>
-
-              <div className="filter-field">
-                <label className="filter-label" htmlFor="relatorio-data-fim">Data Fim</label>
-                <input
-                  id="relatorio-data-fim"
-                  type="date"
-                  value={dataFim}
-                  onChange={e => setDataFim(e.target.value)}
-                  className="filter-input"
-                />
-              </div>
-            </>
-          )}
-
-          {tipoRelatorio === 'usuarios' && (
-            <div className="filter-field">
-              <label className="filter-label" htmlFor="relatorio-perfil">Perfil de Acesso</label>
-              <select
-                id="relatorio-perfil"
-                value={filtroPerfil}
-                onChange={e => setFiltroPerfil(e.target.value)}
-                className="filter-select"
-              >
-                <option value="">Todos os perfis</option>
-                <option value="Administrativo">Administrativo</option>
-                <option value="Almoxarifado">Almoxarifado</option>
-                <option value="Usuário">Usuário</option>
-              </select>
-            </div>
-          )}
-
-          <div className="filter-field">
-            <label className="filter-label" htmlFor="relatorio-status">Status</label>
-            <select
-              id="relatorio-status"
-              value={filtroStatus}
-              onChange={e => setFiltroStatus(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">Todos</option>
-              {tipoRelatorio === 'estoque' && (
-                <>
-                  <option value="Normal">Normal</option>
-                  <option value="Estoque Baixo">Estoque Baixo</option>
-                  <option value="Sem Estoque">Sem Estoque</option>
-                </>
-              )}
-              {tipoRelatorio === 'pedidos' && (
-                <>
-                  <option value="Pendente">Pendente</option>
-                  <option value="Em Separação">Em separação</option>
-                  <option value="Pronto para Retirada">Pronto para retirada</option>
-                  <option value="Atendido">Atendido</option>
-                  <option value="Cancelado">Cancelado</option>
-                </>
-              )}
-              {tipoRelatorio === 'usuarios' && (
-                <>
-                  <option value="Ativo">Ativo</option>
-                  <option value="Inativo">Inativo</option>
-                </>
-              )}
-            </select>
-          </div>
-
-          <div className="filter-actions-group">
-            <button
-              id="btn-gerar-relatorio"
-              className="btn-submit-relatorio"
-              onClick={handleGerarRelatorio}
-              disabled={loading}
-            >
-              {loading ? (
-                'Gerando...'
-              ) : (
-                <>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                  </svg>
-                  Gerar Relatório
-                </>
-              )}
-            </button>
-
+      {/* =========================================================================
+          TELA 2: EXTRATO COMPLETO DO RELATÓRIO (MODO RELATÓRIO / TELA CHEIA)
+          ========================================================================= */}
+      {faseTela === 'extrato' && (
+        <div className="relatorios-extrato-screen">
+          {/* Barra Superior de Navegação e Exportações */}
+          <div className="relatorios-extrato-topbar">
             <button
               type="button"
-              className="btn-reset-filters"
-              onClick={limparFiltros}
-              title="Limpar todos os filtros"
+              className="relatorios-btn-voltar"
+              onClick={() => setFaseTela('configuracao')}
+              title="Voltar para a seleção e filtros de relatório"
             >
-              Limpar
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              Voltar aos Parâmetros
             </button>
-          </div>
-        </div>
-      </div>
 
-      {/* Área de Visualização e Exportação dos Resultados */}
-      <div className="relatorios-results-card">
-        <div className="results-header">
-          <div className="results-title-wrap">
-            <h3 className="results-title">
-              {tipoRelatorio === 'estoque' && 'Relatório Detalhado de Saldo em Estoque'}
-              {tipoRelatorio === 'pedidos' && 'Relatório de Atendimento e Pedidos'}
-              {tipoRelatorio === 'usuarios' && 'Relatório Cadastral de Usuários'}
-              {tipoRelatorio === 'remessas' && 'Relatório de Remessas, Entradas e Doações'}
-              {tipoRelatorio === 'movimentacoes' && 'Relatório de Movimentações de Estoque'}
-            </h3>
-            <span className="results-count">
-              {registrosFiltrados.length} {registrosFiltrados.length === 1 ? 'registro filtrado' : 'registros filtrados'}
-            </span>
+            {registrosAtuais.length > 0 && (
+              <div className="relatorios-export-buttons">
+                <button
+                  type="button"
+                  className="relatorios-export-btn relatorios-export-btn--excel"
+                  onClick={handleExportarExcel}
+                  title="Exportar para planilha Excel com cabeçalhos formatados"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <line x1="3" y1="9" x2="21" y2="9" />
+                    <line x1="3" y1="15" x2="21" y2="15" />
+                    <line x1="9" y1="3" x2="9" y2="21" />
+                    <line x1="15" y1="3" x2="15" y2="21" />
+                  </svg>
+                  Exportar Planilha .xlsx
+                </button>
+
+                <button
+                  type="button"
+                  className="relatorios-export-btn relatorios-export-btn--pdf"
+                  onClick={handleImprimir}
+                  title="Imprimir relatório formatado em folha A4"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="6 9 6 2 18 2 18 9" />
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                    <rect x="6" y="14" width="12" height="8" />
+                  </svg>
+                  Imprimir / PDF A4
+                </button>
+              </div>
+            )}
           </div>
 
-          {registrosFiltrados.length > 0 && (
-            <div className="export-actions">
+          {/* Cabeçalho Oficial de Emissão */}
+          <div className="relatorios-official-header">
+            <div className="relatorios-official-info">
+              <div className="relatorios-org-name">Estação Conhecimento • Sistema de Gestão de Estoque</div>
+              <h2 className="relatorios-report-main-title">{relatorioAtualConfig.titulo}</h2>
+              <div className="relatorios-report-meta">
+                <span>
+                  Emitido em: <strong>{dataHoraGeracao.toLocaleDateString('pt-BR')} às {dataHoraGeracao.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong>
+                </span>
+                <span>•</span>
+                <span>
+                  Total de registros filtrados: <strong>{registrosAtuais.length}</strong>
+                </span>
+                {(dataInicio || dataFim) && (
+                  <>
+                    <span>•</span>
+                    <span>
+                      Período de referência: <strong>{dataInicio ? dataInicio.split('-').reverse().join('/') : 'Início'}</strong> até <strong>{dataFim ? dataFim.split('-').reverse().join('/') : 'Atual'}</strong>
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Tabela de Resultados ou Empty Box */}
+          {registrosAtuais.length === 0 ? (
+            <div className="relatorios-empty-box">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <h4>Nenhum registro encontrado</h4>
+              <p>Não foram encontrados registros para os parâmetros selecionados.</p>
               <button
-                id="btn-export-pdf"
-                className="btn-export-action btn-export-action--pdf"
-                onClick={() => handleExportar('PDF')}
+                type="button"
+                className="relatorios-btn-voltar"
+                style={{ marginTop: '12px' }}
+                onClick={() => setFaseTela('configuracao')}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                  <line x1="16" y1="13" x2="8" y2="13"/>
-                  <line x1="16" y1="17" x2="8" y2="17"/>
-                </svg>
-                Exportar PDF
+                Voltar e Ajustar Filtros
               </button>
-              <button
-                id="btn-export-excel"
-                className="btn-export-action btn-export-action--excel"
-                onClick={() => handleExportar('Excel')}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="3" y1="9" x2="21" y2="9"/>
-                  <line x1="3" y1="15" x2="21" y2="15"/>
-                  <line x1="9" y1="3" x2="9" y2="21"/>
-                  <line x1="15" y1="3" x2="15" y2="21"/>
-                </svg>
-                Exportar planilha .xlsx
-              </button>
+            </div>
+          ) : (
+            <div className="relatorios-table-card">
+              <div className="relatorios-table-scroll">
+                {/* 1. Tabela: Posição de Estoque */}
+                {relatorioSelecionado === 'estoque' && (
+                  <table className="relatorios-data-table">
+                    <thead>
+                      <tr>
+                        <th>Código SKU</th>
+                        <th>Material</th>
+                        <th>Tipo de Bem</th>
+                        <th>Categoria</th>
+                        <th>Localização</th>
+                        <th style={{ textAlign: 'right' }}>Saldo Atual</th>
+                        <th style={{ textAlign: 'right' }}>Estoque Mín.</th>
+                        <th style={{ textAlign: 'right' }}>Déficit Reposição</th>
+                        <th style={{ textAlign: 'center' }}>Situação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {registrosAtuais.map(r => {
+                        const isCritico = r.situacao === 'Sem Estoque';
+                        const isBaixo = r.situacao === 'Estoque Baixo';
+                        return (
+                          <tr key={r.id}>
+                            <td><code>{r.codigo}</code></td>
+                            <td><strong>{r.nome}</strong></td>
+                            <td>
+                              <span className={`relatorios-badge ${r.tipoBem === 'Bem Durável' ? 'relatorios-badge--duravel' : 'relatorios-badge--consumo'}`}>
+                                {r.tipoBem}
+                              </span>
+                            </td>
+                            <td>{r.categoria}</td>
+                            <td>{r.localizacao}</td>
+                            <td style={{ textAlign: 'right' }}><strong>{r.quantidade}</strong> {r.unidade}</td>
+                            <td style={{ textAlign: 'right', color: '#64748B' }}>{r.estoqueMinimo} {r.unidade}</td>
+                            <td style={{ textAlign: 'right' }}>
+                              {r.deficitSugerido > 0 ? (
+                                <strong style={{ color: '#DC2626' }}>+{r.deficitSugerido} {r.unidade}</strong>
+                              ) : (
+                                <span style={{ color: '#64748B' }}>0</span>
+                              )}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span className={`relatorios-status-tag ${isCritico ? 'status-tag--critico' : isBaixo ? 'status-tag--baixo' : 'status-tag--normal'}`}>
+                                {r.situacao}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* 2. Tabela: Consumo por Setor Escolar */}
+                {relatorioSelecionado === 'consumo_setor' && (
+                  <table className="relatorios-data-table">
+                    <thead>
+                      <tr>
+                        <th>Setor Escolar</th>
+                        <th>Material Entregue</th>
+                        <th>Tipo de Bem</th>
+                        <th>Categoria</th>
+                        <th style={{ textAlign: 'right' }}>Qtd. Entregue</th>
+                        <th style={{ textAlign: 'right' }}>Nº de Pedidos Atendidos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {registrosAtuais.map((r, idx) => (
+                        <tr key={idx}>
+                          <td><strong>{r.setor}</strong></td>
+                          <td>{r.material}</td>
+                          <td>
+                            <span className={`relatorios-badge ${r.tipoBem === 'Bem Durável' ? 'relatorios-badge--duravel' : 'relatorios-badge--consumo'}`}>
+                              {r.tipoBem}
+                            </span>
+                          </td>
+                          <td>{r.categoria}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <strong style={{ color: '#017F7B' }}>{r.quantidadeEntregue}</strong> {r.unidade}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>{r.pedidosCount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* 3. Tabela: Extrato de Movimentações (Kardex) */}
+                {relatorioSelecionado === 'movimentacoes' && (
+                  <table className="relatorios-data-table">
+                    <thead>
+                      <tr>
+                        <th>Nº Registro</th>
+                        <th>Data / Hora</th>
+                        <th>Material</th>
+                        <th>Operação</th>
+                        <th style={{ textAlign: 'right' }}>Quantidade</th>
+                        <th>Responsável</th>
+                        <th>Documento / Justificativa</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {registrosAtuais.map(r => {
+                        const tipoLower = String(r.tipo || '').toLowerCase();
+                        return (
+                          <tr key={r.id}>
+                            <td><code>#{r.id}</code></td>
+                            <td>{r.data}</td>
+                            <td><strong>{r.material}</strong></td>
+                            <td>
+                              <span className={`relatorios-badge ${tipoLower === 'entrada' ? 'relatorios-badge--entrada' : tipoLower === 'saida' ? 'relatorios-badge--saida' : 'relatorios-badge--ajuste'}`}>
+                                {r.tipo.toUpperCase()}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <strong>{tipoLower === 'entrada' ? `+${r.quantidade}` : tipoLower === 'saida' ? `-${r.quantidade}` : `±${r.quantidade}`}</strong>
+                            </td>
+                            <td>{r.responsavel}</td>
+                            <td>{r.observacao}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* 4. Tabela: Atendimento de Pedidos */}
+                {relatorioSelecionado === 'pedidos' && (
+                  <table className="relatorios-data-table">
+                    <thead>
+                      <tr>
+                        <th>Nº Pedido</th>
+                        <th>Data</th>
+                        <th>Solicitante</th>
+                        <th>Setor</th>
+                        <th>Materiais Solicitados / Atendidos</th>
+                        <th>Prioridade</th>
+                        <th style={{ textAlign: 'center' }}>Status WMS</th>
+                        <th>Observações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {registrosAtuais.map(r => (
+                        <tr key={r.id}>
+                          <td><code>#{r.id}</code></td>
+                          <td>{r.data}</td>
+                          <td><strong>{r.usuario}</strong></td>
+                          <td>{r.setor}</td>
+                          <td style={{ maxWidth: '320px' }}>{r.itensDescricao}</td>
+                          <td>
+                            {r.prioridade === 'Urgente' ? (
+                              <span className="relatorios-status-tag status-tag--critico">Urgente</span>
+                            ) : (
+                              <span style={{ color: '#64748B' }}>Normal</span>
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span className="relatorios-status-tag status-tag--normal">
+                              {r.status}
+                            </span>
+                          </td>
+                          <td>{r.justificativa}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* 5. Tabela: Cadastro de Usuários (Admin) */}
+                {relatorioSelecionado === 'usuarios' && (
+                  <table className="relatorios-data-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Perfil</th>
+                        <th>Setor</th>
+                        <th>Data Cadastro</th>
+                        <th style={{ textAlign: 'center' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {registrosAtuais.map(r => (
+                        <tr key={r.id}>
+                          <td><code>#{r.id}</code></td>
+                          <td><strong>{r.nome}</strong></td>
+                          <td>{r.email}</td>
+                          <td><span className="relatorios-badge relatorios-badge--consumo">{r.perfil}</span></td>
+                          <td>{r.setor}</td>
+                          <td>{r.dataCadastro}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span className={`relatorios-status-tag ${r.status === 'Ativo' ? 'status-tag--normal' : 'status-tag--critico'}`}>
+                              {r.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           )}
         </div>
-
-        {/* Tabela do Relatório Gerado ou Empty State */}
-        {!isGerado ? (
-          <div className="relatorio-empty-state">
-            <div className="relatorio-empty-icon">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-            </div>
-            <h4>Pronto para gerar o relatório</h4>
-            <p>Selecione a categoria de dados acima, ajuste os filtros desejados e clique em <strong>Gerar Relatório</strong> para visualizar a prévia e exportar os registros.</p>
-          </div>
-        ) : registrosFiltrados.length === 0 ? (
-          <div className="relatorio-empty-state">
-            <div className="relatorio-empty-icon">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <line x1="9" y1="9" x2="15" y2="15"/>
-                <line x1="15" y1="9" x2="9" y2="15"/>
-              </svg>
-            </div>
-            <h4>Nenhum registro encontrado</h4>
-            <p>Não há dados correspondentes aos filtros aplicados para este relatório no sistema.</p>
-            <button className="btn-reset-filters" onClick={limparFiltros}>Limpar Filtros</button>
-          </div>
-        ) : (
-          <div className="relatorio-table-wrapper">
-            {tipoRelatorio === 'estoque' && (
-              <table className="relatorio-table">
-                <thead>
-                  <tr>
-                    <th>Código SKU</th>
-                    <th>Material</th>
-                    <th>Categoria</th>
-                    <th>Localização</th>
-                    <th>Qtd. Atual</th>
-                    <th>Estoque Mínimo</th>
-                    <th>Situação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {registrosFiltrados.map(m => {
-                    const statusText = m.quantidade === 0 ? 'Sem Estoque' : m.quantidade <= m.estoqueMinimo ? 'Estoque Baixo' : 'Normal';
-                    const badgeClass = m.quantidade === 0 ? 'badge--danger' : m.quantidade <= m.estoqueMinimo ? 'badge--warning' : 'badge--success';
-                    return (
-                      <tr key={m.id}>
-                        <td><code>{m.codigo}</code></td>
-                        <td><strong>{m.nome}</strong></td>
-                        <td>{m.categoria}</td>
-                        <td>{m.localizacao || '—'}</td>
-                        <td><strong>{m.quantidade}</strong> {m.unidade}</td>
-                        <td>{m.estoqueMinimo} {m.unidade}</td>
-                        <td><span className={`status-badge ${badgeClass}`}>{statusText}</span></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-
-            {tipoRelatorio === 'pedidos' && (
-              <table className="relatorio-table">
-                <thead>
-                  <tr>
-                    <th>Nº Pedido</th>
-                    <th>Data</th>
-                    <th>Solicitante</th>
-                    <th>Setor</th>
-                    <th>Materiais Solicitados</th>
-                    <th>Prioridade</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {registrosFiltrados.map(p => {
-                    const badgeClass = p.status === 'Atendido' ? 'badge--success' : p.status === 'Cancelado' ? 'badge--danger' : 'badge--warning';
-                    return (
-                      <tr key={p.id}>
-                        <td><code>#{p.id}</code></td>
-                        <td>{p.data || '—'}</td>
-                        <td><strong>{p.usuario}</strong></td>
-                        <td>{p.setor}</td>
-                        <td>
-                          {p.materiais ? p.materiais.join(', ') : (p.itens ? p.itens.map(i => `${i.materialNome} (${i.quantidade})`).join(', ') : '—')}
-                        </td>
-                        <td>{p.prioridade || 'Normal'}</td>
-                        <td><span className={`status-badge ${badgeClass}`}>{p.status}</span></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-
-            {tipoRelatorio === 'usuarios' && (
-              <table className="relatorio-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nome</th>
-                    <th>E-mail</th>
-                    <th>Perfil</th>
-                    <th>Setor</th>
-                    <th>Data Cadastro</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {registrosFiltrados.map(u => (
-                    <tr key={u.id}>
-                      <td><code>#{u.id}</code></td>
-                      <td><strong>{u.nome}</strong></td>
-                      <td>{u.email}</td>
-                      <td><span className="perfil-tag">{u.perfil}</span></td>
-                      <td>{u.setor}</td>
-                      <td>{u.dataCadastro || '—'}</td>
-                      <td>
-                        <span className={`status-badge ${u.ativo ? 'badge--success' : 'badge--danger'}`}>
-                          {u.ativo ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {tipoRelatorio === 'movimentacoes' && (
-              <table className="relatorio-table">
-                <thead><tr><th>ID</th><th>Data</th><th>Material</th><th>Tipo</th><th>Quantidade</th><th>Responsável</th><th>Observação</th></tr></thead>
-                <tbody>
-                  {registrosFiltrados.map(m => (
-                    <tr key={m.id}>
-                      <td><code>#{m.id}</code></td>
-                      <td>{m.data ? new Date(m.data).toLocaleString('pt-BR') : '—'}</td>
-                      <td><strong>{m.produtoNome || `Produto #${m.produtoId}`}</strong></td>
-                      <td>{m.tipo || '—'}</td>
-                      <td>{m.quantidade}</td>
-                      <td>{m.funcionarioNome || '—'}</td>
-                      <td>{m.observacao || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {tipoRelatorio === 'remessas' && (
-              <table className="relatorio-table">
-                <thead>
-                  <tr>
-                    <th>Cód. Remessa</th>
-                    <th>Data / Hora</th>
-                    <th>Tipo</th>
-                    <th>Doador / Documento</th>
-                    <th>Volumes</th>
-                    <th>Materiais Recebidos</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {registrosFiltrados.map((r) => (
-                    <tr key={r.id}>
-                      <td>
-                        <code>#{r.id}</code>
-                      </td>
-                      <td>
-                        {r.dataFormatada ||
-                          new Intl.DateTimeFormat('pt-BR', {
-                            dateStyle: 'short',
-                            timeStyle: 'short'
-                          }).format(new Date(r.data))}
-                      </td>
-                      <td>
-                        <span
-                          className={`status-badge ${
-                            r.tipoOrigem === 'doacao'
-                              ? 'badge--success'
-                              : 'badge--info'
-                          }`}
-                        >
-                          {r.tipoOrigem === 'doacao'
-                            ? 'Doação'
-                            : r.tipoOrigem === 'compra_nf'
-                            ? 'Compra / NF'
-                            : 'Outra Entrada'}
-                        </span>
-                      </td>
-                      <td>
-                        <strong>{r.documentoDoador || 'Não especificado'}</strong>
-                        {r.observacao && (
-                          <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
-                            {r.observacao}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <strong>{r.totalVolumes}</strong> un
-                      </td>
-                      <td>
-                        {r.itens && r.itens.length > 0 ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            {r.itens.map((item, idx) => (
-                              <span key={idx} style={{ fontSize: '12px', color: '#334155' }}>
-                                • <strong>{item.nome}</strong>: +{item.qtdRecebida} {item.unidade}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };

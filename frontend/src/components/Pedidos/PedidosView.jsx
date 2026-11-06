@@ -715,12 +715,9 @@ const PedidosView = ({
                     #{pedido.id}
                   </span>
 
-                  {/* Cabeçalho do Card (Identificação Limpa sem Gaveta de Prontuário) */}
+                  {/* Cabeçalho do Card (Identificação Limpa sem Ícone de Avatar) */}
                   <div className="atendimento-card__header">
                     <div className="atendimento-card__solicitante-info">
-                      <div className={`atendimento-card__avatar ${isUrgent ? 'atendimento-card__avatar--urgente' : ''}`}>
-                        {pedido.usuario ? pedido.usuario.trim().charAt(0).toUpperCase() : 'U'}
-                      </div>
                       <div className="atendimento-card__solicitante-meta">
                         <span className="atendimento-card__nome">{pedido.usuario || 'Usuário Solicitante'}</span>
                         <span className="atendimento-card__setor-text">
@@ -927,19 +924,6 @@ const PedidosView = ({
                                           <line x1="5" y1="12" x2="19" y2="12" />
                                         </svg>
                                       </button>
-                                      {isTotalSeparado ? (
-                                        <span className="picking-status-badge picking-status-badge--completo">
-                                          Separado
-                                        </span>
-                                      ) : isParcialSeparado ? (
-                                        <span className="picking-status-badge picking-status-badge--parcial">
-                                          Parcial
-                                        </span>
-                                      ) : (
-                                        <span className="picking-status-badge picking-status-badge--pendente">
-                                          Pendente
-                                        </span>
-                                      )}
                                     </div>
                                   ) : it.quantidadeAtendida !== undefined ? (
                                     /* Se já estiver no histórico, exibe a quantidade real entregue */

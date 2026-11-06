@@ -1226,7 +1226,7 @@ const AlmoxarifeEstoque = ({
           tabs={[
             {
               id: 'consumo',
-              label: 'Materiais de Consumo',
+              label: 'Consumo',
               badge: totalConsumo,
               icon: (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1236,7 +1236,7 @@ const AlmoxarifeEstoque = ({
             },
             {
               id: 'duraveis',
-              label: 'Bens Duráveis / Patrimônio',
+              label: 'Bens Duráveis',
               badge: totalDuraveis,
               icon: (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

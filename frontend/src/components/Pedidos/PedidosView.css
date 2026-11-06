@@ -84,12 +84,12 @@
   opacity: 1;
 }
 
-/* ===== ABAS SEGMENTADAS DA ESTEIRA (WMS TABS) ===== */
+/* ===== ABAS DA ESTEIRA (WMS UNDERLINETABS) ===== */
 .atendimento-tabs-wrap {
   width: 100%;
 }
 
-.atendimento-segmented-tabs {
+.atendimento-underline-tabs {
   width: 100%;
 }
 
@@ -1178,12 +1178,12 @@
     padding-right: 70px;
   }
 
-  .atendimento-segmented-tabs .sge-segmented-tab {
-    padding: 6px 4px;
-    font-size: 11.5px;
+  .atendimento-underline-tabs .sge-underline-tab {
+    padding: 6px 5px 8px 5px;
+    font-size: 12px;
   }
 
-  .atendimento-segmented-tabs .sge-segmented-tab__content {
+  .atendimento-underline-tabs .sge-underline-tab__content {
     gap: 3px;
   }
 }
