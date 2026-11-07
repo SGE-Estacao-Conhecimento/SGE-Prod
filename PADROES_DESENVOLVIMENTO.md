@@ -157,16 +157,22 @@ serão ajustados somente com autorização, de preferência antes do Módulo 2. 
 |---|---|---|
 | `Pedidos/PedidoService.cs` | Contém SQL (consulta do solicitante e dos materiais, gravação do pedido, itens e histórico) | Mover o SQL para `PedidoRepository`; service fica só com as regras |
 | `Favoritos/FavoritosController.cs` | Junta repository e controller; o repository decide "material não encontrado" | Separar os arquivos; a verificação vira regra num service ou no controller |
-| `Materiais/MateriaisController.cs` | Junta DTO, repository e controller | Separar os arquivos |
 | `Notificacoes/NotificacoesController.cs` | Junta DTO, service e controller | Separar os arquivos |
 | `Auth/AuthController.cs` | Junta DTOs, `AuthController` e `PasswordResetController` | Separar os arquivos |
-| Repositórios | Repetem a abertura de conexão e transação | Criar `RepositorioBase` (seção 5) |
+| Repositórios do Módulo 1 (`AuthRepository`, `FavoritoRepository`, `PedidoRepository`) | Abrem conexão diretamente, sem `RepositorioBase` | Passar a herdar de `RepositorioBase` |
+| `PedidoService.RegistrarLogAsync` | Repete o SQL do histórico que agora existe em `PedidoRepository.RegistrarLogAsync` | Usar o método do repository ao mover o SQL do service |
+
+Resolvidos no Módulo 2 (por necessidade do próprio módulo):
+- `Materiais/MateriaisController.cs` separado em `MaterialDtos.cs`, `MaterialRepository.cs`, `MaterialService.cs` e `MateriaisController.cs` (o cadastro e a edição precisavam ser acrescentados).
+- `RepositorioBase` criada em `Infrastructure/` e usada pelos repositórios novos e pelo `MaterialRepository`.
+- `Transacao` criada em `Infrastructure/` para a passagem explícita da transação entre repositórios (seção 5).
 
 ### Exceções aprovadas
 
 | Data | Exceção | Justificativa |
 |---|---|---|
-| (nenhuma até o momento) | | |
+| 07/11/2026 | `ArmazenamentoArquivosBase` tem por enquanto só a implementação `ArmazenamentoMinio`; a implementação em memória prevista na seção 5 não foi criada | Ainda não há projeto de testes automatizados em C#. Os testes usaram um servidor S3 compatível local. Simular envio bem-sucedido na API é proibido pelo guia do MinIO |
+| 07/11/2026 | O `RemessaService` só é registrado quando o armazenamento está configurado | Permite rodar `seed-dev` sem as variáveis S3; a API normal não inicia sem elas |
 
 ### Histórico de decisões
 
@@ -174,3 +180,8 @@ serão ajustados somente com autorização, de preferência antes do Módulo 2. 
 |---|---|
 | 06/11/2026 | Adoção de SOLID proporcional como padrão do back-end, com interfaces para contratos sem código comum e classes abstratas para etapas compartilhadas (este documento). |
 | 06/11/2026 | Notificações do Usuário derivadas de `pedido_logs`, sem tabela própria, até a equipe decidir quem recebe cada aviso. |
+| 07/11/2026 | Recebimento em lote exige foto do material, enviada ao MinIO antes da confirmação; a entrada no estoque ocorre só na confirmação. |
+| 07/11/2026 | Entrada manual da tela "Movimentar" gravada como ajuste de entrada com motivo ("Entrada manual: ..."), exibida como entrada. |
+| 07/11/2026 | Na entrega do pedido, quem retirou é registrado como o próprio solicitante (a tela não pergunta). |
+| 07/11/2026 | Coluna `produtos.bem_duravel`: bens duráveis são entregues sem baixa de saldo. |
+| 07/11/2026 | A baixa de estoque da entrega passou do front para a API, na mesma transação da mudança de situação (exigência de `movimentacoes_estoque`, que vincula a saída ao item do pedido). |
