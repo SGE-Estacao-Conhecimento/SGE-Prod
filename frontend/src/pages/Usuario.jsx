@@ -194,13 +194,11 @@ const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
     }
   };
 
+  // Se o servidor recusar (ex.: pedido já em separação), o erro segue para MeusPedidos,
+  // que exibe o aviso "Não foi possível cancelar" em vez de marcar o pedido como cancelado.
   const handleCancelarPedido = async (pedidoId) => {
-    try {
-      await pedidoService.cancelar(pedidoId);
-      setPedidos(prev => prev.map(p => (p.id === pedidoId ? { ...p, status: 'cancelado' } : p)));
-    } catch {
-      setPedidos(prev => prev.map(p => (p.id === pedidoId ? { ...p, status: 'cancelado' } : p)));
-    }
+    await pedidoService.cancelar(pedidoId);
+    setPedidos(prev => prev.map(p => (p.id === pedidoId ? { ...p, status: 'cancelado' } : p)));
   };
 
   const pendentesCount = pedidos.filter(p => p.status === 'Pendente').length;

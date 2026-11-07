@@ -169,18 +169,19 @@ const UsuarioEstoque = ({
     return () => { active = false; };
   }, []);
 
-  // Alterna o status de favorito de um material com persistência
+  // Alterna o status de favorito de um material com persistência.
+  // A chamada fica fora do atualizador de estado: o React (StrictMode) pode executar o
+  // atualizador duas vezes, o que alternaria o favorito duas vezes no servidor.
   const handleToggleFavorito = useCallback((id, e) => {
     if (e) {
       e.stopPropagation();
     }
-    setFavoritos(prev => {
-      const isFav = prev.includes(id);
-      const next = isFav ? prev.filter(favId => favId !== id) : [...prev, id];
-      favoritoService.alternar(id).then((servidorIds) => {
-        setFavoritos(Array.isArray(servidorIds) ? servidorIds : next);
-      }).catch(() => setFavoritos(next));
-      return next;
+    setFavoritos(prev => (prev.includes(id) ? prev.filter(favId => favId !== id) : [...prev, id]));
+    favoritoService.alternar(id).then((servidorIds) => {
+      if (Array.isArray(servidorIds)) setFavoritos(servidorIds);
+    }).catch(() => {
+      // Falhou no servidor: desfaz a alteração otimista.
+      setFavoritos(prev => (prev.includes(id) ? prev.filter(favId => favId !== id) : [...prev, id]));
     });
   }, []);
 
