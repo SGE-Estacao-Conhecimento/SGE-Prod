@@ -1,0 +1,176 @@
+# Padrões de Desenvolvimento do Back-end - SGE
+
+Referência obrigatória para todo o back-end (`backend/Sge.Api`). Vale para os três módulos,
+na ordem definida: **1. Usuário, 2. Almoxarife, 3. Administração**.
+
+Ao iniciar um módulo:
+
+1. Ler este documento.
+2. Seguir os padrões abaixo.
+3. Registrar na seção 9 qualquer exceção, com justificativa.
+4. Atualizar este documento se alguma decisão estrutural mudar.
+
+O início de cada módulo é autorizado pelo responsável do projeto, um módulo de cada vez.
+
+---
+
+## 1. Diretriz geral
+
+Aplicar SOLID de forma **consciente e proporcional** ao tamanho do sistema. O objetivo é um back-end
+organizado, modular e fácil de manter. Abstrações, interfaces e camadas só existem quando trazem
+benefício concreto; nunca apenas para "cumprir" um princípio.
+
+Na dúvida entre uma solução simples e uma mais elaborada, escolher a simples e registrar o motivo.
+
+## 2. Estrutura de pastas
+
+Organização por domínio (uma pasta por assunto), com as mesmas peças em todos os módulos:
+
+```
+backend/Sge.Api/
+  Program.cs                 Registro de serviços e pipeline HTTP
+  Infrastructure/            Itens transversais: conexão, erros, datas, números, classes-base
+  <Dominio>/                 Ex.: Pedidos, Materiais, Favoritos, Recebimentos, Usuarios
+    <Dominio>Controller.cs   Rotas HTTP
+    <Dominio>Service.cs      Regras de negócio (quando houver regra)
+    <Dominio>Repository.cs   Acesso ao banco (SQL)
+    <Dominio>Dtos.cs         Formatos de requisição e resposta (records)
+  DevSeed/                   Dados de teste (somente desenvolvimento)
+```
+
+- **Uma classe pública por arquivo.** Exceção: os records de DTO de um domínio ficam juntos em `<Dominio>Dtos.cs`.
+- Nomes de classes, métodos e mensagens em português, seguindo o vocabulário do sistema.
+- Um domínio só cria `Service` se houver regra de negócio. Consultas simples vão direto do controller ao repository.
+
+## 3. Responsabilidade de cada camada
+
+| Camada | Faz | Não faz |
+|---|---|---|
+| **Controller** | Recebe a requisição, lê o usuário logado, chama service ou repository, devolve a resposta e o status HTTP | Regra de negócio, SQL, montagem de transação |
+| **Service** | Regras de negócio e validações: quem pode fazer o quê, situações permitidas, quantidades, coordenação entre repositórios | SQL, detalhes de HTTP |
+| **Repository** | SQL (leitura e gravação), mapeamento para DTOs, transações das próprias gravações | Regra de negócio, decisões de permissão, mensagens de regra |
+| **DTOs** | Formato dos dados trocados com o front | Lógica |
+| **Infrastructure** | Conexão, tratamento de erros, conversão de datas e números, classes-base | Qualquer coisa específica de um domínio |
+
+**Exemplos de fronteira:**
+- "Somente pedidos pendentes podem ser cancelados" é regra: fica no **service**.
+- O `UPDATE ... WHERE status = 'pendente'` que executa o cancelamento fica no **repository**.
+- O repository informa o resultado (por exemplo, quantas linhas foram afetadas) e o service decide a mensagem.
+
+## 4. SOLID aplicado ao projeto
+
+| Princípio | Regra no SGE |
+|---|---|
+| **SRP** (responsabilidade única) | Cada classe com um único motivo para mudar (seção 3). Arquivos não misturam controller, regra e SQL. |
+| **OCP** (aberto/fechado) | Extensão só com necessidade real. Listas fixas e pequenas (situações do pedido, perfis) continuam com `switch` ou constantes. Não criar uma classe por valor de lista. |
+| **LSP** (substituição) | Toda classe derivada precisa funcionar onde a base é esperada: não pode lançar "não suportado", pular validações da base nem mudar o significado dos métodos herdados. |
+| **ISP** (interfaces enxutas) | Interfaces pequenas e específicas (ex.: `IEnvioEmail` com um único propósito). Nada de contratos genéricos como "IServico". |
+| **DIP** (inversão de dependência) | Abstração para **serviços externos** e componentes com mais de uma implementação real ou de teste (armazenamento de arquivos, e-mail). Repositórios e services do próprio sistema são injetados como classes concretas. |
+
+## 5. Interfaces ou classes abstratas
+
+| Situação | Usar |
+|---|---|
+| Só há contrato; as implementações não compartilham código | **Interface** |
+| Há etapas, validações ou comportamentos comuns a todas as implementações | **Classe abstrata** |
+| Há uma única implementação e nenhum benefício de teste ou substituição | **Classe concreta** (sem abstração) |
+| A "base" juntaria funções sem relação entre si | Nenhuma: usar classes auxiliares por composição |
+
+### Casos já definidos
+
+**Armazenamento de arquivos (MinIO). Classe abstrata `ArmazenamentoArquivosBase`.**
+- A base executa as etapas exigidas pelo `guia-minIO-conexao-sql.md`, iguais para qualquer destino:
+  - validação de extensão, conteúdo e tamanho;
+  - cálculo do SHA-256 no servidor;
+  - geração de uma chave estável do objeto, nunca a partir de caminhos enviados pelo cliente.
+- Só o envio e a leitura do objeto ficam abstratos ("método modelo").
+- Implementações: `ArmazenamentoMinio` (real) e uma implementação em memória para testes. Ambas herdam as mesmas validações (LSP).
+
+**Envio de e-mail. Interface `IEnvioEmail`.**
+- Contrato pequeno (enviar mensagem), sem código compartilhado entre o provedor real e o de teste.
+- Usada pela recuperação de senha quando o serviço de e-mail for definido.
+
+**Repositórios. Classe-base `RepositorioBase` (em `Infrastructure/`).**
+- Contém somente:
+  - abertura de conexão (já em UTC);
+  - um auxiliar para executar gravações em transação.
+- **Não contém** consultas, regras de negócio nem métodos de um domínio específico.
+- Herdar dela é opcional para repositórios só de leitura.
+
+### Operações que envolvem mais de um repositório
+
+Quando uma regra de negócio exige gravar em vários repositórios de forma atômica (ex.: atender pedido = mudar a situação + registrar movimentações + atualizar saldo):
+- o service abre a transação pelo auxiliar de infraestrutura e a repassa explicitamente aos métodos dos repositórios envolvidos;
+- verificações que precisam de leitura consistente devem virar condições no próprio SQL (ex.: `UPDATE produtos SET quantidade = quantidade - @q WHERE produto_id = @id AND quantidade >= @q`), e o repository devolve o resultado para o service decidir.
+
+Isso **não** é um Unit of Work genérico: é a passagem explícita da transação, usada só nesses casos.
+
+## 6. O que evitar
+
+- SQL dentro de services quando a operação pertence ao repository.
+- Controllers com regra de negócio ou acesso ao banco.
+- Classes com várias responsabilidades e arquivos com várias classes públicas (exceto DTOs).
+- Interfaces com uma única implementação sem benefício concreto.
+- Classes-base que concentrem funções sem relação entre si; herança só para reaproveitar um método.
+- Repositório genérico (`Repository<T>`), Unit of Work genérico, MediatR, CQRS, AutoMapper ou camadas adicionais sem justificativa registrada na seção 9.
+- ORM gerando ou alterando tabelas: o banco é definido por `database/init/01_schema.sql`.
+
+## 7. Convenções já adotadas (manter em todos os módulos)
+
+| Tema | Padrão |
+|---|---|
+| Acesso a dados | SQL explícito com Dapper + MySqlConnector; colunas `snake_case` mapeadas automaticamente |
+| Conexão | `DbConnectionFactory`; toda conexão em UTC; conta `sge_app` (sem permissão de alterar tabelas) |
+| Erros | `ApiException` para erros esperados; resposta sempre `{ "message", "errors" }`; erros do banco (regras, duplicidade, chaves) convertidos em mensagens legíveis pelo `ApiExceptionHandler` |
+| Autenticação | JWT; todo endpoint exige login por padrão; públicos marcados com `[AllowAnonymous]` |
+| Autorização | Perfil lido do token (valores do banco: `admin`, `almoxarifado`, `funcionario`); permissões verificadas no service ou com `[Authorize(Roles = ...)]` |
+| Contrato com o front | Rotas e campos já usados pelos serviços do front (`frontend/src/services`); perfis no vocabulário do front (`admin`, `almoxarife`, `usuario`); tradução feita pela API |
+| Datas | Gravadas e lidas em UTC; exibidas em America/Sao_Paulo (`AppClock`) |
+| Quantidades | `decimal`; zeros à direita removidos nas respostas (`Numeros`) |
+| Transações | Gravações relacionadas sempre na mesma transação (ex.: pedido + itens + histórico) |
+| Histórico | `pedido_logs` só recebe inclusões; toda mudança de situação de pedido gera um registro |
+| Configuração | Segredos só por variáveis de ambiente; a API não inicia sem as configurações obrigatórias |
+| Front-end | Modo simulado continua como padrão; a API é usada quando `VITE_API_BASE_URL` está definida |
+
+## 8. Processo por módulo
+
+1. Aguardar a autorização explícita para iniciar o módulo.
+2. Consultar este documento e o `backend/README.md`.
+3. Mapear as telas e os serviços do front do módulo (o front é a referência de comportamento).
+4. Levar para decisão da equipe, antes de implementar, as questões de regra de negócio ou de estrutura do banco.
+5. Implementar por etapas, testando cada etapa contra um MySQL real:
+   - testes de API;
+   - serviços do front executados contra a API;
+   - modo simulado continua funcionando.
+6. Atualizar o `backend/README.md` (endpoints) e este documento, se algo estrutural mudou.
+7. Gerar o relatório do módulo em PDF no padrão dos anteriores.
+8. Aguardar autorização para o próximo módulo.
+
+## 9. Situação atual e registro de exceções
+
+### Pontos do Módulo 1 fora do padrão (pendentes de autorização para ajuste)
+
+O Módulo 1 foi implementado antes deste documento. Estes pontos não seguem a seção 3 ou a seção 2 e
+serão ajustados somente com autorização, de preferência antes do Módulo 2. Nenhum comportamento muda.
+
+| Ponto | Desvio | Ajuste previsto |
+|---|---|---|
+| `Pedidos/PedidoService.cs` | Contém SQL (consulta do solicitante e dos materiais, gravação do pedido, itens e histórico) | Mover o SQL para `PedidoRepository`; service fica só com as regras |
+| `Favoritos/FavoritosController.cs` | Junta repository e controller; o repository decide "material não encontrado" | Separar os arquivos; a verificação vira regra num service ou no controller |
+| `Materiais/MateriaisController.cs` | Junta DTO, repository e controller | Separar os arquivos |
+| `Notificacoes/NotificacoesController.cs` | Junta DTO, service e controller | Separar os arquivos |
+| `Auth/AuthController.cs` | Junta DTOs, `AuthController` e `PasswordResetController` | Separar os arquivos |
+| Repositórios | Repetem a abertura de conexão e transação | Criar `RepositorioBase` (seção 5) |
+
+### Exceções aprovadas
+
+| Data | Exceção | Justificativa |
+|---|---|---|
+| (nenhuma até o momento) | | |
+
+### Histórico de decisões
+
+| Data | Decisão |
+|---|---|
+| 06/11/2026 | Adoção de SOLID proporcional como padrão do back-end, com interfaces para contratos sem código comum e classes abstratas para etapas compartilhadas (este documento). |
+| 06/11/2026 | Notificações do Usuário derivadas de `pedido_logs`, sem tabela própria, até a equipe decidir quem recebe cada aviso. |
