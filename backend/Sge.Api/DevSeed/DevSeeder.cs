@@ -44,6 +44,9 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
         ("PAT-002", "Furadeira de Impacto Bosch", "Manutenção", "UN", 2, 1, "Furadeira 650W 1/2 Pol • Ferramental de Manutenção", "Painel de Ferramentas")
     ];
 
+    /// <summary>Materiais marcados como bem durável em frontend/src/data/demoData.js.</summary>
+    private static readonly HashSet<string> BensDuraveis = ["MAT-005", "MAT-007", "PAT-001", "PAT-002"];
+
     public async Task ExecutarAsync()
     {
         var senha = Environment.GetEnvironmentVariable("SGE_SEED_SENHA");
@@ -80,10 +83,10 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
         foreach (var m in Materiais)
         {
             var produtoId = await con.ExecuteScalarAsync<int>("""
-                INSERT INTO produtos (codigo, nome, categoria, unidade_medida, localizacao, descricao, quantidade, quantidade_minima)
-                VALUES (@Codigo, @Nome, @Categoria, @Unidade, @Localizacao, @Descricao, @Qtd, @Min);
+                INSERT INTO produtos (codigo, nome, categoria, unidade_medida, localizacao, descricao, bem_duravel, quantidade, quantidade_minima)
+                VALUES (@Codigo, @Nome, @Categoria, @Unidade, @Localizacao, @Descricao, @duravel, @Qtd, @Min);
                 SELECT LAST_INSERT_ID();
-                """, new { m.Codigo, m.Nome, m.Categoria, m.Unidade, m.Localizacao, m.Descricao, m.Qtd, m.Min }, tx);
+                """, new { m.Codigo, m.Nome, m.Categoria, m.Unidade, m.Localizacao, m.Descricao, duravel = BensDuraveis.Contains(m.Codigo), m.Qtd, m.Min }, tx);
 
             // O saldo inicial fica registrado no histórico, como exige o modelo de movimentações.
             if (m.Qtd > 0)

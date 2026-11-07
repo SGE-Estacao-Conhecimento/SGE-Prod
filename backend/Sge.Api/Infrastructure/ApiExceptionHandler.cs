@@ -14,6 +14,10 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         {
             ApiException api => (api.Status, new ErrorResponse(api.Message, api.Errors)),
 
+            // Envio acima do limite de tamanho (ex.: foto maior que o permitido).
+            BadHttpRequestException { StatusCode: 413 } or InvalidDataException =>
+                (413, new ErrorResponse("O arquivo enviado excede o tamanho permitido.")),
+
             // SIGNAL SQLSTATE '45000' disparado pelos triggers do banco (regras de integridade).
             MySqlException { Number: 1644 } sql => (422, new ErrorResponse(sql.Message)),
             MySqlException { ErrorCode: MySqlErrorCode.DuplicateKeyEntry } =>

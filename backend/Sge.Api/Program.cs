@@ -8,11 +8,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Sge.Api.Auth;
 using Sge.Api.DevSeed;
+using Sge.Api.Estoque;
 using Sge.Api.Favoritos;
 using Sge.Api.Infrastructure;
+using Sge.Api.Infrastructure.Armazenamento;
 using Sge.Api.Materiais;
 using Sge.Api.Notificacoes;
 using Sge.Api.Pedidos;
+using Sge.Api.Remessas;
+using Sge.Api.Usuarios;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +31,9 @@ if (Encoding.UTF8.GetByteCount(jwt.Key) < 32)
 
 var fusoHorario = builder.Configuration["App:FusoHorario"] ?? "America/Sao_Paulo";
 var origensCors = builder.Configuration.GetSection("Cors:Origens").Get<string[]>() ?? [];
+
+// Armazenamento de arquivos (MinIO): variáveis S3_* do guia-minIO-conexao-sql.md.
+var armazenamento = args.Contains("seed-dev") ? null : ArmazenamentoOpcoes.Ler(builder.Configuration);
 
 // Colunas snake_case do banco -> propriedades PascalCase.
 DefaultTypeMap.MatchNamesWithUnderscores = true;
@@ -44,6 +51,18 @@ builder.Services.AddScoped<FavoritoRepository>();
 builder.Services.AddScoped<PedidoRepository>();
 builder.Services.AddScoped<PedidoService>();
 builder.Services.AddScoped<NotificacaoService>();
+builder.Services.AddScoped<MaterialService>();
+builder.Services.AddScoped<EstoqueRepository>();
+builder.Services.AddScoped<MovimentacaoService>();
+builder.Services.AddScoped<AtendimentoPedidoService>();
+builder.Services.AddScoped<UsuarioRepository>();
+builder.Services.AddScoped<RemessaRepository>();
+if (armazenamento is not null)
+{
+    builder.Services.AddScoped<RemessaService>();
+    builder.Services.AddSingleton(armazenamento);
+    builder.Services.AddSingleton<ArmazenamentoArquivosBase, ArmazenamentoMinio>();
+}
 builder.Services.AddScoped<DevSeeder>();
 
 builder.Services

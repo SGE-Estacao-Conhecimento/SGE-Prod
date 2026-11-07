@@ -19,6 +19,21 @@ public static class StatusPedido
         Cancelado => "Cancelado",
         _ => status
     };
+
+    /// <summary>
+    /// Situação enviada pelo front (rótulo da tela ou valor do banco) convertida para o valor do banco.
+    /// "Atendido Parcialmente" vira "atendido": a entrega parcial é derivada das quantidades.
+    /// </summary>
+    public static string? DoFront(string? valor) =>
+        (valor ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "pendente" => Pendente,
+            "em separação" or "em separacao" or "em_separacao" => EmSeparacao,
+            "pronto p/ retirada" or "pronto para retirada" or "pronto" or "pronto_retirada" => ProntoRetirada,
+            "atendido" or "atendido parcialmente" or "entregue" => Atendido,
+            "cancelado" or "recusado" => Cancelado,
+            _ => null
+        };
 }
 
 // ---------- Requisição (contrato de pedidoService.criarPedido) ----------
@@ -56,4 +71,18 @@ public sealed record PedidoDto(
     bool Urgente,
     string Urgencia,
     string Status,
-    string? Justificativa);
+    string? Justificativa,
+    string? MensagemAlmoxarife = null,
+    string? MotivoCancelamento = null,
+    string? DataEntrega = null);
+
+// ---------- Atendimento pelo almoxarifado (contrato de pedidoService.atualizarStatus) ----------
+
+/// <summary>Quantidade entregue de cada material, enviada na confirmação da entrega.</summary>
+public sealed record ItemAtendimentoRequest(int? ProdutoId, decimal? QuantidadeAtendida);
+
+public sealed record AtualizarStatusPedidoRequest(
+    string? Status,
+    string? MensagemAlmoxarife,
+    string? MotivoCancelamento,
+    List<ItemAtendimentoRequest>? Itens);
