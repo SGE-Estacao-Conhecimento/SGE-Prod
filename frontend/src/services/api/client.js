@@ -31,7 +31,9 @@ const ROTAS_PUBLICAS = ['/api/auth/login', '/api/auth/logout', '/api/password-re
 /** Requisição HTTP para a API real, com token e erros no formato { message }. */
 const httpRequest = async (path, options = {}) => {
   const token = localStorage.getItem('sge_token') || sessionStorage.getItem('sge_token');
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  // Envio de arquivos (FormData): o navegador define o Content-Type com o boundary do multipart.
+  const ehFormulario = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const headers = { ...(ehFormulario ? {} : { 'Content-Type': 'application/json' }), ...(options.headers || {}) };
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let resposta;
@@ -71,7 +73,7 @@ export const request = async (path, options = {}) => {
  */
 const mockRequest = async (path, options = {}) => {
   const method = (options.method || 'GET').toUpperCase();
-  const body = options.body ? JSON.parse(options.body) : {};
+  const body = typeof options.body === 'string' && options.body ? JSON.parse(options.body) : {};
   const [pathname, search] = path.split('?');
   const params = new URLSearchParams(search || '');
 
@@ -186,6 +188,11 @@ const mockRequest = async (path, options = {}) => {
   if (pathname === '/api/remessas') {
     if (method === 'GET') return mockStore.getRemessas();
     if (method === 'POST') return mockStore.createRemessa(body);
+  }
+  // Modo simulado: as fotos ficam só na tela e a remessa já é concluída na criação.
+  const matchRemessaEtapa = pathname.match(/^\/api\/remessas\/(\d+)\/(fotos|confirmar)$/);
+  if (matchRemessaEtapa) {
+    return mockStore.getRemessa(matchRemessaEtapa[1]);
   }
 
   // --- SETORES ---

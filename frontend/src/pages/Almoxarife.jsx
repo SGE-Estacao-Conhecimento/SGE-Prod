@@ -123,55 +123,16 @@ const Almoxarife = ({ onLogout, user }) => {
     return criada;
   };
 
+  // Entrega do pedido: a baixa de estoque é feita pelo back-end (ou pelo modo simulado) na mesma
+  // operação da mudança de situação. Erros sobem para a tela, que exibe o aviso ao almoxarife.
   const handleConfirmarEntregaPedido = async (pedidoAtualizado) => {
     const novoStatus = pedidoAtualizado.status || 'Atendido';
-    try {
-      const atualizado = await pedidoService.atualizarStatus(pedidoAtualizado.id, novoStatus, {
-        status: novoStatus,
-        itens: pedidoAtualizado.itens,
-        mensagemAlmoxarife: pedidoAtualizado.mensagemAlmoxarife
-      });
-      setPedidos(prev => prev.map(p => p.id === pedidoAtualizado.id ? (atualizado || pedidoAtualizado) : p));
-    } catch {
-      setPedidos(prev => prev.map(p => p.id === pedidoAtualizado.id ? pedidoAtualizado : p));
-    }
-
-    const itens = Array.isArray(pedidoAtualizado.itens) && pedidoAtualizado.itens.length > 0
-      ? pedidoAtualizado.itens
-      : Array.isArray(pedidoAtualizado.materiais) && pedidoAtualizado.materiais.length > 0
-        ? pedidoAtualizado.materiais
-        : [{
-          produtoId: pedidoAtualizado.produtoId || pedidoAtualizado.materialId,
-          materialNome: pedidoAtualizado.materialNome || pedidoAtualizado.nome || pedidoAtualizado.material,
-          quantidade: pedidoAtualizado.quantidade || 1
-        }];
-
-    for (const it of itens) {
-      const qtdEntregue = it.quantidadeAtendida !== undefined ? Number(it.quantidadeAtendida) : Number(it.quantidade);
-      if (qtdEntregue <= 0) continue; // Não dá baixa se o item não pôde ser entregue por falta de estoque
-
-      const mat = materiais.find(m =>
-        (it.produtoId && Number(m.id) === Number(it.produtoId)) ||
-        (it.materialNome && String(m.nome).toLowerCase().trim() === String(it.materialNome).toLowerCase().trim())
-      );
-
-      // Bens duráveis / patrimoniais são alocados sem consumo ou perda de saldo físico
-      if (mat?.bemDuravel) {
-        continue;
-      }
-
-      const matId = mat ? mat.id : (it.produtoId || it.materialId);
-      const matNome = mat ? mat.nome : (it.materialNome || it.nome || 'Material');
-
-      await movimentacaoService.registrar({
-        produtoId: matId,
-        produtoNome: matNome,
-        tipo: 'saida',
-        quantidade: qtdEntregue,
-        funcionarioNome: pedidoAtualizado.usuario || 'Solicitante',
-        observacao: `Atendimento do Pedido #${pedidoAtualizado.id}`
-      });
-    }
+    const atualizado = await pedidoService.atualizarStatus(pedidoAtualizado.id, novoStatus, {
+      status: novoStatus,
+      itens: pedidoAtualizado.itens,
+      mensagemAlmoxarife: pedidoAtualizado.mensagemAlmoxarife
+    });
+    setPedidos(prev => prev.map(p => p.id === pedidoAtualizado.id ? (atualizado || pedidoAtualizado) : p));
 
     const [materiaisAtualizados, movsAtualizadas] = await Promise.all([
       materialService.listar(),
@@ -179,6 +140,17 @@ const Almoxarife = ({ onLogout, user }) => {
     ]);
     if (materiaisAtualizados) setMateriais(materiaisAtualizados);
     if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
+  };
+
+  // Cadastro e edição de material pela tela de estoque (recarrega a lista com os dados do servidor).
+  const handleNovoMaterial = async (material) => {
+    await materialService.criar(material);
+    setMateriais(await materialService.listar());
+  };
+
+  const handleAtualizarMaterial = async (material) => {
+    await materialService.editar(material.id, material);
+    setMateriais(await materialService.listar());
   };
 
   useEffect(() => {
@@ -260,11 +232,11 @@ const Almoxarife = ({ onLogout, user }) => {
       const criado = await pedidoService.criar(novoPedido);
       const pedidoSalvo = criado?.id ? criado : { ...novoPedido, id: novoPedido.id || Date.now(), data: new Date().toISOString(), status: 'Pendente' };
       setPedidos(prev => [pedidoSalvo, ...prev]);
-    } catch {
-      const fallback = { ...novoPedido, id: novoPedido.id || Date.now(), data: new Date().toISOString(), status: 'Pendente' };
-      setPedidos(prev => [fallback, ...prev]);
+      setIsNovoPedidoModalOpen(false);
+    } catch (error) {
+      // Não exibe um pedido que não foi gravado; o modal continua aberto para nova tentativa.
+      alert(error?.message || 'Não foi possível registrar o pedido.');
     }
-    setIsNovoPedidoModalOpen(false);
   };
 
   const handleMarcarNotifLida = (id) => {
@@ -308,12 +280,9 @@ const Almoxarife = ({ onLogout, user }) => {
                 setPedidos(prev => [novo, ...prev]);
               }}
               onUpdateStatus={async (pedidoId, novoStatus, extras = {}) => {
-                try {
-                  const atualizado = await pedidoService.atualizarStatus(pedidoId, novoStatus, extras);
-                  setPedidos(prev => prev.map(p => p.id === pedidoId ? (atualizado || { ...p, status: novoStatus, ...extras }) : p));
-                } catch {
-                  setPedidos(prev => prev.map(p => p.id === pedidoId ? { ...p, status: novoStatus, ...extras } : p));
-                }
+                // Falhas sobem para a tela de pedidos, que mantém o pedido na etapa anterior e avisa.
+                const atualizado = await pedidoService.atualizarStatus(pedidoId, novoStatus, extras);
+                setPedidos(prev => prev.map(p => p.id === pedidoId ? (atualizado || { ...p, status: novoStatus, ...extras }) : p));
               }}
             />
           </PageTabTransition>
@@ -338,6 +307,8 @@ const Almoxarife = ({ onLogout, user }) => {
               materiais={materiais}
               remessasExternas={remessas}
               onCriarRemessa={handleCriarRemessa}
+              onNovoMaterial={handleNovoMaterial}
+              onAtualizarMaterial={handleAtualizarMaterial}
               historicoMovimentacoes={historicoMovimentacoes}
               onRegistrarMovimentacao={handleRegistrarMovimentacao}
               onAjustarEstoque={handleAjustarEstoque}

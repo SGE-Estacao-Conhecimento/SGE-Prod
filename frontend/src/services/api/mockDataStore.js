@@ -149,16 +149,19 @@ class MockDataStore {
       descricao: payload.descricao || '',
       ativo: true
     };
+    // O saldo inicial entra pela movimentação (que já soma ao saldo); cadastrar com o saldo
+    // preenchido e ainda registrar a entrada duplicava a quantidade.
+    const saldoInicial = novo.quantidade;
+    novo.quantidade = 0;
     this._materiais = [novo, ...this._materiais];
     safeSet(STORAGE_KEYS.MATERIAIS, this._materiais);
 
-    // Registra movimentação inicial caso tenha quantidade > 0
-    if (novo.quantidade > 0) {
-      this.registrarMovimentacao({
+    if (saldoInicial > 0) {
+      await this.registrarMovimentacao({
         produtoId: novo.id,
         produtoNome: novo.nome,
         tipo: 'entrada',
-        quantidade: novo.quantidade,
+        quantidade: saldoInicial,
         observacao: 'Saldo inicial cadastrado'
       });
     }
@@ -331,6 +334,26 @@ class MockDataStore {
   async updateStatusPedido(id, novoStatus, extras = {}) {
     const numId = Number(id);
     let atualizado = null;
+
+    // Entrega: a baixa de estoque acontece junto com a mudança de situação, como na API
+    // (bens duráveis não têm baixa; tratado em registrarMovimentacao).
+    const statusTexto = String(novoStatus || '').toLowerCase();
+    if (statusTexto.startsWith('atendido') && Array.isArray(extras.itens)) {
+      const pedidoAtual = this._pedidos.find(p => Number(p.id) === numId);
+      for (const it of extras.itens) {
+        const qtdEntregue = it.quantidadeAtendida !== undefined ? Number(it.quantidadeAtendida) : Number(it.quantidade);
+        const produtoId = it.produtoId || it.materialId;
+        if (!produtoId || !(qtdEntregue > 0)) continue;
+        await this.registrarMovimentacao({
+          produtoId,
+          produtoNome: it.materialNome,
+          tipo: 'saida',
+          quantidade: qtdEntregue,
+          funcionarioNome: pedidoAtual?.usuario || 'Solicitante',
+          observacao: `Atendimento do Pedido #${numId}`
+        });
+      }
+    }
     this._pedidos = this._pedidos.map(p => {
       if (Number(p.id) === numId) {
         atualizado = {
@@ -578,6 +601,10 @@ class MockDataStore {
   // --- REMESSAS ---
   async getRemessas() {
     return [...this._remessas];
+  }
+
+  async getRemessa(id) {
+    return this._remessas.find(r => Number(r.id) === Number(id)) || null;
   }
 
   async createRemessa(remessa) {

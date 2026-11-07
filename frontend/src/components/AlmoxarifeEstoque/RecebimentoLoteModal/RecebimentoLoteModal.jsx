@@ -51,17 +51,46 @@ const RecebimentoLoteModal = ({
     tipoOrigem = 'doacao',
     documentoDoador = '',
     observacao = '',
-    itens = []
+    itens = [],
+    fotos = [],
+    identificadorOperacao
   } = draftRemessa || {};
 
-  // Atualizador parcial do rascunho
+  const fotosInputRef = useRef(null);
+
+  // Atualizador parcial do rascunho. Mudar materiais ou origem inicia uma nova operação de envio
+  // (o identificador só é reaproveitado quando o mesmo rascunho é reenviado após uma falha).
   const updateDraft = (patch) => {
     if (onUpdateDraft) {
+      const mudouConteudo = ['itens', 'tipoOrigem', 'documentoDoador', 'observacao'].some((campo) => campo in patch);
       onUpdateDraft({
         ...draftRemessa,
+        ...(mudouConteudo ? { identificadorOperacao: undefined } : {}),
         ...patch
       });
     }
+  };
+
+  // Fotos do material (obrigatórias para confirmar o recebimento no servidor)
+  const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp'];
+  const TAMANHO_MAXIMO_FOTO = 10 * 1024 * 1024;
+  const MAXIMO_FOTOS = 10;
+
+  const handleAdicionarFotos = (event) => {
+    const selecionadas = Array.from(event.target.files || []);
+    event.target.value = '';
+    const validas = selecionadas.filter((arquivo) => TIPOS_FOTO.includes(arquivo.type) && arquivo.size <= TAMANHO_MAXIMO_FOTO);
+    if (validas.length < selecionadas.length) {
+      alert('Envie fotos nos formatos JPG, PNG ou WEBP, com até 10 MB cada.');
+    }
+    if (fotos.length + validas.length > MAXIMO_FOTOS) {
+      alert(`Cada recebimento pode ter no máximo ${MAXIMO_FOTOS} fotos.`);
+    }
+    if (validas.length > 0) updateDraft({ fotos: [...fotos, ...validas].slice(0, MAXIMO_FOTOS) });
+  };
+
+  const handleRemoverFoto = (indice) => {
+    updateDraft({ fotos: fotos.filter((_, i) => i !== indice) });
   };
 
   const setEtapa = (etapa) => {
@@ -261,9 +290,22 @@ const RecebimentoLoteModal = ({
       alert('Selecione ao menos um material para confirmar o recebimento.');
       return;
     }
+    if (fotos.length === 0) {
+      alert('Adicione ao menos uma foto do material para confirmar o recebimento.');
+      return;
+    }
+
+    // Mesmo identificador em novas tentativas do mesmo rascunho (evita recebimento duplicado).
+    const operacao = identificadorOperacao
+      || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : undefined);
+    if (operacao && operacao !== identificadorOperacao && onUpdateDraft) {
+      onUpdateDraft({ ...draftRemessa, identificadorOperacao: operacao });
+    }
 
     const payload = {
       id: `REM-${Date.now().toString().slice(-6)}`,
+      identificadorOperacao: operacao,
+      fotos,
       data: new Date().toISOString(),
       dataFormatada: new Intl.DateTimeFormat('pt-BR', {
         dateStyle: 'short',
@@ -925,11 +967,53 @@ const RecebimentoLoteModal = ({
                   />
                 </div>
 
-                <div className="recebimento-anexos-section" role="note">
-                  <span className="recebimento-label">Fotos e documentos</span>
+                <div className="recebimento-anexos-section">
+                  <span className="recebimento-label">Fotos do material</span>
                   <p className="recebimento-storage-note">
-                    O envio de anexos ficará disponível após a definição do armazenamento. Os dados da remessa e os materiais já serão salvos normalmente.
+                    Obrigatório ao menos uma foto (JPG, PNG ou WEBP, até 10 MB cada). O estoque é atualizado ao confirmar.
                   </p>
+                  {fotos.length > 0 && (
+                    <ul className="recebimento-fotos-lista">
+                      {fotos.map((foto, indice) => (
+                        <li key={`${foto.name}-${foto.size}-${indice}`} className="recebimento-foto-item">
+                          <span className="recebimento-foto-item__nome">{foto.name}</span>
+                          <span className="recebimento-foto-item__tamanho">{(foto.size / (1024 * 1024)).toFixed(1)} MB</span>
+                          <button
+                            type="button"
+                            className="recebimento-foto-item__remover"
+                            onClick={() => handleRemoverFoto(indice)}
+                            aria-label={`Remover foto ${foto.name}`}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <input
+                    ref={fotosInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    capture="environment"
+                    multiple
+                    hidden
+                    onChange={handleAdicionarFotos}
+                  />
+                  <button
+                    type="button"
+                    className="recebimento-fotos-adicionar"
+                    onClick={() => fotosInputRef.current?.click()}
+                    disabled={fotos.length >= MAXIMO_FOTOS}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                      <circle cx="12" cy="13" r="4" />
+                    </svg>
+                    {fotos.length === 0 ? 'Adicionar fotos' : `Adicionar mais fotos (${fotos.length}/${MAXIMO_FOTOS})`}
+                  </button>
                 </div>
               </div>
             </div>

@@ -11,7 +11,8 @@ const toPayload = (material) => ({
   quantidadeInicial: Number(material.quantidade ?? 0),
   estoqueMinimo: Number(material.estoqueMinimo ?? 0),
   localizacao: material.localizacao || null,
-  descricao: material.descricao || null
+  descricao: material.descricao || null,
+  bemDuravel: material.bemDuravel === undefined ? undefined : !!material.bemDuravel
 });
 
 export const criarMaterial = (material) =>

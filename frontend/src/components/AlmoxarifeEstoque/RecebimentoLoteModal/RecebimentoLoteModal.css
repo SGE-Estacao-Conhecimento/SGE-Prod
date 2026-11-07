@@ -1554,3 +1554,76 @@
 .recebimento-confirm-btn-descartar:active {
   transform: scale(0.97);
 }
+
+/* Fotos do material (envio ao armazenamento do servidor) */
+.recebimento-fotos-lista {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recebimento-foto-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.recebimento-foto-item__nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recebimento-foto-item__tamanho {
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.recebimento-foto-item__remover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.recebimento-foto-item__remover:hover {
+  background: #f1f5f9;
+  color: #b91c1c;
+}
+
+.recebimento-fotos-adicionar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px dashed #94a3b8;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #017f7b;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.recebimento-fotos-adicionar:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

@@ -407,8 +407,8 @@ const PedidosView = ({
         msgSucesso || `Pedido #${pedidoId} movido para "${novoStatus}".`,
         'sucesso'
       );
-    } catch {
-      exibirToast(`Não foi possível alterar o status do pedido #${pedidoId}.`, 'erro');
+    } catch (error) {
+      exibirToast(error?.message || `Não foi possível alterar o status do pedido #${pedidoId}.`, 'erro');
     }
   };
 
@@ -489,8 +489,8 @@ const PedidosView = ({
       } else {
         exibirToast(`Pedido #${pedido.id} entregue com sucesso! Baixa de estoque registrada.`, 'sucesso');
       }
-    } catch {
-      exibirToast(`Erro ao confirmar a entrega do pedido #${pedido.id}.`, 'erro');
+    } catch (error) {
+      exibirToast(error?.message || `Erro ao confirmar a entrega do pedido #${pedido.id}.`, 'erro');
     }
   };
 
@@ -519,8 +519,8 @@ const PedidosView = ({
         )
       );
       exibirToast(`Pedido #${pedidoId} recusado (${motivoRecusa}).`, 'aviso');
-    } catch {
-      exibirToast(`Erro ao recusar o pedido #${pedidoId}.`, 'erro');
+    } catch (error) {
+      exibirToast(error?.message || `Erro ao recusar o pedido #${pedidoId}.`, 'erro');
     } finally {
       setRecusaModalPedido(null);
     }

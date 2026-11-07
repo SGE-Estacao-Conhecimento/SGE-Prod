@@ -535,6 +535,8 @@ const AlmoxarifeEstoque = ({
     if (onCriarRemessa) {
       try {
         remessaPersistida = await onCriarRemessa({
+          identificadorOperacao: novaRemessa.identificadorOperacao,
+          fotos: novaRemessa.fotos || [],
           tipoOrigem: novaRemessa.tipoOrigem,
           documentoDoador: novaRemessa.documentoDoador,
           observacao: novaRemessa.observacao,
@@ -858,8 +860,8 @@ const AlmoxarifeEstoque = ({
     if (tipoMovimentacao === 'ajuste' && onAjustarEstoque) {
       try {
         await onAjustarEstoque({ produtoId: materialModal.id, novoSaldo: novaQtd, motivo: motivoMovimentacao.trim() });
-      } catch {
-        exibirToast('Não foi possível registrar o ajuste.', 'aviso');
+      } catch (error) {
+        exibirToast(error?.message || 'Não foi possível registrar o ajuste.', 'aviso');
         return;
       }
     }
@@ -872,8 +874,8 @@ const AlmoxarifeEstoque = ({
           quantidade: qtdNum,
           observacao: motivoMovimentacao.trim() || null
         });
-      } catch {
-        exibirToast('Não foi possível registrar a movimentação.', 'aviso');
+      } catch (error) {
+        exibirToast(error?.message || 'Não foi possível registrar a movimentação.', 'aviso');
         return;
       }
     }
@@ -903,7 +905,9 @@ const AlmoxarifeEstoque = ({
       [materialModal.id]: [novaEntradaHistorico, ...(prev[materialModal.id] || [])]
     }));
 
-    if (onAtualizarMaterial) {
+    // O saldo já foi gravado pela movimentação; só repassa ao pai quando não há persistência dela.
+    const movimentacaoPersistida = tipoMovimentacao === 'ajuste' ? !!onAjustarEstoque : !!onRegistrarMovimentacao;
+    if (onAtualizarMaterial && !movimentacaoPersistida) {
       onAtualizarMaterial(materialAtualizado);
     }
 
@@ -998,7 +1002,7 @@ const AlmoxarifeEstoque = ({
   };
 
   // Salvar alterações de cadastro no Detalhes
-  const handleSalvarDetalhes = () => {
+  const handleSalvarDetalhes = async () => {
     if (!materialModal) return;
 
     const unidadeFormatada = detalhesForm.unidade.trim() || materialModal.unidade || 'UN';
@@ -1041,15 +1045,21 @@ const AlmoxarifeEstoque = ({
       bemDuravel: ehBemDuravel
     };
 
+    // Com persistência, só confirma na tela depois que o servidor aceitar a alteração.
+    if (onAtualizarMaterial) {
+      try {
+        await onAtualizarMaterial(materialAtualizado);
+      } catch (error) {
+        exibirToast(error?.message || 'Não foi possível salvar as alterações do material.', 'aviso');
+        return;
+      }
+    }
+
     setMateriais(prev =>
       prev.map(m => (m.id === materialModal.id ? materialAtualizado : m))
     );
     setMaterialModal(materialAtualizado);
     setIsEditandoDetalhes(false);
-
-    if (onAtualizarMaterial) {
-      onAtualizarMaterial(materialAtualizado);
-    }
 
     exibirToast(`Informações de "${materialAtualizado.nome}" atualizadas com sucesso!`);
   };
@@ -1111,7 +1121,7 @@ const AlmoxarifeEstoque = ({
   }, [materialModal, historicoPorMaterial]);
 
   // Cadastro de novo item
-  const handleCriarNovoMaterial = (e) => {
+  const handleCriarNovoMaterial = async (e) => {
     e.preventDefault();
     if (!novoItemForm.nome.trim()) return;
 
@@ -1146,9 +1156,16 @@ const AlmoxarifeEstoque = ({
       bemDuravel: ehBemDuravel
     };
 
-    setMateriais(prev => [novoMaterial, ...prev]);
+    // Com persistência, o código e o id definitivos vêm do servidor (a lista é recarregada pelo pai).
     if (onNovoMaterial) {
-      onNovoMaterial(novoMaterial);
+      try {
+        await onNovoMaterial(novoMaterial);
+      } catch (error) {
+        exibirToast(error?.message || 'Não foi possível cadastrar o material.', 'aviso');
+        return;
+      }
+    } else {
+      setMateriais(prev => [novoMaterial, ...prev]);
     }
 
     exibirToast(`Material "${novoMaterial.nome}" cadastrado com sucesso!`);
