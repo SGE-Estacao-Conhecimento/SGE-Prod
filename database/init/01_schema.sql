@@ -11,10 +11,13 @@ CREATE TABLE funcionarios (
     funcionario_id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     setor_id INT NOT NULL,
+    -- CPF somente com dígitos. O front-end o exige no cadastro de usuário e aceita como login ("E-mail ou CPF").
+    cpf CHAR(11) CHARACTER SET ascii COLLATE ascii_bin NULL UNIQUE,
     celular VARCHAR(20),
     ativo BOOLEAN NOT NULL DEFAULT TRUE,
     data_criacao TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    FOREIGN KEY (setor_id) REFERENCES setores(setor_id) ON DELETE RESTRICT
+    FOREIGN KEY (setor_id) REFERENCES setores(setor_id) ON DELETE RESTRICT,
+    CHECK (cpf IS NULL OR cpf REGEXP '^[0-9]{11}$')
 ) ENGINE=InnoDB;
 
 CREATE TABLE usuarios (
@@ -33,7 +36,10 @@ CREATE TABLE produtos (
     produto_id INT AUTO_INCREMENT PRIMARY KEY,
     codigo VARCHAR(50) NOT NULL UNIQUE,
     nome VARCHAR(100) NOT NULL,
+    categoria VARCHAR(100) NULL,
     unidade_medida VARCHAR(20) NOT NULL,
+    localizacao VARCHAR(150) NULL,
+    descricao VARCHAR(500) NULL,
     permite_fracao BOOLEAN NOT NULL DEFAULT FALSE,
     quantidade DECIMAL(15,3) NOT NULL DEFAULT 0,
     quantidade_minima DECIMAL(15,3) NOT NULL DEFAULT 0,
@@ -128,7 +134,10 @@ CREATE TABLE pedidos (
     funcionario_solicitante_id INT NOT NULL,
     setor_id INT NOT NULL,
     usuario_solicitacao_id INT NOT NULL,
-    status ENUM('pendente','atendido','cancelado') NOT NULL DEFAULT 'pendente',
+    -- Fluxo do front-end: Pendente -> Em Separação -> Pronto para Retirada -> Atendido (ou Cancelado).
+    -- "Atendido Parcialmente" é derivado de pedido_itens.quantidade_entregue < quantidade_solicitada.
+    status ENUM('pendente','em_separacao','pronto_retirada','atendido','cancelado') NOT NULL DEFAULT 'pendente',
+    urgencia ENUM('normal','alta') NOT NULL DEFAULT 'normal',
     observacao TEXT,
     usuario_atendimento_id INT NULL,
     funcionario_recebe_id INT NULL,
@@ -159,12 +168,22 @@ CREATE TABLE pedido_itens (
     CHECK (quantidade_entregue IS NULL OR (quantidade_entregue >= 0 AND quantidade_entregue <= quantidade_solicitada))
 ) ENGINE=InnoDB;
 
+-- Materiais favoritos de cada usuário (catálogo do perfil Usuário).
+CREATE TABLE favoritos (
+    usuario_id INT NOT NULL,
+    produto_id INT NOT NULL,
+    data_criacao TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (usuario_id, produto_id),
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(usuario_id) ON DELETE CASCADE,
+    FOREIGN KEY (produto_id) REFERENCES produtos(produto_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- Log de pedidos: somente inserção (sem fotos). Um registro por mudança de situação ou ocorrência.
 CREATE TABLE pedido_logs (
     log_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     pedido_id INT NOT NULL,
-    status_anterior ENUM('pendente','atendido','cancelado') NULL,
-    status_novo ENUM('pendente','atendido','cancelado') NOT NULL,
+    status_anterior ENUM('pendente','em_separacao','pronto_retirada','atendido','cancelado') NULL,
+    status_novo ENUM('pendente','em_separacao','pronto_retirada','atendido','cancelado') NOT NULL,
     usuario_id INT NOT NULL,
     descricao VARCHAR(500),
     data_log TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
