@@ -98,7 +98,8 @@ const NovoMaterialModal = ({ isOpen, onClose, onSave, initialData = null }) => {
     onSave({
       ...formData,
       status,
-      id: initialData ? initialData.id : Date.now()
+      // Só a edição leva o id; no cadastro o id é definido pelo servidor (ou pelo modo simulado).
+      id: initialData ? initialData.id : undefined
     });
     onClose();
   };

@@ -189,11 +189,17 @@ class MockDataStore {
     return atualizado || payload;
   }
 
+  // "Excluir material" retira do catálogo (desativa), como na API: o histórico continua.
   async deleteMaterial(id) {
     const numId = Number(id);
-    this._materiais = this._materiais.filter(m => Number(m.id) !== numId);
+    let removido = null;
+    this._materiais = this._materiais.map(m => {
+      if (Number(m.id) !== numId) return m;
+      removido = { ...m, ativo: false };
+      return removido;
+    });
     safeSet(STORAGE_KEYS.MATERIAIS, this._materiais);
-    return { success: true };
+    return removido;
   }
 
   _sanitizarPedido(p) {
@@ -442,6 +448,8 @@ class MockDataStore {
 
   async toggleStatusUsuario(id) {
     const numId = Number(id);
+    // Mesmo formato de perfil da API (o serviço do front converte para o rótulo da tela).
+    const paraRole = (perfil) => ({ Administrativo: 'admin', Almoxarifado: 'almoxarife', 'Usuário': 'usuario' }[perfil] || perfil);
     let atualizado = null;
     this._usuarios = this._usuarios.map(u => {
       if (Number(u.id) === numId) {
@@ -451,17 +459,19 @@ class MockDataStore {
       return u;
     });
     safeSet(STORAGE_KEYS.USUARIOS, this._usuarios);
-    return atualizado;
+    return atualizado && { ...atualizado, perfil: paraRole(atualizado.perfil) };
   }
 
   async deleteUsuario(id) {
     const numId = Number(id);
+    let removido = null;
     this._usuarios = this._usuarios.map(u => {
-      if (Number(u.id) === numId) return { ...u, ativo: false };
-      return u;
+      if (Number(u.id) !== numId) return u;
+      removido = { ...u, ativo: false };
+      return removido;
     });
     safeSet(STORAGE_KEYS.USUARIOS, this._usuarios);
-    return { success: true };
+    return removido;
   }
 
   // --- MOVIMENTAÇÕES ---

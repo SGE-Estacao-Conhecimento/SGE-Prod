@@ -36,7 +36,8 @@ export const criarUsuario = async (usuario) => normalizarUsuario(await request('
     senha: usuario.senha,
     perfil: perfilParaRole(usuario.perfil),
     setor: usuario.setor,
-    celular: usuario.celular || null
+    celular: usuario.celular || null,
+    ativo: usuario.ativo ?? true
   })
 }));
 
@@ -54,11 +55,12 @@ export const editarUsuario = async (usuario) => normalizarUsuario(await request(
   })
 }));
 
-export const alternarStatusUsuario = (id) =>
-  request(`/api/usuarios/${id}/status`, { method: 'PATCH' });
+export const alternarStatusUsuario = async (id) =>
+  normalizarUsuario(await request(`/api/usuarios/${id}/status`, { method: 'PATCH' }));
 
-export const removerUsuario = (id) =>
-  request(`/api/usuarios/${id}`, { method: 'DELETE' });
+// "Excluir" desativa a conta (o histórico de pedidos e movimentações é preservado).
+export const removerUsuario = async (id) =>
+  normalizarUsuario(await request(`/api/usuarios/${id}`, { method: 'DELETE' }));
 
 export const usuarioService = {
   listar: listarUsuarios,

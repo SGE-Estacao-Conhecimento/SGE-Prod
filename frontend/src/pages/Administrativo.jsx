@@ -358,13 +358,17 @@ const Administrativo = ({ onLogout, user }) => {
     return materiais.filter(m => Number(m.quantidade ?? 0) === 0);
   }, [materiais]);
 
-  // Atualização de status de pedidos em tempo real
-  const handleUpdatePedidoStatus = async (pedidoId, novoStatus) => {
-    try {
-      const atualizado = await pedidoService.atualizarStatus(pedidoId, novoStatus);
-      setPedidos(prev => prev.map(p => (p.id === pedidoId ? (atualizado || { ...p, status: novoStatus }) : p)));
-    } catch {
-      setPedidos(prev => prev.map(p => (p.id === pedidoId ? { ...p, status: novoStatus } : p)));
+  // Atualização de status de pedidos. Repassa a mensagem de retirada, o motivo da recusa e as
+  // quantidades da entrega; falhas sobem para a tela de pedidos, que mantém a etapa e avisa.
+  const handleUpdatePedidoStatus = async (pedidoId, novoStatus, extras = {}) => {
+    const atualizado = await pedidoService.atualizarStatus(pedidoId, novoStatus, extras);
+    setPedidos(prev => prev.map(p => (p.id === pedidoId ? (atualizado || { ...p, status: novoStatus, ...extras }) : p)));
+
+    // A entrega dá baixa no estoque: recarrega saldos e histórico.
+    if (String(novoStatus).toLowerCase().startsWith('atendido')) {
+      const [materiaisAtualizados, movsAtualizadas] = await Promise.all([materialService.listar(), movimentacaoService.listar()]);
+      if (materiaisAtualizados) setMateriais(materiaisAtualizados);
+      if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
     }
   };
 
@@ -397,23 +401,9 @@ const Administrativo = ({ onLogout, user }) => {
         itens: criado.itens || itensRecebidos
       } : criado;
       setPedidos(prev => [pedidoFormatado, ...prev]);
-    } catch {
-      const localId = Math.max(0, ...pedidos.map(p => Number(p.id) || 0)) + 1;
-      const pedidoFormatado = {
-        id: localId,
-        usuario: novoPedido.usuario || user?.nome || 'Administrador',
-        setor: novoPedido.setor || 'Administrativo',
-        data: new Date().toLocaleDateString('pt-BR'),
-        material: resumoMaterial,
-        quantidade: itensRecebidos.reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0),
-        materiais: materiaisFormatados,
-        itens: itensRecebidos,
-        prioridade: novoPedido.urgente || novoPedido.prioridade === 'Urgente' ? 'Urgente' : 'Normal',
-        urgente: Boolean(novoPedido.urgente || novoPedido.prioridade === 'Urgente'),
-        status: 'Pendente',
-        justificativa: novoPedido.justificativa
-      };
-      setPedidos(prev => [pedidoFormatado, ...prev]);
+    } catch (error) {
+      // Não exibe um pedido que não foi gravado.
+      alert(error?.message || 'Não foi possível registrar o pedido.');
     }
   };
 
@@ -426,25 +416,27 @@ const Administrativo = ({ onLogout, user }) => {
         ? prev.map(item => item.id === material.id ? saved : item)
         : [saved, ...prev]);
     } catch (error) {
-      setMateriaisError(error.message);
+      // Aviso pontual: a tela de estoque continua disponível (antes o erro substituía a tela inteira).
+      alert(error?.message || 'Não foi possível salvar o material.');
     }
   };
 
+  // "Excluir" retira o material do catálogo; o histórico é preservado.
   const handleDeleteMaterial = async (materialId) => {
     try {
       await materialService.excluir(materialId);
       setMateriais(prev => prev.filter(item => item.id !== materialId));
     } catch (error) {
-      setMateriaisError(error.message);
+      alert(error?.message || 'Não foi possível excluir o material.');
     }
   };
 
   const handleToggleUsuarioStatus = async (usuarioId) => {
     try {
-      await usuarioService.alternarStatus(usuarioId);
-      setUsuarios(prev => prev.map(u => u.id === usuarioId ? { ...u, ativo: !u.ativo } : u));
-    } catch {
-      setUsuarios(prev => prev.map(u => u.id === usuarioId ? { ...u, ativo: !u.ativo } : u));
+      const atualizado = await usuarioService.alternarStatus(usuarioId);
+      setUsuarios(prev => prev.map(u => u.id === usuarioId ? (atualizado || { ...u, ativo: !u.ativo }) : u));
+    } catch (error) {
+      alert(error?.message || 'Não foi possível alterar o status do usuário.');
     }
   };
 
@@ -458,27 +450,19 @@ const Administrativo = ({ onLogout, user }) => {
         ? prev.map(item => item.id === salvo.id ? salvo : item)
         : [salvo, ...prev]);
       setUsuariosError(null);
-    } catch {
-      const existe = usuarios.some(item => item.id === usuario.id);
-      const usuarioLocal = {
-        ...usuario,
-        id: usuario.id ?? Math.max(0, ...usuarios.map(item => Number(item.id) || 0)) + 1,
-        inicial: (usuario.nome || 'U').trim().charAt(0).toUpperCase(),
-        dataCadastro: usuario.dataCadastro || new Date().toLocaleDateString('pt-BR')
-      };
-      setUsuarios(prev => existe
-        ? prev.map(item => item.id === usuarioLocal.id ? usuarioLocal : item)
-        : [usuarioLocal, ...prev]);
-      setUsuariosError(null);
+    } catch (error) {
+      // Não exibe um usuário que não foi gravado (ex.: CPF ou e-mail já cadastrado).
+      alert(error?.message || 'Não foi possível salvar o usuário.');
     }
   };
 
+  // "Excluir" desativa a conta, preservando o histórico.
   const handleRemoverUsuario = async (usuarioId) => {
     try {
-      await usuarioService.remover(usuarioId);
-      setUsuarios(prev => prev.map(u => u.id === usuarioId ? { ...u, ativo: false } : u));
-    } catch {
-      setUsuarios(prev => prev.map(u => u.id === usuarioId ? { ...u, ativo: false } : u));
+      const removido = await usuarioService.remover(usuarioId);
+      setUsuarios(prev => prev.map(u => u.id === usuarioId ? (removido || { ...u, ativo: false }) : u));
+    } catch (error) {
+      alert(error?.message || 'Não foi possível excluir o usuário.');
     }
   };
 

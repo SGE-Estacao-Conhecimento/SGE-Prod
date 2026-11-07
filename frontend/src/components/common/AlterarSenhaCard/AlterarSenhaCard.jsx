@@ -71,8 +71,8 @@ const AlterarSenhaCard = ({ user, onSuccess }) => {
       return;
     }
 
-    if (novaSenha.length < 6) {
-      setError('A nova senha deve possuir no mínimo 6 caracteres.');
+    if (novaSenha.length < 8) {
+      setError('A nova senha deve possuir no mínimo 8 caracteres.');
       return;
     }
 
@@ -257,7 +257,7 @@ const AlterarSenhaCard = ({ user, onSuccess }) => {
                       setNovaSenha(e.target.value);
                       if (error) setError('');
                     }}
-                    placeholder="Digite a nova senha (mínimo 6 caracteres)"
+                    placeholder="Digite a nova senha (mínimo 8 caracteres)"
                     autoComplete="new-password"
                     disabled={isSubmitting}
                   />
