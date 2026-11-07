@@ -174,6 +174,7 @@ const NovoPedidoModal = ({
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    let solicitanteId = null;
     let solicitanteNome = '';
     let solicitanteSetor = '';
 
@@ -190,6 +191,7 @@ const NovoPedidoModal = ({
         setErro('Selecione um solicitante.');
         return;
       }
+      solicitanteId = u.id;
       solicitanteNome = u.nome;
       solicitanteSetor = u.setor || 'Geral';
     }
@@ -206,6 +208,7 @@ const NovoPedidoModal = ({
 
     const payload = {
       ...(initialData?.id ? { id: initialData.id } : { id: Date.now() }),
+      solicitanteId,
       usuario: solicitanteNome,
       setor: solicitanteSetor,
       data: initialData?.data || new Date().toLocaleDateString('pt-BR'),

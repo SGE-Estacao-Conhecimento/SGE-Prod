@@ -548,8 +548,10 @@ const AlmoxarifeEstoque = ({
         return;
       }
     }
-    // 1. Atualizar materiais com a nova quantidade em estoque
-    setMateriais((prevMateriais) => {
+    // 1. Atualizar materiais com a nova quantidade em estoque.
+    // Com persistência (onCriarRemessa), o saldo já foi gravado e o pai recarrega `materiais`
+    // via props; somar aqui de novo duplicaria a entrada.
+    if (!onCriarRemessa) setMateriais((prevMateriais) => {
       const novos = prevMateriais.map((mat) => {
         const itemRemessa = novaRemessa.itens.find((i) => i.materialId === mat.id);
         if (itemRemessa) {
