@@ -24,4 +24,9 @@ public sealed class MateriaisController(MaterialRepository repo, MaterialService
     [HttpPut("{id:int}")]
     [Authorize(Roles = Perfis.Equipe)]
     public Task<MaterialDto> Editar(int id, SalvarMaterialRequest req) => service.EditarAsync(id, req);
+
+    /// <summary>"Excluir material": retira do catálogo, preservando o histórico. Somente administração.</summary>
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = Perfis.Admin)]
+    public Task<MaterialDto> Remover(int id) => service.RemoverAsync(id);
 }

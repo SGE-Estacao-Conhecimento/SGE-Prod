@@ -7,7 +7,7 @@ namespace Sge.Api.Auth;
 /// </summary>
 public sealed class PasswordService
 {
-    public const int TamanhoMinimo = 6; // mesma regra da tela "Alterar senha"
+    public const int TamanhoMinimo = 8; // decisão de 07/11/2026: mesmo mínimo no cadastro, na edição e na troca de senha
     public const int TamanhoMaximo = 128;
 
     private static readonly object Dono = new();

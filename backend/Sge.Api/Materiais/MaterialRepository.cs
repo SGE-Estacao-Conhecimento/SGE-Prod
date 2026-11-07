@@ -55,6 +55,12 @@ public sealed class MaterialRepository(DbConnectionFactory db) : RepositorioBase
             """, new { produtoId, m.Codigo, m.Nome, m.Categoria, m.Unidade, m.Localizacao, m.Descricao,
                        m.PermiteFracao, m.BemDuravel, m.EstoqueMinimo }, t.Tx) > 0;
 
+    /// <summary>Retira o material do catálogo sem apagar o histórico. Devolve se o material existe.</summary>
+    public async Task<bool> DesativarAsync(Transacao t, int produtoId) =>
+        await t.Conexao.ExecuteAsync("UPDATE produtos SET ativo = FALSE WHERE produto_id = @produtoId",
+            new { produtoId }, t.Tx) > 0 || await t.Conexao.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM produtos WHERE produto_id = @produtoId", new { produtoId }, t.Tx) > 0;
+
     private static MaterialDto Normalizar(MaterialDto m)
     {
         m.Quantidade = Numeros.Normalizar(m.Quantidade);

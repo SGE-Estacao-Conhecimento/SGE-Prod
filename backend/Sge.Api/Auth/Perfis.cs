@@ -23,6 +23,15 @@ public static class Perfis
         Almoxarifado => "almoxarife",
         _ => "usuario"
     };
+
+    /// <summary>Perfil enviado pelo front (vocabulário do front, rótulo da tela ou valor do banco) para o valor do banco.</summary>
+    public static string? DoFront(string? perfil) => (perfil ?? string.Empty).Trim().ToLowerInvariant() switch
+    {
+        "admin" or "administrativo" => Admin,
+        "almoxarife" or "almoxarifado" => Almoxarifado,
+        "usuario" or "usuário" or "funcionario" => Funcionario,
+        _ => null
+    };
 }
 
 /// <summary>Dados do usuário autenticado extraídos do token.</summary>

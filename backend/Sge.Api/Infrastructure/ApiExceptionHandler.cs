@@ -22,6 +22,9 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
             MySqlException { Number: 1644 } sql => (422, new ErrorResponse(sql.Message)),
             MySqlException { ErrorCode: MySqlErrorCode.DuplicateKeyEntry } =>
                 (409, new ErrorResponse("Já existe um registro com estes dados.")),
+            // Travamento entre operações simultâneas (deadlock/tempo de espera): o banco desfez a transação.
+            MySqlException { Number: 1213 or 1205 } =>
+                (409, new ErrorResponse("Outra operação estava alterando os mesmos dados. Tente novamente.")),
             MySqlException { Number: 3819 } =>
                 (422, new ErrorResponse("Os dados informados violam uma regra de integridade do banco.")),
             MySqlException { ErrorCode: MySqlErrorCode.RowIsReferenced2 or MySqlErrorCode.NoReferencedRow2 } =>

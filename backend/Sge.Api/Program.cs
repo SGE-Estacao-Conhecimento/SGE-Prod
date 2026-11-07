@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Sge.Api.Auth;
+using Sge.Api.Dashboard;
 using Sge.Api.DevSeed;
 using Sge.Api.Estoque;
 using Sge.Api.Favoritos;
@@ -16,6 +17,7 @@ using Sge.Api.Materiais;
 using Sge.Api.Notificacoes;
 using Sge.Api.Pedidos;
 using Sge.Api.Remessas;
+using Sge.Api.Setores;
 using Sge.Api.Usuarios;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -56,6 +58,9 @@ builder.Services.AddScoped<EstoqueRepository>();
 builder.Services.AddScoped<MovimentacaoService>();
 builder.Services.AddScoped<AtendimentoPedidoService>();
 builder.Services.AddScoped<UsuarioRepository>();
+builder.Services.AddScoped<UsuarioService>();
+builder.Services.AddScoped<SetorRepository>();
+builder.Services.AddScoped<DashboardRepository>();
 builder.Services.AddScoped<RemessaRepository>();
 if (armazenamento is not null)
 {

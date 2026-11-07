@@ -8,7 +8,7 @@ public sealed class UsuarioAutenticacao
     public int UsuarioId { get; set; }
     public int FuncionarioId { get; set; }
     public string Nome { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
     public string SenhaHash { get; set; } = string.Empty;
     public string Perfil { get; set; } = string.Empty;
     public bool Ativo { get; set; }

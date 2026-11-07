@@ -5,14 +5,32 @@ using Sge.Api.Auth;
 namespace Sge.Api.Usuarios;
 
 /// <summary>
-/// Somente leitura: o almoxarifado usa a lista para registrar pedidos em nome de outra pessoa
-/// e consultar o contato do solicitante. Cadastro e edição ficam no Módulo Administração.
+/// Leitura para a equipe (o almoxarifado escolhe o solicitante; sem CPF).
+/// Cadastro, edição, status e exclusão são exclusivos da administração.
 /// </summary>
 [ApiController]
 [Route("api/usuarios")]
 [Authorize(Roles = Perfis.Equipe)]
-public sealed class UsuariosController(UsuarioRepository repo) : ControllerBase
+public sealed class UsuariosController(UsuarioService service) : ControllerBase
 {
     [HttpGet]
-    public Task<IReadOnlyList<UsuarioDto>> Listar() => repo.ListarAsync();
+    public Task<IReadOnlyList<UsuarioDto>> Listar() => service.ListarAsync(User);
+
+    [HttpPost]
+    [Authorize(Roles = Perfis.Admin)]
+    public async Task<ActionResult<UsuarioDto>> Criar(SalvarUsuarioRequest req) =>
+        StatusCode(StatusCodes.Status201Created, await service.CriarAsync(req));
+
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = Perfis.Admin)]
+    public Task<UsuarioDto> Editar(int id, SalvarUsuarioRequest req) => service.EditarAsync(id, req);
+
+    [HttpPatch("{id:int}/status")]
+    [Authorize(Roles = Perfis.Admin)]
+    public Task<UsuarioDto> AlternarStatus(int id) => service.AlternarStatusAsync(id);
+
+    /// <summary>"Excluir usuário": desativa a conta, preservando o histórico.</summary>
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = Perfis.Admin)]
+    public Task<UsuarioDto> Remover(int id) => service.RemoverAsync(id);
 }

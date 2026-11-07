@@ -56,6 +56,20 @@ public sealed class MaterialService(DbConnectionFactory db, MaterialRepository m
         return editado!;
     }
 
+    /// <summary>
+    /// "Excluir material" da administração: retira do catálogo (desativa). Pedidos, recebimentos e
+    /// movimentações continuam no histórico (decisão de 07/11/2026; o banco não permite apagá-los).
+    /// </summary>
+    public async Task<MaterialDto> RemoverAsync(int produtoId)
+    {
+        await using var t = await Transacao.IniciarAsync(db);
+        if (!await materiais.DesativarAsync(t, produtoId))
+            throw ApiException.NotFound("Material não encontrado.");
+        var removido = await materiais.ObterAsync(t, produtoId);
+        await t.ConfirmarAsync();
+        return removido!;
+    }
+
     private static MaterialRepository.DadosMaterial Validar(
         SalvarMaterialRequest req, string? codigoAtual, bool bemDuravelAtual, bool permiteFracaoAtual)
     {

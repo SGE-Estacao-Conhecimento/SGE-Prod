@@ -19,7 +19,9 @@ backend/Sge.Api/
   Favoritos/            Favoritos do usuário
   Pedidos/              Pedidos do usuário e atendimento pelo almoxarifado (entrega com baixa)
   Remessas/             Recebimento em lote e doações, com fotos obrigatórias
-  Usuarios/             Lista de usuários (somente leitura para a equipe)
+  Usuarios/             Lista de usuários; cadastro, edição, status e exclusão (administração)
+  Setores/              Setores ativos para o cadastro de usuários
+  Dashboard/            Indicadores da tela inicial da administração
   Notificacoes/         Avisos derivados do histórico de pedidos (pedido_logs)
   DevSeed/              Carga de dados de teste (somente desenvolvimento)
 ```
@@ -103,6 +105,26 @@ Para o front usar a API, crie `frontend/.env` com `VITE_API_BASE_URL=http://loca
 | GET | `/api/remessas/{id}/fotos/{anexoId}` | equipe | Exibe a foto (transmitida pela API) |
 | GET | `/api/usuarios` | equipe | Lista de usuários, somente leitura (sem CPF) |
 
-Bancos criados antes de 07/11/2026 precisam do script `database/alteracoes/2026-11-07_produtos_bem_duravel.sql`.
+## Endpoints implementados (Módulo 3 - Administração)
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| GET | `/api/usuarios` | equipe | Lista de usuários; o CPF só é enviado à administração |
+| POST | `/api/usuarios` | admin | Cadastro (CPF obrigatório, e-mail opcional, senha com 8 caracteres ou mais) |
+| PUT | `/api/usuarios/{id}` | admin | Edição; senha em branco mantém a atual |
+| PATCH | `/api/usuarios/{id}/status` | admin | Ativa ou desativa a conta |
+| DELETE | `/api/usuarios/{id}` | admin | "Excluir": desativa a conta, preservando o histórico |
+| DELETE | `/api/materiais/{id}` | admin | "Excluir": retira o material do catálogo, preservando o histórico |
+| GET | `/api/setores` | equipe | Setores ativos |
+| GET | `/api/dashboard` | admin | Indicadores da tela inicial |
+
+O sistema recusa (409) qualquer alteração que deixe nenhum administrador ativo.
+
+## Scripts para bancos existentes
+
+Bancos criados antes de 07/11/2026 precisam, nesta ordem, de:
+
+1. `database/alteracoes/2026-11-07_produtos_bem_duravel.sql`
+2. `database/alteracoes/2026-11-07_usuarios_email_opcional.sql`
 
 Erros seguem sempre o formato `{ "message": "...", "errors": { ... } }`.

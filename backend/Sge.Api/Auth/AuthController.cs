@@ -10,7 +10,7 @@ namespace Sge.Api.Auth;
 public sealed record LoginRequest(string? Email, string? Senha, bool Lembrar = false);
 
 public sealed record LoginResponse(
-    int Id, string Nome, string Email, string Identifier, string Role, string Setor, string Token, DateTime ExpiraEm);
+    int Id, string Nome, string? Email, string Identifier, string Role, string Setor, string Token, DateTime ExpiraEm);
 
 public sealed record AlterarSenhaRequest(string? SenhaAtual, string? NovaSenha);
 
@@ -54,7 +54,8 @@ public sealed class AuthController(AuthRepository repo, PasswordService senhas, 
         await repo.RegistrarLoginAsync(usuario.UsuarioId);
         var (token, expiraEm) = tokens.Gerar(usuario, req.Lembrar);
 
-        return new LoginResponse(usuario.UsuarioId, usuario.Nome, usuario.Email, usuario.Email,
+        // Sem e-mail (opcional), a tela identifica o usuário pelo nome.
+        return new LoginResponse(usuario.UsuarioId, usuario.Nome, usuario.Email, usuario.Email ?? usuario.Nome,
             Perfis.ParaFront(usuario.Perfil), usuario.Setor, token, expiraEm);
     }
 
