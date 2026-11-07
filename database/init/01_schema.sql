@@ -41,6 +41,8 @@ CREATE TABLE produtos (
     localizacao VARCHAR(150) NULL,
     descricao VARCHAR(500) NULL,
     permite_fracao BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Bem durável/patrimônio (aba "Bens Duráveis" do almoxarifado): entregue sem baixa de saldo.
+    bem_duravel BOOLEAN NOT NULL DEFAULT FALSE,
     quantidade DECIMAL(15,3) NOT NULL DEFAULT 0,
     quantidade_minima DECIMAL(15,3) NOT NULL DEFAULT 0,
     ativo BOOLEAN NOT NULL DEFAULT TRUE,
