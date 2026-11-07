@@ -39,6 +39,12 @@ export const criarPedido = (pedido) => {
     body: JSON.stringify({
       urgencia: mapUrgencia(pedido),
       justificativa: pedido.justificativa || null,
+      // Solicitante escolhido no NovoPedidoModal (admin/almoxarife registrando em nome de outra pessoa).
+      // Ausente quando o próprio usuário logado faz o pedido (o back-end usa o usuário autenticado).
+      // solicitanteId é o id de /api/usuarios; nome/setor seguem para exibição no modo standalone.
+      solicitanteId: pedido.solicitanteId ?? undefined,
+      usuario: pedido.usuario || undefined,
+      setor: pedido.setor || undefined,
       itens
     })
   });

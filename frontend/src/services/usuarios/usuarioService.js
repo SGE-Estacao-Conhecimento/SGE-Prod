@@ -16,16 +16,22 @@ const normalizarUsuario = (usuario) => ({
 export const listarUsuarios = async () =>
   (await request('/api/usuarios')).map(normalizarUsuario);
 
+// Contrato da API usa o vocabulário de papéis do front ('admin' | 'almoxarife' | 'usuario').
+// A tradução para o ENUM do banco ('almoxarifado' | 'funcionario') é responsabilidade do back-end;
+// na leitura, roleParaPerfil já aceita os dois formatos.
 const perfilParaRole = (perfil) => ({
   Administrativo: 'admin',
   Almoxarifado: 'almoxarife',
   Usuário: 'usuario'
 }[perfil] || perfil);
 
+const somenteDigitos = (valor) => (valor ? String(valor).replace(/\D/g, '') : null) || null;
+
 export const criarUsuario = async (usuario) => normalizarUsuario(await request('/api/usuarios', {
   method: 'POST',
   body: JSON.stringify({
     nome: usuario.nome,
+    cpf: somenteDigitos(usuario.cpf),
     email: usuario.email,
     senha: usuario.senha,
     perfil: perfilParaRole(usuario.perfil),
@@ -38,6 +44,7 @@ export const editarUsuario = async (usuario) => normalizarUsuario(await request(
   method: 'PUT',
   body: JSON.stringify({
     nome: usuario.nome,
+    cpf: somenteDigitos(usuario.cpf),
     email: usuario.email,
     perfil: perfilParaRole(usuario.perfil),
     setor: usuario.setor,

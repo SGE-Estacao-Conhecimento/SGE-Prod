@@ -384,6 +384,7 @@ class MockDataStore {
     const novo = {
       id,
       nome: payload.nome,
+      cpf: payload.cpf || null,
       email: payload.email,
       perfil: payload.perfil || 'Usuário',
       setor: payload.setor || 'Geral',
@@ -581,13 +582,36 @@ class MockDataStore {
 
   async createRemessa(remessa) {
     const id = Math.max(0, ...this._remessas.map(r => Number(r.id) || 0)) + 1;
+    const numeroRemessa = remessa.numeroRemessa || `REM-${new Date().getFullYear()}-${String(id).padStart(3, '0')}`;
+
+    // O modal de recebimento envia um lote (itens[] com materialId/qtdRecebida), espelhando
+    // recebimentos + recebimento_itens do banco. O formato legado de item único continua aceito.
+    const itensBrutos = Array.isArray(remessa.itens) && remessa.itens.length > 0
+      ? remessa.itens
+      : [{ materialId: remessa.materialId, materialNome: remessa.materialNome, qtdRecebida: remessa.quantidade }];
+
+    const itens = itensBrutos
+      .map(it => {
+        const materialId = Number(it.materialId ?? it.produtoId);
+        const mat = this._materiais.find(m => Number(m.id) === materialId);
+        return {
+          materialId,
+          materialNome: it.materialNome || it.nome || mat?.nome || `Material #${materialId}`,
+          quantidade: Number(it.qtdRecebida ?? it.quantidade) || 0
+        };
+      })
+      .filter(it => it.materialId && it.quantidade > 0);
+
     const nova = {
       id,
-      numeroRemessa: remessa.numeroRemessa || `REM-${new Date().getFullYear()}-${String(id).padStart(3, '0')}`,
-      materialId: remessa.materialId,
-      materialNome: remessa.materialNome,
-      quantidade: Number(remessa.quantidade) || 0,
-      fornecedor: remessa.fornecedor || 'Fornecedor Externo',
+      numeroRemessa,
+      tipoOrigem: remessa.tipoOrigem || null,
+      documentoDoador: remessa.documentoDoador || '',
+      itens,
+      materialId: itens.length === 1 ? itens[0].materialId : undefined,
+      materialNome: itens.map(it => it.materialNome).join(', '),
+      quantidade: itens.reduce((acc, it) => acc + it.quantidade, 0),
+      fornecedor: remessa.fornecedor || remessa.documentoDoador || 'Fornecedor Externo',
       destino: remessa.destino || 'Almoxarifado Central',
       dataEnvio: remessa.dataEnvio || new Date().toISOString().slice(0, 10),
       status: remessa.status || 'Concluído',
@@ -596,14 +620,14 @@ class MockDataStore {
     this._remessas = [nova, ...this._remessas];
     safeSet(STORAGE_KEYS.REMESSAS, this._remessas);
 
-    // Dando entrada no estoque do material
-    if (nova.materialId && nova.quantidade > 0) {
+    // Entrada no estoque de cada material do lote
+    for (const it of itens) {
       await this.registrarMovimentacao({
-        produtoId: nova.materialId,
-        produtoNome: nova.materialNome,
+        produtoId: it.materialId,
+        produtoNome: it.materialNome,
         tipo: 'entrada',
-        quantidade: nova.quantidade,
-        observacao: `Remessa ${nova.numeroRemessa} recebida`
+        quantidade: it.quantidade,
+        observacao: `Remessa ${numeroRemessa} recebida`
       });
     }
 
@@ -632,14 +656,20 @@ class MockDataStore {
         : 'admin';
 
     // Se o email coincidir com algum dos usuários mock, assume os dados dele
-    const demoUser = this._usuarios.find(u =>
-      email && u.email.toLowerCase() === email.toLowerCase()
-    );
+    // Login aceita e-mail ou CPF (campo "E-mail ou CPF" da tela de login).
+    const identificador = String(email || '').trim().toLowerCase();
+    const cpfDigitos = identificador.replace(/\D/g, '');
+    const demoUser = identificador ? this._usuarios.find(u =>
+      (u.email && u.email.toLowerCase() === identificador) ||
+      (cpfDigitos.length === 11 && u.cpf && String(u.cpf).replace(/\D/g, '') === cpfDigitos)
+    ) : undefined;
 
+    // Perfil pode estar no rótulo da UI ('Almoxarifado') ou no valor do banco ('almoxarifado').
     let perfilFinal = normalizedRole;
     if (demoUser) {
-      if (demoUser.perfil === 'Almoxarifado') perfilFinal = 'almoxarife';
-      else if (demoUser.perfil === 'Administrativo') perfilFinal = 'admin';
+      const perfil = String(demoUser.perfil || '').toLowerCase();
+      if (perfil === 'almoxarifado' || perfil === 'almoxarife') perfilFinal = 'almoxarife';
+      else if (perfil === 'administrativo' || perfil === 'admin') perfilFinal = 'admin';
       else perfilFinal = 'usuario';
     }
 
