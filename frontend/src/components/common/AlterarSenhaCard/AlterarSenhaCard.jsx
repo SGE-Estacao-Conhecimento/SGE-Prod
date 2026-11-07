@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import ForgotPasswordModal from '../ForgotPasswordModal/ForgotPasswordModal';
 import useDialogAccessibility from '../useDialogAccessibility';
+import { alterarSenha } from '../../../services/api/authService';
 import './AlterarSenhaCard.css';
 
 /**
@@ -54,7 +55,7 @@ const AlterarSenhaCard = ({ user, onSuccess }) => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -83,17 +84,23 @@ const AlterarSenhaCard = ({ user, onSuccess }) => {
 
     setIsSubmitting(true);
 
-    // Modelo funcional sem validação estática travada (futuramente integrado à API)
-    setTimeout(() => {
+    // A API confere a senha atual; no modo standalone a chamada é simulada.
+    try {
+      await alterarSenha({ senhaAtual, novaSenha });
+    } catch (err) {
       setIsSubmitting(false);
-      setSenhaAtual('');
-      setNovaSenha('');
-      setConfirmeSenha('');
-      setError('');
-      setIsModalOpen(false);
-      setIsSuccessPopupOpen(true);
-      if (onSuccess) onSuccess();
-    }, 250);
+      setError(err?.message || 'Não foi possível alterar a senha. Tente novamente.');
+      return;
+    }
+
+    setIsSubmitting(false);
+    setSenhaAtual('');
+    setNovaSenha('');
+    setConfirmeSenha('');
+    setError('');
+    setIsModalOpen(false);
+    setIsSuccessPopupOpen(true);
+    if (onSuccess) onSuccess();
   };
 
   return (

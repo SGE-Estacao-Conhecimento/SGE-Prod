@@ -1,6 +1,11 @@
 import { mockStore } from './mockDataStore';
 
-export const API_BASE_URL = '';
+/**
+ * Endereço da API real. Vazio = modo standalone (dados simulados no navegador).
+ * Defina VITE_API_BASE_URL no .env do front (ex.: http://localhost:5170) para usar o back-end.
+ */
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+export const USA_API = API_BASE_URL !== '';
 
 export class ApiError extends Error {
   constructor(message, status = 0, details = null) {
@@ -21,12 +26,50 @@ export const clearStoredAuth = () => {
   sessionStorage.removeItem('sge_user');
 };
 
+const ROTAS_PUBLICAS = ['/api/auth/login', '/api/auth/logout', '/api/password-reset/request', '/api/password-reset/confirm'];
+
+/** Requisição HTTP para a API real, com token e erros no formato { message }. */
+const httpRequest = async (path, options = {}) => {
+  const token = localStorage.getItem('sge_token') || sessionStorage.getItem('sge_token');
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  let resposta;
+  try {
+    resposta = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  } catch {
+    throw new ApiError('Não foi possível conectar ao servidor. Verifique sua conexão.', 0);
+  }
+
+  const texto = await resposta.text();
+  let dados = null;
+  if (texto) {
+    try { dados = JSON.parse(texto); } catch { dados = null; }
+  }
+
+  if (!resposta.ok) {
+    // Sessão expirada ou inválida: volta para a tela de login.
+    if (resposta.status === 401 && !ROTAS_PUBLICAS.includes(path.split('?')[0])) {
+      clearStoredAuth();
+      window.location.reload();
+    }
+    throw new ApiError(dados?.message || `Erro ${resposta.status} ao comunicar com o servidor.`, resposta.status, dados?.errors || null);
+  }
+
+  return dados;
+};
+
+export const request = async (path, options = {}) => {
+  if (USA_API) return httpRequest(path, options);
+  return mockRequest(path, options);
+};
+
 /**
  * Cliente de requisição mock 100% autônomo (desacoplado de backend).
  * Garante que o frontend funcione perfeitamente em modo standalone
  * ao ser movido para qualquer outro repositório.
  */
-export const request = async (path, options = {}) => {
+const mockRequest = async (path, options = {}) => {
   const method = (options.method || 'GET').toUpperCase();
   const body = options.body ? JSON.parse(options.body) : {};
   const [pathname, search] = path.split('?');
@@ -41,6 +84,9 @@ export const request = async (path, options = {}) => {
   }
   if (pathname === '/api/auth/logout') {
     return mockStore.logout();
+  }
+  if (pathname === '/api/auth/alterar-senha') {
+    return null;
   }
   if (pathname === '/api/password-reset/request') {
     return { message: 'Instruções para redefinição enviadas para seu e-mail!' };

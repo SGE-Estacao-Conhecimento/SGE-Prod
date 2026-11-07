@@ -12,14 +12,17 @@ export const login = async ({ email, senha, rememberMe = false, role = 'admin' }
     body: JSON.stringify({ email, senha, lembrar: rememberMe, role })
   });
 
+  // O token devolvido pela API fica separado dos dados exibidos do usuário.
+  const { token, ...dadosUsuario } = usuario;
   const usuarioNormalizado = {
-    ...usuario,
+    ...dadosUsuario,
     role: normalizeRole(usuario.role || role),
     identifier: usuario.email || usuario.identifier || email,
     rememberMe
   };
 
   const storage = rememberMe ? localStorage : sessionStorage;
+  if (token) storage.setItem('sge_token', token);
   storage.setItem('sge_user', JSON.stringify(usuarioNormalizado));
   return usuarioNormalizado;
 };
@@ -31,6 +34,10 @@ export const getStoredUser = () => {
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
 };
+
+export const alterarSenha = ({ senhaAtual, novaSenha }) => request('/api/auth/alterar-senha', {
+  method: 'POST', body: JSON.stringify({ senhaAtual, novaSenha })
+});
 
 export const solicitarRedefinicao = (email) => request('/api/password-reset/request', {
   method: 'POST', body: JSON.stringify({ email })
