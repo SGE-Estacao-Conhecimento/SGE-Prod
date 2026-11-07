@@ -185,3 +185,8 @@ Resolvidos no Módulo 2 (por necessidade do próprio módulo):
 | 07/11/2026 | Na entrega do pedido, quem retirou é registrado como o próprio solicitante (a tela não pergunta). |
 | 07/11/2026 | Coluna `produtos.bem_duravel`: bens duráveis são entregues sem baixa de saldo. |
 | 07/11/2026 | A baixa de estoque da entrega passou do front para a API, na mesma transação da mudança de situação (exigência de `movimentacoes_estoque`, que vincula a saída ao item do pedido). |
+| 07/11/2026 | E-mail do usuário opcional (`usuarios.email` aceita vazio e continua único); quem não tem e-mail entra pelo CPF. |
+| 07/11/2026 | "Excluir" usuário ou material = desativar. O histórico (pedidos, movimentações, recebimentos) nunca é apagado. |
+| 07/11/2026 | O sistema não pode ficar sem administrador ativo: desativar, excluir ou trocar o perfil do último administrador é recusado. |
+| 07/11/2026 | Senha com no mínimo 8 caracteres no cadastro, na edição e na troca de senha. |
+| 07/11/2026 | Operações que bloqueiam vários registros o fazem sempre na mesma ordem (ex.: administradores ativos antes do usuário alterado), para evitar travamento entre operações simultâneas. |
