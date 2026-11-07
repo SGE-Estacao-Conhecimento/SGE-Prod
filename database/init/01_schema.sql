@@ -23,7 +23,8 @@ CREATE TABLE funcionarios (
 CREATE TABLE usuarios (
     usuario_id INT AUTO_INCREMENT PRIMARY KEY,
     funcionario_id INT NOT NULL UNIQUE,
-    email VARCHAR(150) NOT NULL UNIQUE,
+    -- E-mail opcional (tela de cadastro); quem não tiver entra pelo CPF. Único quando preenchido.
+    email VARCHAR(150) NULL UNIQUE,
     senha_hash VARCHAR(255) NOT NULL,
     perfil ENUM('admin','almoxarifado','funcionario') NOT NULL DEFAULT 'funcionario',
     ultimo_login TIMESTAMP(6) NULL,
