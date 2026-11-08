@@ -354,14 +354,14 @@ function Start-AppProcesses([bool]$DatabaseRecreated = $false) {
     }
     $npmCmd = $npmCmdObj.Source
 
-    $dllPath = Join-Path $RepoRoot "backend\Sge.Api\bin\Debug\net10.0\Sge.Api.dll"
+    $dllPath = Join-Path $RepoRoot "backend\bin\Debug\net10.0\Sge.Api.dll"
     if (-not (Test-Path $dllPath)) {
         Write-Host "[SGE] Compilando Backend ASP.NET Core (primeira execucao, aguarde)..."
         $buildExit = 1
         for ($attempt = 1; $attempt -le 3; $attempt++) {
             $prevEAP = $ErrorActionPreference
             $ErrorActionPreference = 'Continue'
-            & dotnet build "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -c Debug -m:1 /nodeReuse:false --nologo -v quiet
+            & dotnet build "$RepoRoot\backend\Sge.Api.csproj" -c Debug -m:1 /nodeReuse:false --nologo -v quiet
             $buildExit = $LASTEXITCODE
             $ErrorActionPreference = $prevEAP
             if ($buildExit -eq 0 -or (Test-Path $dllPath)) {
@@ -403,19 +403,14 @@ function Start-AppProcesses([bool]$DatabaseRecreated = $false) {
     if (-not $apiConn) {
         Write-Host "[SGE] Iniciando Backend ASP.NET Core em 0.0.0.0:5170..."
         Start-Process -FilePath "dotnet" `
-<<<<<<< HEAD
-            -ArgumentList "run --project `"$RepoRoot\backend\Sge.Api.csproj`" --urls `"http://0.0.0.0:5170`"" `
+            -ArgumentList "run --no-build --project `"$RepoRoot\backend\Sge.Api.csproj`" --urls `"http://0.0.0.0:5170`"" `
             -WorkingDirectory "$RepoRoot\backend" `
-=======
-            -ArgumentList "run --no-build --project `"$RepoRoot\backend\Sge.Api\Sge.Api.csproj`" --urls `"http://0.0.0.0:5170`"" `
-            -WorkingDirectory "$RepoRoot\backend\Sge.Api" `
->>>>>>> local
             -WindowStyle Hidden
     } else {
         Write-Host "[SGE] Backend ASP.NET Core ja esta em execucao na porta 5170. Verificando usuario inicial 'admin'..."
         $prevEAP = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
-        & dotnet run --no-build --project "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -- seed-dev > $null 2>&1
+        & dotnet run --no-build --project "$RepoRoot\backend\Sge.Api.csproj" -- seed-dev > $null 2>&1
         $ErrorActionPreference = $prevEAP
     }
 
@@ -529,43 +524,23 @@ function Stop-AppProcesses {
     }
 }
 
-<<<<<<< HEAD
-switch ($Action) {
-    'status' {
-        Ensure-DockerRunning
-        Show-Status
-    }
-    'seed' {
-        Ensure-DockerRunning
-        Sync-BackendConfig
-        Write-Host "[SGE] Executando seeder de desenvolvimento..."
-        dotnet run --project "$RepoRoot\backend\Sge.Api.csproj" -- seed-dev
-    }
-    'stop' {
-        Stop-AppProcesses
-        docker info > $null 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "[SGE] Parando servicos Docker (volumes preservados)..."
-            docker compose stop
-=======
 try {
     switch ($Action) {
         'status' {
             Ensure-DockerRunning
             Show-Status
->>>>>>> local
         }
         'seed' {
             Ensure-DockerRunning
             Sync-BackendConfig
             Write-Host "[SGE] Garantindo usuario administrador inicial ('admin') de forma idempotente..."
-            $dllPath = Join-Path $RepoRoot "backend\Sge.Api\bin\Debug\net10.0\Sge.Api.dll"
+            $dllPath = Join-Path $RepoRoot "backend\bin\Debug\net10.0\Sge.Api.dll"
             $prevEAP = $ErrorActionPreference
             $ErrorActionPreference = 'Continue'
             if (Test-Path $dllPath) {
-                & dotnet run --no-build --project "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -- seed-dev
+                & dotnet run --no-build --project "$RepoRoot\backend\Sge.Api.csproj" -- seed-dev
             } else {
-                & dotnet run --project "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -- seed-dev
+                & dotnet run --project "$RepoRoot\backend\Sge.Api.csproj" -- seed-dev
             }
             $seedExit = $LASTEXITCODE
             $ErrorActionPreference = $prevEAP
@@ -602,13 +577,13 @@ try {
                 Start-Sleep -Seconds 2
             }
             Write-Host "[SGE] Limpando banco de dados local e recriando exclusivamente o usuario 'admin'..."
-            $dllPath = Join-Path $RepoRoot "backend\Sge.Api\bin\Debug\net10.0\Sge.Api.dll"
+            $dllPath = Join-Path $RepoRoot "backend\bin\Debug\net10.0\Sge.Api.dll"
             $prevEAP = $ErrorActionPreference
             $ErrorActionPreference = 'Continue'
             if (Test-Path $dllPath) {
-                & dotnet run --no-build --project "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -- reset-dev --confirm
+                & dotnet run --no-build --project "$RepoRoot\backend\Sge.Api.csproj" -- reset-dev --confirm
             } else {
-                & dotnet run --project "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -- reset-dev --confirm
+                & dotnet run --project "$RepoRoot\backend\Sge.Api.csproj" -- reset-dev --confirm
             }
             $resetExit = $LASTEXITCODE
             $ErrorActionPreference = $prevEAP
