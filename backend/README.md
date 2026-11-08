@@ -9,7 +9,7 @@ Padrões de arquitetura e organização: ver [`PADROES_DESENVOLVIMENTO.md`](../P
 ## Estrutura
 
 ```
-backend/Sge.Api/
+backend/
   Program.cs            Configuração: banco, autenticação, CORS, erros, limites de login
   Infrastructure/       Conexão, transação, erros, datas, números, RepositorioBase
     Armazenamento/      Fotos no MinIO: validação, SHA-256 e chave na base; envio pelo SDK S3
@@ -52,7 +52,7 @@ Usar a conta `sge_app` (sem permissão de alterar tabelas), nunca `root`.
 ## Como executar
 
 ```bash
-cd backend/Sge.Api
+cd backend
 dotnet run --launch-profile http        # API em http://localhost:5170
 ```
 
