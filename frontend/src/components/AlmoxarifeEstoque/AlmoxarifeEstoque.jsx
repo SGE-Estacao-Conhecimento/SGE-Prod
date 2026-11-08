@@ -144,184 +144,6 @@ export const normalizarMaterial = (item) => {
   };
 };
 
-// Dados demonstrativos com especificações detalhadas de almoxarifado
-const _MOCK_MATERIAIS_ALMOXARIFE = [
-  {
-    id: 1,
-    codigo: 'MAT-001',
-    nome: 'Papel Sulfite A4 75g',
-    categoria: 'Escritório',
-    unidade: 'Resma',
-    itensPorEmbalagem: 500,
-    quantidade: 48,
-    estoqueMinimo: 15,
-    descricao: 'Branco • Resma c/ 500 folhas • Gramatura 75g/m²',
-    complexo: 'Almoxarifado Central',
-    localizacao: 'Prat. 02'
-  },
-  {
-    id: 2,
-    codigo: 'MAT-002',
-    nome: 'Caneta Esferográfica Azul',
-    categoria: 'Escritório',
-    unidade: 'CX',
-    itensPorEmbalagem: 50,
-    quantidade: 12,
-    estoqueMinimo: 20,
-    descricao: 'Ponta Média 1.0mm • Caixa com 50 unidades',
-    complexo: 'Almoxarifado Central',
-    localizacao: 'Corredor 1 • Gaveteiro A-03'
-  },
-  {
-    id: 3,
-    codigo: 'MAT-003',
-    nome: 'Marcador para Quadro Branco',
-    categoria: 'Material Didático',
-    unidade: 'UN',
-    quantidade: 8,
-    estoqueMinimo: 15,
-    descricao: 'Azul e Preto • Ponta Redonda Recarregável',
-    complexo: 'Complexo Educacional',
-    localizacao: 'Armário Didático B • Prat. 01'
-  },
-  {
-    id: 4,
-    codigo: 'MAT-004',
-    nome: 'Álcool em Gel 70% 500ml',
-    categoria: 'Limpeza e Higiene',
-    unidade: 'Frasco',
-    quantidade: 22,
-    estoqueMinimo: 10,
-    descricao: 'Higienização das mãos • Bico dosador pump',
-    complexo: 'Depósito de Limpeza',
-    locacao: 'Box Químicos',
-    localizacao: 'Prateleira C',
-    dataValidade: '2027-12-31'
-  },
-  {
-    id: 5,
-    codigo: 'MAT-005',
-    nome: 'Grampeador Metálico de Mesa',
-    categoria: 'Escritório',
-    unidade: 'UN',
-    quantidade: 4,
-    estoqueMinimo: 6,
-    descricao: 'Estrutura metálica • Compatível com grampos 26/6',
-    complexo: 'Almoxarifado Central',
-    localizacao: 'Armário A • Gaveta 04',
-    bemDuravel: true
-  },
-  {
-    id: 6,
-    codigo: 'MAT-006',
-    nome: 'Fita Adesiva Transparente Larga',
-    categoria: 'Escritório',
-    unidade: 'Rolo',
-    quantidade: 0,
-    estoqueMinimo: 12,
-    descricao: '45mm x 50 metros • Embalagem e reforço',
-    complexo: 'Almoxarifado Central',
-    localizacao: 'Corredor 2 • Caixa Fitas',
-    bemDuravel: false
-  },
-  {
-    id: 7,
-    codigo: 'MAT-007',
-    nome: 'Cabo HDMI 2.0 Blindado 2m',
-    categoria: 'Informática / TI',
-    unidade: 'UN',
-    quantidade: 5,
-    estoqueMinimo: 4,
-    descricao: 'Alta velocidade 4K Ultra HD • Pontas banhadas a ouro',
-    complexo: 'Complexo Administrativo',
-    localizacao: 'Bancada TI • Gaveteiro 02',
-    bemDuravel: true
-  },
-  {
-    id: 8,
-    codigo: 'MAT-008',
-    nome: 'Apagador para Quadro Branco',
-    categoria: 'Material Didático',
-    unidade: 'UN',
-    quantidade: 0,
-    estoqueMinimo: 8,
-    descricao: 'Base magnética e feltro de alta densidade',
-    complexo: 'Complexo Educacional',
-    localizacao: 'Armário Didático B • Prat. 02',
-    bemDuravel: false
-  },
-  {
-    id: 9,
-    codigo: 'MAT-009',
-    nome: 'Grampos 26/6 Galvanizados',
-    categoria: 'Escritório',
-    unidade: 'CX',
-    itensPorEmbalagem: 5000,
-    quantidade: 16,
-    estoqueMinimo: 12,
-    descricao: 'Caixa com 5.000 unidades • Tratamento antiferrugem',
-    complexo: 'Almoxarifado Central',
-    localizacao: 'Armário A • Gaveta 04',
-    bemDuravel: false
-  },
-  {
-    id: 10,
-    codigo: 'MAT-010',
-    nome: 'Detergente Neutro Concentrado 5L',
-    categoria: 'Limpeza e Higiene',
-    unidade: 'Galão',
-    quantidade: 3,
-    estoqueMinimo: 4,
-    descricao: 'Biodegradável • Uso institucional',
-    complexo: 'Depósito de Limpeza',
-    localizacao: 'Piso Pallet 01',
-    bemDuravel: false
-  },
-  {
-    id: 11,
-    codigo: 'MAT-011',
-    nome: 'Protetor Solar FPS 50 120ml',
-    categoria: 'Limpeza e Higiene',
-    unidade: 'Frasco',
-    quantidade: 18,
-    estoqueMinimo: 8,
-    descricao: 'Uso ocupacional • Proteção UVA/UVB resistente à água',
-    complexo: 'Almoxarifado Central',
-    locacao: 'Nicho Farmácia',
-    localizacao: 'Prat. 01',
-    dataValidade: '2027-10-30',
-    bemDuravel: false
-  },
-  {
-    id: 12,
-    codigo: 'PAT-001',
-    nome: 'Projetor Multimídia Epson',
-    categoria: 'Informática / TI',
-    unidade: 'UN',
-    quantidade: 3,
-    estoqueMinimo: 1,
-    descricao: 'Projetor 3600 Lumens • Patrimônio Institucional',
-    complexo: 'Complexo Educacional',
-    locacao: 'Rack Audiovisual',
-    localizacao: 'Armário AV - Prat 1',
-    bemDuravel: true
-  },
-  {
-    id: 13,
-    codigo: 'PAT-002',
-    nome: 'Furadeira de Impacto Bosch',
-    categoria: 'Manutenção',
-    unidade: 'UN',
-    quantidade: 2,
-    estoqueMinimo: 1,
-    descricao: 'Furadeira 650W • Ferramenta permanente de manutenção',
-    complexo: 'Galpão de Manutenção',
-    locacao: 'Bancada Manutenção',
-    localizacao: 'Painel de Ferramentas',
-    bemDuravel: true
-  }
-];
-
 // Configuração dos 3 modos de ordenação operacional em loop
 const OPCOES_ORDENACAO_ALMOXARIFE = [
   { id: 'menor_estoque', label: 'Menor estoque' },
@@ -369,25 +191,6 @@ export const calcularStatusReposicao = (quantidade, estoqueMinimo) => {
     bg: '#ECFDF5',
     pontoCor: '#10B981'
   };
-};
-
-// Histórico inicial demonstrativo para rastreabilidade de materiais
-const _MOCK_HISTORICOS_INICIAIS = {
-  1: [
-    { id: 'h1-1', tipo: 'entrada', qtd: 20, data: 'Hoje, 09:30', responsavel: 'Almoxarife', motivo: 'Recebimento NF 1045 - Kalunga' },
-    { id: 'h1-2', tipo: 'saida', qtd: 4, data: 'Ontem, 16:15', responsavel: 'Prof. Carlos', motivo: 'Atendimento do Pedido #101' },
-    { id: 'h1-3', tipo: 'ajuste', qtd: 32, data: '22/09/2026', responsavel: 'Almoxarife', motivo: 'Balanço mensal de inventário físico' }
-  ],
-  2: [
-    { id: 'h2-1', tipo: 'saida', qtd: 2, data: 'Hoje, 08:20', responsavel: 'Coordenação', motivo: 'Consumo interno salas de aula' },
-    { id: 'h2-2', tipo: 'entrada', qtd: 10, data: '25/09/2026', responsavel: 'Almoxarife', motivo: 'Reposição quinzenal de estoque' }
-  ],
-  3: [
-    { id: 'h3-1', tipo: 'saida', qtd: 4, data: 'Ontem, 11:00', responsavel: 'Monitoria', motivo: 'Distribuição para salas do Bloco B' }
-  ],
-  4: [
-    { id: 'h4-1', tipo: 'entrada', qtd: 15, data: '26/09/2026', responsavel: 'Almoxarife', motivo: 'Compra emergencial de álcool em gel' }
-  ]
 };
 
 const AlmoxarifeEstoque = ({
@@ -526,7 +329,7 @@ const AlmoxarifeEstoque = ({
   const [remessasHistorico, setRemessasHistorico] = useState(remessasExternas);
 
   useEffect(() => {
-    if (remessasExternas.length > 0) setRemessasHistorico(remessasExternas);
+    if (Array.isArray(remessasExternas)) setRemessasHistorico(remessasExternas);
   }, [remessasExternas]);
 
   // Confirmação de recebimento em lote
@@ -633,7 +436,7 @@ const AlmoxarifeEstoque = ({
 
   // Sincroniza se vierem novas props do backend
   useEffect(() => {
-    if (materiaisProp && materiaisProp.length > 0) {
+    if (Array.isArray(materiaisProp)) {
       setMateriais(materiaisProp.map(normalizarMaterial));
     }
   }, [materiaisProp]);

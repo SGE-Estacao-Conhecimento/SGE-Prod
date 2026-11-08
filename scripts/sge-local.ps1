@@ -1,7 +1,10 @@
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('start', 'stop', 'restart', 'status', 'seed')]
-    [string]$Action = 'status'
+    [ValidateSet('start', 'stop', 'restart', 'status', 'seed', 'reset')]
+    [string]$Action = 'status',
+
+    [Parameter()]
+    [switch]$Force
 )
 
 $ErrorActionPreference = 'Stop'
@@ -265,8 +268,48 @@ switch ($Action) {
     'seed' {
         Ensure-DockerRunning
         Sync-BackendConfig
-        Write-Host "[SGE] Executando seeder de desenvolvimento..."
-        dotnet run --project "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -- seed-dev
+        Write-Host "[SGE] Garantindo usuario administrador inicial ('admin') de forma idempotente..."
+        $dllPath = Join-Path $RepoRoot "backend\Sge.Api\bin\Debug\net10.0\Sge.Api.dll"
+        if (Test-Path $dllPath) {
+            dotnet run --no-build --project "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -- seed-dev
+        } else {
+            dotnet run --project "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -- seed-dev
+        }
+    }
+    'reset' {
+        Ensure-DockerRunning
+        Sync-BackendConfig
+        if ($env:ASPNETCORE_ENVIRONMENT -ne 'Development') {
+            throw "O comando reset funciona exclusivamente em ambiente de desenvolvimento local (ASPNETCORE_ENVIRONMENT=Development)."
+        }
+        if (-not $Force) {
+            Write-Warning "ATENCAO: Esta operacao apagara TODOS os dados do banco local (sge) e TODOS os objetos do bucket local MinIO (sge-documentos), mantendo apenas o usuario 'admin'."
+            $confirm = Read-Host "Digite 'SIM' para confirmar a execucao"
+            if ($confirm -cne 'SIM') {
+                Write-Host "[SGE] Operacao de reset cancelada pelo usuario."
+                return
+            }
+        }
+        Write-Host "[SGE] Garantindo que MySQL e MinIO locais estao ativos..."
+        docker compose up -d db minio > $null
+        for ($i = 1; $i -le 30; $i++) {
+            $status = docker inspect --format "{{.State.Health.Status}}" sge-db-1 2>$null
+            if ($status -eq "healthy") { break }
+            Start-Sleep -Seconds 2
+        }
+        Write-Host "[SGE] Limpando banco de dados local e recriando exclusivamente o usuario 'admin'..."
+        $dllPath = Join-Path $RepoRoot "backend\Sge.Api\bin\Debug\net10.0\Sge.Api.dll"
+        if (Test-Path $dllPath) {
+            dotnet run --no-build --project "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -- reset-dev --confirm
+        } else {
+            dotnet run --project "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -- reset-dev --confirm
+        }
+        if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao executar reset-dev no banco de dados local."
+        }
+        Write-Host "[SGE] Limpando todos os objetos do bucket local MinIO (sge-documentos)..."
+        docker compose run --rm --entrypoint /bin/sh minio-init -ec 'mc alias set sge http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null && mc rm --recursive --force sge/sge-documentos/ >/dev/null 2>&1 || true'
+        Write-Host "[SGE] Reset completo do ambiente local concluido com sucesso (apenas 'admin' cadastrado e bucket MinIO vazio)."
     }
     'stop' {
         Stop-AppProcesses

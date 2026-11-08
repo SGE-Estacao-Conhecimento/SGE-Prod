@@ -60,8 +60,15 @@ public sealed class RemessaService(
             }
         }
 
+        var funcionarioId = usuario.FuncionarioId();
+        if (funcionarioId <= 0)
+        {
+            funcionarioId = await remessas.ObterFuncionarioParaRecebimentoAsync(usuario.UsuarioId())
+                ?? throw new ApiException(422, "Cadastre um usuário ou funcionário vinculado a um setor para registrar o recebimento.");
+        }
+
         var id = await remessas.CriarAsync(new RemessaRepository.NovaRemessa(
-            operacao, tipoOrigem, origem, usuario.FuncionarioId(), usuario.UsuarioId(), observacao, itens));
+            operacao, tipoOrigem, origem, funcionarioId, usuario.UsuarioId(), observacao, itens));
         return ((await remessas.ObterAsync(id))!, true);
     }
 

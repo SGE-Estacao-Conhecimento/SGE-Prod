@@ -1,21 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './NovoUsuarioModal.css';
 import { useDialogAccessibility } from '../common';
+import { setorService } from '../../services/setores/setorService';
 
 const PERFIS = [
   { value: 'Administrativo', label: 'Administrativo (Acesso Total)' },
   { value: 'Almoxarifado', label: 'Almoxarifado (Estoque e Movimentações)' },
   { value: 'Usuário', label: 'Usuário (Consultas e Pedidos)' },
-];
-
-const SETORES_PADRAO = [
-  'Administração',
-  'Almoxarifado',
-  'Coordenação Pedagógica',
-  'Informática / TI',
-  'Serviços Gerais / Limpeza',
-  'Educação Física',
-  'Cozinha / Alimentação'
 ];
 
 const formatCPF = (val) => {
@@ -27,14 +18,30 @@ const formatCPF = (val) => {
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
 };
 
-const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores = [] }) => {
+const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores = [], onCriarSetor }) => {
   const dialogRef = useDialogAccessibility({ isOpen, onClose });
+  const [setoresLocais, setSetoresLocais] = useState([]);
+  const [novoSetorNome, setNovoSetorNome] = useState('');
+  const [criandoSetor, setCriandoSetor] = useState(false);
+
+  const listaSetores = useMemo(() => {
+    const combinados = new Set();
+    (setores || []).forEach(s => {
+      const nome = typeof s === 'string' ? s : s?.nome;
+      if (nome) combinados.add(nome);
+    });
+    setoresLocais.forEach(s => {
+      if (s) combinados.add(s);
+    });
+    return Array.from(combinados);
+  }, [setores, setoresLocais]);
+
   const [formData, setFormData] = useState({
     nome: '',
     cpf: '',
     email: '',
     perfil: 'Usuário',
-    setor: 'Administração',
+    setor: '',
     senha: '',
     ativo: true
   });
@@ -48,7 +55,7 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
         cpf: initialData.cpf ? formatCPF(initialData.cpf) : '',
         email: initialData.email || '',
         perfil: initialData.perfil || 'Usuário',
-        setor: initialData.setor || 'Administração',
+        setor: initialData.setor || listaSetores[0] || '',
         senha: '',
         ativo: initialData.ativo ?? true
       });
@@ -58,13 +65,20 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
         cpf: '',
         email: '',
         perfil: 'Usuário',
-        setor: 'Administração',
+        setor: listaSetores[0] || '',
         senha: '',
         ativo: true
       });
     }
+    setNovoSetorNome('');
     setErrors({});
   }, [initialData, isOpen]);
+
+  useEffect(() => {
+    if (!formData.setor && listaSetores.length > 0) {
+      setFormData(prev => ({ ...prev, setor: listaSetores[0] }));
+    }
+  }, [listaSetores, formData.setor]);
 
   if (!isOpen) return null;
 
@@ -79,6 +93,31 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
 
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const handleAdicionarSetor = async () => {
+    const nome = novoSetorNome.trim();
+    if (!nome) {
+      setErrors(prev => ({ ...prev, setor: 'Informe o nome do novo setor.' }));
+      return;
+    }
+    setCriandoSetor(true);
+    try {
+      const criarFn = onCriarSetor || setorService.criar;
+      const atualizados = await criarFn(nome);
+      if (Array.isArray(atualizados)) {
+        setSetoresLocais(atualizados.map(s => (typeof s === 'string' ? s : s.nome)));
+      } else {
+        setSetoresLocais(prev => [...prev, nome]);
+      }
+      setFormData(prev => ({ ...prev, setor: nome }));
+      setNovoSetorNome('');
+      setErrors(prev => ({ ...prev, setor: null }));
+    } catch (error) {
+      setErrors(prev => ({ ...prev, setor: error?.message || 'Não foi possível cadastrar o setor.' }));
+    } finally {
+      setCriandoSetor(false);
     }
   };
 
@@ -97,9 +136,14 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
       newErrors.cpf = 'CPF deve conter 11 dígitos';
     }
 
-    // E-mail agora é opcional: só valida formato se for preenchido
-    if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email.trim())) {
+    // E-mail opcional (ou identificador 'admin' do administrador inicial)
+    const emailTrim = formData.email.trim();
+    if (emailTrim && emailTrim.toLowerCase() !== 'admin' && !/\S+@\S+\.\S+/.test(emailTrim)) {
       newErrors.email = 'Informe um e-mail válido';
+    }
+
+    if (!formData.setor || !formData.setor.trim()) {
+      newErrors.setor = 'Cadastre e selecione um setor vinculado';
     }
 
     if (!initialData && !formData.senha) {
@@ -111,7 +155,6 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
       return;
     }
 
-    // Gerar iniciais para avatar
     const names = formData.nome.trim().split(' ');
     const inicial = names.length > 1
       ? `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase()
@@ -224,18 +267,42 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
 
             {/* Setor */}
             <div className="form-group">
-              <label className="form-label" htmlFor="user-sector">Setor Vinculado</label>
+              <label className="form-label" htmlFor="user-sector">Setor Vinculado *</label>
               <select
                 id="user-sector"
                 name="setor"
-                className="form-select"
+                className={`form-select ${errors.setor ? 'form-input--error' : ''}`}
                 value={formData.setor}
                 onChange={handleChange}
               >
-                {(setores.length > 0 ? setores.map(s => typeof s === 'string' ? s : s.nome) : SETORES_PADRAO).map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                {listaSetores.length === 0 ? (
+                  <option value="">Nenhum setor cadastrado</option>
+                ) : (
+                  listaSetores.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))
+                )}
               </select>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Cadastrar novo setor..."
+                  value={novoSetorNome}
+                  onChange={(e) => setNovoSetorNome(e.target.value)}
+                  aria-label="Nome do novo setor"
+                />
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
+                  style={{ whiteSpace: 'nowrap', padding: '0 12px' }}
+                  onClick={handleAdicionarSetor}
+                  disabled={criandoSetor}
+                >
+                  {criandoSetor ? '...' : '+ Setor'}
+                </button>
+              </div>
+              {errors.setor && <span className="form-error-msg" role="alert">{errors.setor}</span>}
             </div>
 
             {/* Senha */}

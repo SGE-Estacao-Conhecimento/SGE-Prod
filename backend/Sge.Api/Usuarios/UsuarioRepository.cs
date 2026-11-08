@@ -32,17 +32,24 @@ public sealed class UsuarioRepository(DbConnectionFactory db, AppClock relogio) 
     }
 
     private const string SelectUsuarios = """
-        SELECT u.usuario_id, f.nome, f.cpf, u.email, u.perfil, s.nome AS setor,
-               (u.ativo AND f.ativo) AS ativo, f.celular, u.data_criacao
+        SELECT u.usuario_id,
+               COALESCE(f.nome, 'Administrador') AS nome,
+               f.cpf,
+               u.email,
+               u.perfil,
+               COALESCE(s.nome, 'Administração') AS setor,
+               (u.ativo AND COALESCE(f.ativo, TRUE)) AS ativo,
+               f.celular,
+               u.data_criacao
           FROM usuarios u
-          JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
-          JOIN setores s ON s.setor_id = f.setor_id
+          LEFT JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
+          LEFT JOIN setores s ON s.setor_id = f.setor_id
         """;
 
     public async Task<IReadOnlyList<UsuarioDto>> ListarAsync()
     {
         await using var con = await AbrirAsync();
-        var linhas = await con.QueryAsync<UsuarioLinha>(SelectUsuarios + " ORDER BY f.nome");
+        var linhas = await con.QueryAsync<UsuarioLinha>(SelectUsuarios + " ORDER BY COALESCE(f.nome, 'Administrador')");
         return linhas.Select(Montar).ToList();
     }
 
@@ -56,8 +63,12 @@ public sealed class UsuarioRepository(DbConnectionFactory db, AppClock relogio) 
     /// <summary>Bloqueia o usuário para alteração. "Ativo" considera usuário e funcionário.</summary>
     public Task<UsuarioAtual?> BloquearAsync(Transacao t, int usuarioId) =>
         t.Conexao.QuerySingleOrDefaultAsync<UsuarioAtual>("""
-            SELECT u.usuario_id, u.funcionario_id, u.perfil, (u.ativo AND f.ativo) AS ativo
-              FROM usuarios u JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
+            SELECT u.usuario_id,
+                   COALESCE(u.funcionario_id, 0) AS funcionario_id,
+                   u.perfil,
+                   (u.ativo AND COALESCE(f.ativo, TRUE)) AS ativo
+              FROM usuarios u
+              LEFT JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
              WHERE u.usuario_id = @usuarioId
                FOR UPDATE
             """, new { usuarioId }, t.Tx);
@@ -69,8 +80,9 @@ public sealed class UsuarioRepository(DbConnectionFactory db, AppClock relogio) 
     public async Task<IReadOnlyList<int>> BloquearAdministradoresAtivosAsync(Transacao t) =>
         (await t.Conexao.QueryAsync<int>("""
             SELECT u.usuario_id
-              FROM usuarios u JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
-             WHERE u.perfil = 'admin' AND u.ativo = TRUE AND f.ativo = TRUE
+              FROM usuarios u
+              LEFT JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
+             WHERE u.perfil = 'admin' AND u.ativo = TRUE AND COALESCE(f.ativo, TRUE) = TRUE
              ORDER BY u.usuario_id
                FOR UPDATE
             """, transaction: t.Tx)).ToList();
@@ -106,13 +118,27 @@ public sealed class UsuarioRepository(DbConnectionFactory db, AppClock relogio) 
 
     public async Task AtualizarAsync(Transacao t, UsuarioAtual atual, DadosUsuario d)
     {
-        await t.Conexao.ExecuteAsync("""
-            UPDATE funcionarios SET nome = @Nome, setor_id = @SetorId, cpf = @Cpf, celular = @Celular, ativo = @Ativo
-             WHERE funcionario_id = @funcionarioId
-            """, new { d.Nome, d.SetorId, d.Cpf, d.Celular, d.Ativo, funcionarioId = atual.FuncionarioId }, t.Tx);
-        await t.Conexao.ExecuteAsync(
-            "UPDATE usuarios SET email = @Email, perfil = @Perfil, ativo = @Ativo WHERE usuario_id = @usuarioId",
-            new { d.Email, d.Perfil, d.Ativo, usuarioId = atual.UsuarioId }, t.Tx);
+        if (atual.FuncionarioId > 0)
+        {
+            await t.Conexao.ExecuteAsync("""
+                UPDATE funcionarios SET nome = @Nome, setor_id = @SetorId, cpf = @Cpf, celular = @Celular, ativo = @Ativo
+                 WHERE funcionario_id = @funcionarioId
+                """, new { d.Nome, d.SetorId, d.Cpf, d.Celular, d.Ativo, funcionarioId = atual.FuncionarioId }, t.Tx);
+            await t.Conexao.ExecuteAsync(
+                "UPDATE usuarios SET email = @Email, perfil = @Perfil, ativo = @Ativo WHERE usuario_id = @usuarioId",
+                new { d.Email, d.Perfil, d.Ativo, usuarioId = atual.UsuarioId }, t.Tx);
+        }
+        else
+        {
+            var funcionarioId = await t.Conexao.ExecuteScalarAsync<int>("""
+                INSERT INTO funcionarios (nome, setor_id, cpf, celular, ativo)
+                VALUES (@Nome, @SetorId, @Cpf, @Celular, @Ativo);
+                SELECT LAST_INSERT_ID();
+                """, d, t.Tx);
+            await t.Conexao.ExecuteAsync(
+                "UPDATE usuarios SET funcionario_id = @funcionarioId, email = @Email, perfil = @Perfil, ativo = @Ativo WHERE usuario_id = @usuarioId",
+                new { funcionarioId, d.Email, d.Perfil, d.Ativo, usuarioId = atual.UsuarioId }, t.Tx);
+        }
     }
 
     public Task DefinirSenhaAsync(Transacao t, int usuarioId, string senhaHash) =>
@@ -124,8 +150,11 @@ public sealed class UsuarioRepository(DbConnectionFactory db, AppClock relogio) 
     {
         await t.Conexao.ExecuteAsync("UPDATE usuarios SET ativo = @ativo WHERE usuario_id = @id",
             new { ativo, id = atual.UsuarioId }, t.Tx);
-        await t.Conexao.ExecuteAsync("UPDATE funcionarios SET ativo = @ativo WHERE funcionario_id = @id",
-            new { ativo, id = atual.FuncionarioId }, t.Tx);
+        if (atual.FuncionarioId > 0)
+        {
+            await t.Conexao.ExecuteAsync("UPDATE funcionarios SET ativo = @ativo WHERE funcionario_id = @id",
+                new { ativo, id = atual.FuncionarioId }, t.Tx);
+        }
     }
 
     private UsuarioDto Montar(UsuarioLinha u) => new(
