@@ -562,6 +562,12 @@ const UsuarioEstoque = ({
         sheetRef.current.style.transformOrigin = 'bottom center';
         sheetRef.current.style.transition = 'transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.15)';
         sheetRef.current.style.transform = 'translateY(0) scaleY(1)';
+        setTimeout(() => {
+          if (sheetRef.current && !isClosingRef.current) {
+            sheetRef.current.style.transform = 'none';
+            sheetRef.current.style.transition = '';
+          }
+        }, 290);
       }
       if (backdropRef.current) {
         backdropRef.current.style.transition = 'opacity 0.2s ease';
@@ -1117,6 +1123,11 @@ const UsuarioEstoque = ({
               initial={{ opacity: 0, scale: 0.93 }}
               animate={{ opacity: 1, scale: 1, transition: { type: "spring", damping: 28, stiffness: 380 } }}
               exit={{ opacity: 0, scale: 0.93, transition: { duration: 0.16, ease: "easeOut" } }}
+              onAnimationComplete={() => {
+                if (sheetRef.current && !isClosingRef.current) {
+                  sheetRef.current.style.transform = 'none';
+                }
+              }}
               onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
