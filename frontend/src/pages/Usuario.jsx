@@ -11,8 +11,7 @@ import '../components/Sidebar/Sidebar.css';
 import { pedidoService } from '../services/pedidos/pedidoService';
 import { materialService } from '../services/materiais/materialService';
 import { notificacaoService } from '../services/notificacoes/notificacaoService';
-import { USA_API, formatarErroApi } from '../services/api/client';
-import { DEMO_MATERIAIS, DEMO_PEDIDOS } from '../data/demoData';
+import { formatarErroApi } from '../services/api/client';
 
 const TITLES = {
   inicio: 'Início',
@@ -71,12 +70,8 @@ const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
       })
       .catch((err) => {
         if (!active) return;
-        if (USA_API) {
-          setPedidos((prev) => (prev.length > 0 ? prev : []));
-          setPedidosError(formatarErroApi(err, 'Erro ao carregar seus pedidos da API.'));
-        } else {
-          setPedidos(DEMO_PEDIDOS);
-        }
+        setPedidos((prev) => (prev.length > 0 ? prev : []));
+        setPedidosError(formatarErroApi(err, 'Erro ao carregar seus pedidos da API.'));
       })
       .finally(() => {
         if (active) setPedidosLoading(false);
@@ -117,12 +112,8 @@ const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
       })
       .catch((err) => {
         if (!active) return;
-        if (USA_API) {
-          setMateriaisReais((prev) => (prev.length > 0 ? prev : []));
-          setMateriaisError(formatarErroApi(err, 'Erro ao carregar catálogo de materiais da API.'));
-        } else {
-          setMateriaisReais(DEMO_MATERIAIS);
-        }
+        setMateriaisReais((prev) => (prev.length > 0 ? prev : []));
+        setMateriaisError(formatarErroApi(err, 'Erro ao carregar catálogo de materiais da API.'));
       })
       .finally(() => {
         if (active) setMateriaisLoading(false);

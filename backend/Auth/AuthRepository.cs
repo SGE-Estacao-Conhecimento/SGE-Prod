@@ -19,11 +19,18 @@ public sealed class UsuarioAutenticacao
 public sealed class AuthRepository(DbConnectionFactory db)
 {
     private const string SelectBase = """
-        SELECT u.usuario_id, u.funcionario_id, f.nome, u.email, u.senha_hash, u.perfil,
-               u.ativo, f.ativo AS funcionario_ativo, s.nome AS setor
+        SELECT u.usuario_id,
+               COALESCE(u.funcionario_id, 0) AS funcionario_id,
+               COALESCE(f.nome, 'Administrador') AS nome,
+               u.email,
+               u.senha_hash,
+               u.perfil,
+               u.ativo,
+               COALESCE(f.ativo, TRUE) AS funcionario_ativo,
+               COALESCE(s.nome, 'Administração') AS setor
           FROM usuarios u
-          JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
-          JOIN setores s ON s.setor_id = f.setor_id
+          LEFT JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
+          LEFT JOIN setores s ON s.setor_id = f.setor_id
         """;
 
     public async Task<UsuarioAutenticacao?> BuscarPorEmailAsync(string email)

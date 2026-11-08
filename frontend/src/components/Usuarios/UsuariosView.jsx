@@ -15,6 +15,7 @@ import './UsuariosView.css';
 const UsuariosView = ({
   usuarios: initialUsuariosProp,
   setores = [],
+  onCriarSetor,
   onSave,
   onDelete,
   onToggleStatus,
@@ -393,6 +394,7 @@ const UsuariosView = ({
         onSave={handleSaveUsuario}
         initialData={editingUsuario}
         setores={setores}
+        onCriarSetor={onCriarSetor}
       />
       {usuarioToDelete && (
         <ConfirmDialog

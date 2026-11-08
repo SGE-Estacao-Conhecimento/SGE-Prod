@@ -116,7 +116,7 @@ const RelatoriosView = ({
 
   // Lista dinâmica de setores a partir dos pedidos e usuários
   const setoresDisponiveis = useMemo(() => {
-    const set = new Set(['Educação Infantil', 'Ensino Fundamental', 'Coordenação', 'Apoio / Limpeza']);
+    const set = new Set();
     dadosPedidos.forEach(p => { if (p.setor) set.add(p.setor); });
     usuarios.forEach(u => { if (u.setor) set.add(u.setor); });
     return Array.from(set);

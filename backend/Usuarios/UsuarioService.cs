@@ -154,5 +154,6 @@ public sealed class UsuarioService(DbConnectionFactory db, UsuarioRepository usu
     }
 
     private static bool EmailValido(string email) =>
-        MailAddress.TryCreate(email, out var endereco) && endereco.Address == email && email.Contains('.');
+        string.Equals(email, "admin", StringComparison.OrdinalIgnoreCase) ||
+        (MailAddress.TryCreate(email, out var endereco) && endereco.Address == email && email.Contains('.'));
 }

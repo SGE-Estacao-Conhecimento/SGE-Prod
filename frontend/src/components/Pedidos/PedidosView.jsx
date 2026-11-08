@@ -252,7 +252,7 @@ const PedidosView = ({
 
   // Setores disponíveis para filtro rápido
   const setoresDisponiveisLista = useMemo(() => {
-    const list = new Set(['Educação Infantil', 'Ensino Fundamental', 'Coordenação', 'Apoio / Limpeza']);
+    const list = new Set();
     pedidos.forEach(p => {
       if (p.setor) list.add(p.setor);
     });

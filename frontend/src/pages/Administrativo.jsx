@@ -19,8 +19,8 @@ import { usuarioService } from '../services/usuarios/usuarioService';
 import { setorService } from '../services/setores/setorService';
 import { movimentacaoService } from '../services/movimentacoes/movimentacaoService';
 import { notificacaoService } from '../services/notificacoes/notificacaoService';
-import { USA_API, formatarErroApi } from '../services/api/client';
-import { DEMO_MATERIAIS, DEMO_PEDIDOS, DEMO_USUARIOS, DEMO_MOVIMENTACOES } from '../data/demoData';
+import { remessaService } from '../services/remessas/remessaService';
+import { formatarErroApi } from '../services/api/client';
 import NovoMaterialModal from '../components/Estoque/NovoMaterialModal';
 import NovoUsuarioModal from '../components/Usuarios/NovoUsuarioModal';
 import NovoPedidoModal from '../components/Pedidos/NovoPedidoModal';
@@ -37,182 +37,6 @@ const TITLES = {
   relatorios: 'Relatórios do Sistema',
   perfil: 'Meu Perfil'
 };
-
-const _MOCK_ADMIN_PEDIDOS = [
-  {
-    id: 102,
-    usuario: 'Carlos Silva',
-    setor: 'Educação Infantil',
-    data: '27/09/2026',
-    material: 'Álcool em Gel 70% (Frasco 500ml)',
-    quantidade: 3,
-    materiais: [
-      { materialNome: 'Álcool em Gel 70% (Frasco 500ml)', quantidade: 3, unidade: 'Frasco' }
-    ],
-    justificativa: 'Urgência sanitária para as salas e refeitório',
-    prioridade: 'Urgente',
-    urgente: true,
-    status: 'Pendente'
-  },
-  {
-    id: 101,
-    usuario: 'Mariana Costa',
-    setor: 'Ensino Fundamental',
-    data: '26/09/2026',
-    material: 'Papel Sulfite A4 (Resma 500 folhas)',
-    quantidade: 2,
-    materiais: [
-      { materialNome: 'Papel Sulfite A4 (Resma 500 folhas)', quantidade: 2, unidade: 'Resma' }
-    ],
-    justificativa: 'Impressão das atividades pedagógicas do 3º bimestre',
-    prioridade: 'Normal',
-    urgente: false,
-    status: 'Pendente'
-  },
-  {
-    id: 100,
-    usuario: 'Roberto Souza',
-    setor: 'Coordenação',
-    data: '25/09/2026',
-    material: 'Caneta Esferográfica Azul',
-    quantidade: 10,
-    materiais: [
-      { materialNome: 'Caneta Esferográfica Azul', quantidade: 10, unidade: 'UN' }
-    ],
-    justificativa: 'Reposição da coordenação pedagógica',
-    prioridade: 'Normal',
-    urgente: false,
-    status: 'Pendente'
-  },
-  {
-    id: 98,
-    usuario: 'Juliana Dias',
-    setor: 'Educação Infantil',
-    data: '24/09/2026',
-    material: 'Marcador para Quadro Branco',
-    quantidade: 4,
-    materiais: [
-      { materialNome: 'Marcador para Quadro Branco', quantidade: 4, unidade: 'UN' }
-    ],
-    justificativa: 'Uso diário em sala de aula',
-    prioridade: 'Normal',
-    urgente: false,
-    status: 'Atendido'
-  },
-  {
-    id: 95,
-    usuario: 'Marcos Andrade',
-    setor: 'Apoio / Limpeza',
-    data: '22/09/2026',
-    material: 'Sabonete Líquido Neutro (5L)',
-    quantidade: 1,
-    materiais: [
-      { materialNome: 'Sabonete Líquido Neutro (5L)', quantidade: 1, unidade: 'Galão' }
-    ],
-    justificativa: 'Limpeza dos blocos pedagógicos',
-    prioridade: 'Normal',
-    urgente: false,
-    status: 'Atendido'
-  },
-  {
-    id: 94,
-    usuario: 'Carlos Silva',
-    setor: 'Educação Infantil',
-    data: '15/09/2026',
-    material: 'Giz Escolar Colorido (Caixa c/ 64)',
-    quantidade: 2,
-    materiais: [
-      { materialNome: 'Giz Escolar Colorido (Caixa c/ 64)', quantidade: 2, unidade: 'Caixa' }
-    ],
-    justificativa: 'Atividades recreativas e de pintura',
-    prioridade: 'Normal',
-    urgente: false,
-    status: 'Atendido'
-  },
-  {
-    id: 91,
-    usuario: 'Mariana Costa',
-    setor: 'Ensino Fundamental',
-    data: '10/09/2026',
-    material: 'Fita Adesiva Transparente',
-    quantidade: 4,
-    materiais: [
-      { materialNome: 'Fita Adesiva Transparente', quantidade: 4, unidade: 'Rolo' }
-    ],
-    justificativa: 'Organização de murais e cartazes do 3º ano',
-    prioridade: 'Normal',
-    urgente: false,
-    status: 'Atendido'
-  },
-  {
-    id: 88,
-    usuario: 'Juliana Dias',
-    setor: 'Educação Infantil',
-    data: '02/09/2026',
-    material: 'Papel Sulfite A4 (Resma 500 folhas)',
-    quantidade: 3,
-    materiais: [
-      { materialNome: 'Papel Sulfite A4 (Resma 500 folhas)', quantidade: 3, unidade: 'Resma' }
-    ],
-    justificativa: 'Avaliações do maternal e artes plásticas',
-    prioridade: 'Urgente',
-    urgente: true,
-    status: 'Atendido'
-  },
-  {
-    id: 84,
-    usuario: 'Roberto Souza',
-    setor: 'Coordenação',
-    data: '28/08/2026',
-    material: 'Grampeador de Mesa',
-    quantidade: 1,
-    materiais: [
-      { materialNome: 'Grampeador de Mesa', quantidade: 1, unidade: 'UN' }
-    ],
-    justificativa: 'Substituição de equipamento avariado na coordenação',
-    prioridade: 'Normal',
-    urgente: false,
-    status: 'Atendido'
-  },
-  {
-    id: 80,
-    usuario: 'Fernanda Lima',
-    setor: 'Ensino Fundamental',
-    data: '20/08/2026',
-    material: 'Caneta Esferográfica Azul',
-    quantidade: 15,
-    materiais: [
-      { materialNome: 'Caneta Esferográfica Azul', quantidade: 15, unidade: 'UN' }
-    ],
-    justificativa: 'Material para os professores do 4º e 5º ano',
-    prioridade: 'Normal',
-    urgente: false,
-    status: 'Atendido'
-  }
-];
-
-const _MOCK_ADMIN_MATERIAIS = [
-  { id: 1, codigo: 'MAT-001', nome: 'Papel Sulfite A4', categoria: 'Escritório', unidade: 'Resma', quantidade: 48, estoqueMinimo: 10, localizacao: 'Armário A' },
-  { id: 2, codigo: 'MAT-002', nome: 'Caneta Esferográfica', categoria: 'Escritório', unidade: 'UN', quantidade: 120, estoqueMinimo: 30, localizacao: 'Gaveteiro 1' },
-  { id: 3, codigo: 'MAT-003', nome: 'Marcador para Quadro Branco', categoria: 'Material Didático', unidade: 'UN', quantidade: 18, estoqueMinimo: 15, localizacao: 'Armário Didático B' },
-  { id: 4, codigo: 'MAT-004', nome: 'Álcool em Gel 70%', categoria: 'Limpeza e Higiene', unidade: 'Frasco', quantidade: 35, estoqueMinimo: 8, localizacao: 'Almoxarifado Central' },
-  { id: 5, codigo: 'MAT-005', nome: 'Grampeador de Mesa', categoria: 'Escritório', unidade: 'UN', quantidade: 4, estoqueMinimo: 5, localizacao: 'Prateleira 3' },
-  { id: 6, codigo: 'MAT-006', nome: 'Fita Adesiva Transparente', categoria: 'Escritório', unidade: 'Rolo', quantidade: 0, estoqueMinimo: 10, localizacao: 'Caixa de Fitas' },
-  { id: 7, codigo: 'MAT-007', nome: 'Cabo HDMI 2.0', categoria: 'Informática / TI', unidade: 'UN', quantidade: 8, estoqueMinimo: 3, localizacao: 'Armário TI' },
-  { id: 8, codigo: 'MAT-008', nome: 'Apagador para Quadro Branco', categoria: 'Material Didático', unidade: 'UN', quantidade: 0, estoqueMinimo: 6, localizacao: 'Armário Didático B' },
-  { id: 9, codigo: 'MAT-015', nome: 'Pilhas Alcalinas AAA (Palito)', categoria: 'Informática / TI', unidade: 'Cartela', quantidade: 0, estoqueMinimo: 8, localizacao: 'Armário TI' }
-];
-
-const _MOCK_ADMIN_USUARIOS = [
-  { id: 1, nome: 'Carlos Silva', email: 'carlos.silva@estacao.org.br', perfil: 'Usuário', setor: 'Educação Infantil', ativo: true, inicial: 'C', dataCadastro: '10/02/2026', ramal: '104' },
-  { id: 2, nome: 'Mariana Costa', email: 'mariana.costa@estacao.org.br', perfil: 'Usuário', setor: 'Ensino Fundamental', ativo: true, inicial: 'M', dataCadastro: '12/02/2026', ramal: '108' },
-  { id: 3, nome: 'Roberto Souza', email: 'roberto.souza@estacao.org.br', perfil: 'Usuário', setor: 'Coordenação', ativo: true, inicial: 'R', dataCadastro: '05/01/2026', ramal: '101' },
-  { id: 4, nome: 'Juliana Dias', email: 'juliana.dias@estacao.org.br', perfil: 'Usuário', setor: 'Educação Infantil', ativo: true, inicial: 'J', dataCadastro: '18/02/2026', ramal: '105' },
-  { id: 5, nome: 'Marcos Andrade', email: 'marcos.andrade@estacao.org.br', perfil: 'Usuário', setor: 'Apoio / Limpeza', ativo: true, inicial: 'M', dataCadastro: '20/01/2026', ramal: '112' },
-  { id: 6, nome: 'Ana Beatriz', email: 'ana.beatriz@estacao.org.br', perfil: 'Almoxarifado', setor: 'Almoxarifado Central', ativo: true, inicial: 'A', dataCadastro: '02/01/2026', ramal: '100' },
-  { id: 7, nome: 'Arthur Vequi', email: 'arthur.vequi@estacao.org.br', perfil: 'Administrativo', setor: 'Diretoria / TI', ativo: true, inicial: 'A', dataCadastro: '01/01/2026', ramal: '102' },
-  { id: 8, nome: 'Fernanda Lima', email: 'fernanda.lima@estacao.org.br', perfil: 'Usuário', setor: 'Ensino Fundamental', ativo: true, inicial: 'F', dataCadastro: '15/03/2026', ramal: '109' }
-];
 
 const Administrativo = ({ onLogout, user }) => {
   const [activeNav, setActiveNav] = useSectionNavigation('admin', ADMIN_SECTIONS, 'dashboard');
@@ -232,6 +56,7 @@ const Administrativo = ({ onLogout, user }) => {
   const [usuariosLoading, setUsuariosLoading] = useState(true);
   const [usuariosError, setUsuariosError] = useState(null);
   const [movimentacoes, setMovimentacoes] = useState([]);
+  const [remessas, setRemessas] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
   const [setores, setSetores] = useState([]);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState(null);
@@ -263,13 +88,8 @@ const Administrativo = ({ onLogout, user }) => {
       })
       .catch((err) => {
         if (active) {
-          if (!USA_API) {
-            setMateriais(DEMO_MATERIAIS);
-            setMateriaisError(null);
-          } else {
-            setMateriais((prev) => (prev.length > 0 ? prev : []));
-            setMateriaisError(formatarErroApi(err, 'Não foi possível carregar os materiais do estoque.'));
-          }
+          setMateriais((prev) => (prev.length > 0 ? prev : []));
+          setMateriaisError(formatarErroApi(err, 'Não foi possível carregar os materiais do estoque.'));
         }
       })
       .finally(() => { if (active) setMateriaisLoading(false); });
@@ -282,9 +102,7 @@ const Administrativo = ({ onLogout, user }) => {
       .then((data) => {
         if (active) setNotificacoes((data || []).map(item => ({ ...item, lida: false, tempo: item.data ? new Date(item.data).toLocaleString('pt-BR') : '' })));
       })
-      .catch(() => {
-        if (active && !USA_API) setNotificacoes([]);
-      });
+      .catch(() => {});
     carregarNotificacoes();
     const intervalo = window.setInterval(carregarNotificacoes, 15000);
     return () => { active = false; window.clearInterval(intervalo); };
@@ -297,11 +115,10 @@ const Administrativo = ({ onLogout, user }) => {
     let active = true;
     movimentacaoService.listar()
       .then((data) => { if (active) setMovimentacoes(data || []); })
-      .catch(() => {
-        if (active && !USA_API) {
-          setMovimentacoes(DEMO_MOVIMENTACOES);
-        }
-      });
+      .catch(() => {});
+    remessaService.listar()
+      .then((data) => { if (active) setRemessas(data || []); })
+      .catch(() => {});
     return () => { active = false; };
   }, []);
 
@@ -309,9 +126,17 @@ const Administrativo = ({ onLogout, user }) => {
     let active = true;
     setorService.listar()
       .then((data) => { if (active) setSetores(data || []); })
-      .catch(() => { if (active && !USA_API) setSetores([]); });
+      .catch(() => {});
     return () => { active = false; };
   }, []);
+
+  const handleCriarSetor = async (nomeSetor) => {
+    const listaAtualizada = await setorService.criar(nomeSetor);
+    if (Array.isArray(listaAtualizada)) {
+      setSetores(listaAtualizada);
+    }
+    return listaAtualizada;
+  };
 
   useEffect(() => {
     let active = true;
@@ -324,13 +149,8 @@ const Administrativo = ({ onLogout, user }) => {
       })
       .catch((err) => {
         if (active) {
-          if (!USA_API) {
-            setUsuarios(DEMO_USUARIOS);
-            setUsuariosError(null);
-          } else {
-            setUsuarios((prev) => (prev.length > 0 ? prev : []));
-            setUsuariosError(formatarErroApi(err, 'Não foi possível carregar a lista de usuários.'));
-          }
+          setUsuarios((prev) => (prev.length > 0 ? prev : []));
+          setUsuariosError(formatarErroApi(err, 'Não foi possível carregar a lista de usuários.'));
         }
       })
       .finally(() => { if (active) setUsuariosLoading(false); });
@@ -348,13 +168,8 @@ const Administrativo = ({ onLogout, user }) => {
       })
       .catch((err) => {
         if (active) {
-          if (!USA_API) {
-            setPedidos(DEMO_PEDIDOS);
-            setPedidosError(null);
-          } else {
-            setPedidos((prev) => (prev.length > 0 ? prev : []));
-            setPedidosError(formatarErroApi(err, 'Não foi possível carregar os pedidos.'));
-          }
+          setPedidos((prev) => (prev.length > 0 ? prev : []));
+          setPedidosError(formatarErroApi(err, 'Não foi possível carregar os pedidos.'));
         }
       })
       .finally(() => { if (active) setPedidosLoading(false); });
@@ -372,18 +187,8 @@ const Administrativo = ({ onLogout, user }) => {
       })
       .catch((err) => {
         if (active) {
-          if (!USA_API) {
-            setDashboard({
-              totalProdutos: DEMO_MATERIAIS.length,
-              produtosEstoqueBaixo: DEMO_MATERIAIS.filter(m => m.quantidade <= m.estoqueMinimo).length,
-              pedidosPendentes: DEMO_PEDIDOS.filter(p => p.status === 'Pendente').length,
-              totalUsuarios: DEMO_USUARIOS.length
-            });
-            setDashboardError(null);
-          } else {
-            setDashboard((prev) => prev);
-            setDashboardError(formatarErroApi(err, 'Não foi possível carregar os indicadores do painel.'));
-          }
+          setDashboard((prev) => prev);
+          setDashboardError(formatarErroApi(err, 'Não foi possível carregar os indicadores do painel.'));
         }
       })
       .finally(() => { if (active) setDashboardLoading(false); });
@@ -555,6 +360,7 @@ const Administrativo = ({ onLogout, user }) => {
               <UsuariosView
                 usuarios={usuarios}
                 setores={setores}
+                onCriarSetor={handleCriarSetor}
                 onSave={handleSaveUsuario}
                 onToggleStatus={handleToggleUsuarioStatus}
                 onDelete={handleRemoverUsuario}
@@ -583,6 +389,7 @@ const Administrativo = ({ onLogout, user }) => {
                 onUpdateStatus={handleUpdatePedidoStatus}
                 usuariosDisponiveis={usuarios}
                 materiaisDisponiveis={materiais}
+                setoresDisponiveis={setores}
               />
             )}
           </div>
@@ -595,6 +402,7 @@ const Administrativo = ({ onLogout, user }) => {
               dadosPedidos={pedidos}
               dadosUsuarios={usuarios}
               dadosMovimentacoes={movimentacoes}
+              dadosRemessasExternas={remessas}
             />
           </div>
         );
@@ -812,6 +620,7 @@ const Administrativo = ({ onLogout, user }) => {
           setIsNovoUsuarioModalOpen(false);
         }}
         setores={setores}
+        onCriarSetor={handleCriarSetor}
       />
     </div>
   );

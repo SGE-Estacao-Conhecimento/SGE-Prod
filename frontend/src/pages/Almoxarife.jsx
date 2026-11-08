@@ -16,15 +16,7 @@ import { notificacaoService } from '../services/notificacoes/notificacaoService'
 import { remessaService } from '../services/remessas/remessaService';
 import { pedidoService } from '../services/pedidos/pedidoService';
 import { usuarioService } from '../services/usuarios/usuarioService';
-import { USA_API, formatarErroApi } from '../services/api/client';
-import { DEMO_MATERIAIS, DEMO_PEDIDOS, DEMO_MOVIMENTACOES, DEMO_USUARIOS } from '../data/demoData';
-
-const _PEDIDOS_BYPASS = [
-  { id: 102, usuario: 'Carlos Silva', setor: 'Educação Infantil', data: '27/09/2026', material: 'Álcool em Gel 70%', quantidade: 3, prioridade: 'Urgente', status: 'Pendente', justificativa: 'Urgência sanitária para as salas e refeitório' },
-  { id: 101, usuario: 'Mariana Costa', setor: 'Ensino Fundamental', data: '26/09/2026', material: 'Papel Sulfite A4', quantidade: 2, prioridade: 'Normal', status: 'Pendente', justificativa: 'Impressão das atividades pedagógicas' },
-  { id: 100, usuario: 'Roberto Souza', setor: 'Coordenação', data: '25/09/2026', material: 'Caneta Esferográfica Azul', quantidade: 10, prioridade: 'Normal', status: 'Pendente', justificativa: 'Reposição de materiais da coordenação' },
-  { id: 98, usuario: 'Juliana Dias', setor: 'Educação Infantil', data: '24/09/2026', material: 'Marcador para Quadro Branco', quantidade: 4, prioridade: 'Normal', status: 'Atendido', justificativa: 'Uso diário em sala de aula' }
-];
+import { formatarErroApi } from '../services/api/client';
 
 const TITLES = {
   estoque: 'Controle de Estoque & Movimentações',
@@ -89,7 +81,7 @@ const Almoxarife = ({ onLogout, user }) => {
   const [pedidosLoading, setPedidosLoading] = useState(true);
   const [pedidosError, setPedidosError] = useState(null);
   const [notificacoes, setNotificacoes] = useState([]);
-  const [usuarios, setUsuarios] = useState(USA_API ? [] : DEMO_USUARIOS);
+  const [usuarios, setUsuarios] = useState([]);
   const [usuariosLoading, setUsuariosLoading] = useState(true);
   const [usuariosError, setUsuariosError] = useState(null);
 
@@ -104,13 +96,8 @@ const Almoxarife = ({ onLogout, user }) => {
       })
       .catch((err) => {
         if (active) {
-          if (!USA_API) {
-            setUsuarios(DEMO_USUARIOS);
-            setUsuariosError(null);
-          } else {
-            setUsuarios((prev) => (prev.length > 0 ? prev : []));
-            setUsuariosError(formatarErroApi(err, 'Não foi possível carregar os usuários.'));
-          }
+          setUsuarios((prev) => (prev.length > 0 ? prev : []));
+          setUsuariosError(formatarErroApi(err, 'Não foi possível carregar os usuários.'));
         }
       })
       .finally(() => { if (active) setUsuariosLoading(false); });
@@ -128,13 +115,8 @@ const Almoxarife = ({ onLogout, user }) => {
       })
       .catch((err) => {
         if (active) {
-          if (!USA_API) {
-            setPedidos(DEMO_PEDIDOS);
-            setPedidosError(null);
-          } else {
-            setPedidos((prev) => (prev.length > 0 ? prev : []));
-            setPedidosError(formatarErroApi(err, 'Não foi possível carregar os pedidos.'));
-          }
+          setPedidos((prev) => (prev.length > 0 ? prev : []));
+          setPedidosError(formatarErroApi(err, 'Não foi possível carregar os pedidos.'));
         }
       })
       .finally(() => { if (active) setPedidosLoading(false); });
@@ -200,13 +182,8 @@ const Almoxarife = ({ onLogout, user }) => {
       })
       .catch((err) => {
         if (active) {
-          if (!USA_API) {
-            setMateriais(DEMO_MATERIAIS);
-            setMateriaisError(null);
-          } else {
-            setMateriais((prev) => (prev.length > 0 ? prev : []));
-            setMateriaisError(formatarErroApi(err, 'Não foi possível carregar os materiais do estoque.'));
-          }
+          setMateriais((prev) => (prev.length > 0 ? prev : []));
+          setMateriaisError(formatarErroApi(err, 'Não foi possível carregar os materiais do estoque.'));
         }
       })
       .finally(() => { if (active) setMateriaisLoading(false); });
@@ -221,11 +198,7 @@ const Almoxarife = ({ onLogout, user }) => {
         setNotificacoes(novasNotificacoes || []);
         setRemessas(novasRemessas || []);
       })
-      .catch(() => {
-        if (active && !USA_API) {
-          /* Mantém a tela utilizável se a API estiver indisponível no modo simulado. */
-        }
-      });
+      .catch(() => {});
     carregarDados();
     const intervalo = window.setInterval(carregarDados, 15000);
     return () => { active = false; window.clearInterval(intervalo); };
@@ -252,18 +225,7 @@ const Almoxarife = ({ onLogout, user }) => {
         }, {});
         setHistoricoMovimentacoes(agrupado);
       })
-      .catch(() => {
-        if (!active) return;
-        if (!USA_API) {
-          setMovimentacoes(DEMO_MOVIMENTACOES);
-          setHistoricoMovimentacoes(DEMO_MOVIMENTACOES.reduce((acc, item) => {
-            const lista = acc[item.produtoId] || [];
-            lista.push({ id: item.id, tipo: item.tipo, qtd: item.quantidade, data: new Date(item.data).toLocaleString('pt-BR'), responsavel: item.funcionarioNome, motivo: item.observacao });
-            acc[item.produtoId] = lista;
-            return acc;
-          }, {}));
-        }
-      });
+      .catch(() => {});
     return () => { active = false; };
   }, []);
   const [activeNav, setActiveNav] = useSectionNavigation('almoxarife', ALMOXARIFE_SECTIONS, 'estoque');

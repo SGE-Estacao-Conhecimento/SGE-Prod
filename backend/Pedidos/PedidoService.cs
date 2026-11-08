@@ -49,8 +49,19 @@ public sealed class PedidoService(DbConnectionFactory db, PedidoRepository repo)
             SELECT f.funcionario_id, f.setor_id, (u.ativo AND f.ativo) AS ativo
               FROM usuarios u JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
              WHERE u.usuario_id = @id
-            """, new { id = solicitanteUsuarioId }, tx)
-            ?? throw ApiException.NotFound("Solicitante não encontrado.");
+            """, new { id = solicitanteUsuarioId }, tx);
+        if (solicitante is null && usuario.EhEquipe() && req.SolicitanteId is null)
+        {
+            solicitante = await con.QuerySingleOrDefaultAsync<Solicitante>("""
+                SELECT f.funcionario_id, f.setor_id, f.ativo AS ativo
+                  FROM funcionarios f
+                 WHERE f.ativo = TRUE
+                 ORDER BY f.funcionario_id
+                 LIMIT 1
+                """, transaction: tx);
+        }
+        if (solicitante is null)
+            throw ApiException.NotFound("Solicitante não encontrado.");
         if (!solicitante.Ativo)
             throw new ApiException(422, "O solicitante está inativo.");
 

@@ -102,6 +102,19 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
             new { identificadorOperacao });
     }
 
+    public async Task<int?> ObterFuncionarioParaRecebimentoAsync(int usuarioId)
+    {
+        await using var con = await AbrirAsync();
+        return await con.ExecuteScalarAsync<int?>("""
+            SELECT COALESCE(
+                u.funcionario_id,
+                (SELECT f.funcionario_id FROM funcionarios f WHERE f.ativo = TRUE ORDER BY f.funcionario_id LIMIT 1)
+            )
+            FROM usuarios u
+            WHERE u.usuario_id = @usuarioId AND u.ativo = TRUE
+            """, new { usuarioId });
+    }
+
     /// <summary>Cria o recebimento em preparação com os itens (sem entrada no estoque).</summary>
     public Task<int> CriarAsync(NovaRemessa r) => EmTransacaoAsync(async (con, tx) =>
     {

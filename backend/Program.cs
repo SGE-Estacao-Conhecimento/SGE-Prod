@@ -35,7 +35,8 @@ var fusoHorario = builder.Configuration["App:FusoHorario"] ?? "America/Sao_Paulo
 var origensCors = builder.Configuration.GetSection("Cors:Origens").Get<string[]>() ?? [];
 
 // Armazenamento de arquivos (MinIO): variáveis S3_* do guia-minIO-conexao-sql.md.
-var armazenamento = args.Contains("seed-dev") ? null : ArmazenamentoOpcoes.Ler(builder.Configuration);
+var isCliSeedCommand = args.Contains("seed-dev") || args.Contains("reset-dev");
+var armazenamento = isCliSeedCommand ? null : ArmazenamentoOpcoes.Ler(builder.Configuration);
 
 // Colunas snake_case do banco -> propriedades PascalCase.
 DefaultTypeMap.MatchNamesWithUnderscores = true;
@@ -163,7 +164,18 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-// ---------- Carga de dados de desenvolvimento: dotnet run -- seed-dev ----------
+// ---------- Comandos de inicialização e reset de desenvolvimento ----------
+if (args.Contains("reset-dev"))
+{
+    if (!app.Environment.IsDevelopment())
+        throw new InvalidOperationException("reset-dev só pode ser executado com ASPNETCORE_ENVIRONMENT=Development.");
+    if (!args.Contains("--confirm"))
+        throw new InvalidOperationException("O comando reset-dev exige o parâmetro explícito '--confirm' para evitar execução acidental.");
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<DevSeeder>().ResetarAmbienteLocalAsync();
+    return;
+}
+
 if (args.Contains("seed-dev"))
 {
     if (!app.Environment.IsDevelopment())
@@ -171,6 +183,12 @@ if (args.Contains("seed-dev"))
     using var scope = app.Services.CreateScope();
     await scope.ServiceProvider.GetRequiredService<DevSeeder>().ExecutarAsync();
     return;
+}
+
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<DevSeeder>().ExecutarAsync();
 }
 
 app.UseExceptionHandler();
