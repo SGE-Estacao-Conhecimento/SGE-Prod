@@ -3,6 +3,46 @@ import { BottomSheetModal } from '../../common';
 import './RecebimentoLoteModal.css';
 
 /**
+ * Converte valor (string pt-BR com vírgula, com separador de milhar e vírgula, ou padrão com ponto)
+ * para número de ponto flutuante sem confundir separadores decimais e de milhar.
+ * Retorna NaN se valor for inválido, malformado, infinito ou vazio.
+ */
+export const parseQuantidade = (valor) => {
+  if (valor === null || valor === undefined) return NaN;
+  if (typeof valor === 'number') return Number.isFinite(valor) ? valor : NaN;
+  const str = String(valor).trim();
+  if (str === '') return NaN;
+
+  let normalizado = '';
+  if (/^[+-]?\d+$/.test(str)) {
+    normalizado = str;
+  } else if (/^[+-]?\d+,\d+$/.test(str)) {
+    normalizado = str.replace(',', '.');
+  } else if (/^[+-]?\d+\.\d+$/.test(str)) {
+    normalizado = str;
+  } else if (/^[+-]?\d{1,3}(\.\d{3})+,\d+$/.test(str)) {
+    normalizado = str.replace(/\./g, '').replace(',', '.');
+  } else {
+    return NaN;
+  }
+
+  const num = Number(normalizado);
+  return Number.isFinite(num) ? num : NaN;
+};
+
+/**
+ * Formata quantidade numérica para apresentação sem truncamento arbitrário,
+ * respeitando até 3 casas decimais (compatível com DECIMAL(15,3) do MySQL).
+ */
+export const formatarQuantidadeExibicao = (valor) => {
+  if (valor === null || valor === undefined) return '0';
+  const num = typeof valor === 'number' ? valor : parseQuantidade(valor);
+  if (isNaN(num) || !Number.isFinite(num)) return '0';
+  const arredondado = Math.round(num * 1000) / 1000;
+  return arredondado.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+};
+
+/**
  * RecebimentoLoteModal — Janela Flutuante de Entrada em Massa e Doações
  * 
  * Padrão Ouro Operacional do SGE em 2 Etapas:
@@ -203,6 +243,12 @@ const RecebimentoLoteModal = ({
         itens: itens.filter((i) => i.materialId !== material.id)
       });
     } else {
+      const permiteFracao = Boolean(
+        material.permiteFracao ??
+        material.permite_fracao ??
+        material.PermiteFracao
+      );
+      const saldoAtual = parseQuantidade(material.quantidade) || 0;
       const novoItemCarrinho = {
         materialId: material.id,
         codigo: material.codigo,
@@ -212,8 +258,9 @@ const RecebimentoLoteModal = ({
         complexo: material.complexo || 'Almoxarifado Central',
         locacao: material.locacao || '',
         localizacao: material.localizacao || '',
-        saldoAtual: material.quantidade || 0,
+        saldoAtual,
         qtdReceber: 1,
+        permiteFracao,
         dataValidade: material.dataValidade || ''
       };
       updateDraft({
@@ -231,29 +278,42 @@ const RecebimentoLoteModal = ({
     });
   };
 
-  // Alteração da quantidade a receber de um item do carrinho
+  // Alteração da quantidade a receber de um item do carrinho via stepper
   const handleMudarQuantidade = (materialId, delta) => {
     updateDraft({
       itens: itens.map((item) => {
         if (item.materialId === materialId) {
-          const atual = parseInt(item.qtdReceber, 10) || 1;
-          const nova = Math.max(1, atual + delta);
-          return { ...item, qtdReceber: nova };
+          const permiteFracao = Boolean(
+            item.permiteFracao ??
+            materiais.find((m) => m.id === item.materialId)?.permiteFracao ??
+            materiais.find((m) => m.id === item.materialId)?.permite_fracao
+          );
+          const atual = parseQuantidade(item.qtdReceber);
+          const base = isNaN(atual) || atual <= 0 ? 0 : atual;
+          const novo = delta > 0 ? base + 1 : Math.max(permiteFracao ? 0.001 : 1, base - 1);
+          const arredondado = Math.round(novo * 1000) / 1000;
+          return { ...item, qtdReceber: arredondado, permiteFracao };
         }
         return item;
       })
     });
   };
 
-  // Digitação direta no input de quantidade
+  // Digitação direta no input de quantidade (preserva a entrada digitada para validação fiel,
+  // evitando converter silenciosamente negativos '-5' em '5' ou decimais '2,5' em '25' quando não fracionável)
   const handleInputQuantidade = (materialId, valorStr) => {
-    const num = parseInt(valorStr, 10);
     updateDraft({
       itens: itens.map((item) => {
         if (item.materialId === materialId) {
+          const permiteFracao = Boolean(
+            item.permiteFracao ??
+            materiais.find((m) => m.id === item.materialId)?.permiteFracao ??
+            materiais.find((m) => m.id === item.materialId)?.permite_fracao
+          );
           return {
             ...item,
-            qtdReceber: isNaN(num) || num < 1 ? '' : num
+            qtdReceber: valorStr,
+            permiteFracao
           };
         }
         return item;
@@ -261,16 +321,28 @@ const RecebimentoLoteModal = ({
     });
   };
 
-  // Ao perder o foco, normaliza valores vazios para 1
+  // Ao perder o foco, formata valores numéricos válidos sem converter inválidos silenciosamente
   const handleBlurQuantidade = (materialId) => {
     updateDraft({
       itens: itens.map((item) => {
         if (item.materialId === materialId) {
-          const num = parseInt(item.qtdReceber, 10);
-          return {
-            ...item,
-            qtdReceber: isNaN(num) || num < 1 ? 1 : num
-          };
+          const raw = String(item.qtdReceber ?? '').trim();
+          if (raw === '') return item;
+          const num = parseQuantidade(raw);
+          if (isNaN(num) || !isFinite(num) || num <= 0) {
+            // Preserva a entrada para acusar erro explicitamente na validação
+            return item;
+          }
+          const permiteFracao = Boolean(
+            item.permiteFracao ??
+            materiais.find((m) => m.id === item.materialId)?.permiteFracao ??
+            materiais.find((m) => m.id === item.materialId)?.permite_fracao
+          );
+          if (!permiteFracao) {
+            return Number.isInteger(num) ? { ...item, qtdReceber: num, permiteFracao } : item;
+          }
+          const arredondado = Math.round(num * 1000) / 1000;
+          return { ...item, qtdReceber: arredondado, permiteFracao };
         }
         return item;
       })
@@ -284,10 +356,39 @@ const RecebimentoLoteModal = ({
     });
   };
 
+  // Validação estrita de todos os itens do lote
+  const validarItensRecebimento = () => {
+    if (itens.length === 0) {
+      alert('Selecione ao menos um material para continuar.');
+      return false;
+    }
+    for (const item of itens) {
+      const raw = String(item.qtdReceber ?? '').trim();
+      if (!raw) {
+        alert(`Informe a quantidade a receber para o material "${item.nome}".`);
+        return false;
+      }
+      const num = parseQuantidade(raw);
+      if (isNaN(num) || !isFinite(num) || num <= 0) {
+        alert(`Quantidade inválida para o material "${item.nome}". Informe um valor numérico positivo maior que zero.`);
+        return false;
+      }
+      const permiteFracao = Boolean(
+        item.permiteFracao ??
+        materiais.find((m) => m.id === item.materialId)?.permiteFracao ??
+        materiais.find((m) => m.id === item.materialId)?.permite_fracao
+      );
+      if (!permiteFracao && !Number.isInteger(num)) {
+        alert(`O material "${item.nome}" não permite quantidades fracionárias. Informe um valor inteiro.`);
+        return false;
+      }
+    }
+    return true;
+  };
+
   // Confirmação final do recebimento
   const handleExecutarConfirmacao = () => {
-    if (itens.length === 0) {
-      alert('Selecione ao menos um material para confirmar o recebimento.');
+    if (!validarItensRecebimento()) {
       return;
     }
     if (fotos.length === 0) {
@@ -302,6 +403,10 @@ const RecebimentoLoteModal = ({
       onUpdateDraft({ ...draftRemessa, identificadorOperacao: operacao });
     }
 
+    const volumesCalculados = Math.round(
+      itens.reduce((acc, item) => acc + (parseQuantidade(item.qtdReceber) || 0), 0) * 1000
+    ) / 1000;
+
     const payload = {
       id: `REM-${Date.now().toString().slice(-6)}`,
       identificadorOperacao: operacao,
@@ -315,23 +420,25 @@ const RecebimentoLoteModal = ({
       documentoDoador: documentoDoador.trim(),
       observacao: observacao.trim(),
       totalItens: itens.length,
-      totalVolumes: itens.reduce(
-        (acc, item) => acc + (parseInt(item.qtdReceber, 10) || 1),
-        0
-      ),
-      itens: itens.map((item) => ({
-        materialId: item.materialId,
-        codigo: item.codigo,
-        nome: item.nome,
-        unidade: item.unidade,
-        saldoAnterior: item.saldoAtual,
-        qtdRecebida: parseInt(item.qtdReceber, 10) || 1,
-        novoSaldo: item.saldoAtual + (parseInt(item.qtdReceber, 10) || 1),
-        complexo: item.complexo || 'Almoxarifado Central',
-        locacao: item.locacao || '',
-        localizacao: item.localizacao || '',
-        dataValidade: item.dataValidade || ''
-      }))
+      totalVolumes: volumesCalculados,
+      itens: itens.map((item) => {
+        const qtdRecebida = Math.round(parseQuantidade(item.qtdReceber) * 1000) / 1000;
+        const saldoAnterior = parseQuantidade(item.saldoAtual) || 0;
+        const novoSaldo = Math.round((saldoAnterior + qtdRecebida) * 1000) / 1000;
+        return {
+          materialId: item.materialId,
+          codigo: item.codigo,
+          nome: item.nome,
+          unidade: item.unidade,
+          saldoAnterior,
+          qtdRecebida,
+          novoSaldo,
+          complexo: item.complexo || 'Almoxarifado Central',
+          locacao: item.locacao || '',
+          localizacao: item.localizacao || '',
+          dataValidade: item.dataValidade || ''
+        };
+      })
     };
 
     if (onConfirmar) {
@@ -356,10 +463,11 @@ const RecebimentoLoteModal = ({
   };
 
   const totalVolumes = useMemo(() => {
-    return itens.reduce(
-      (acc, i) => acc + (parseInt(i.qtdReceber, 10) || 0),
-      0
-    );
+    const soma = itens.reduce((acc, i) => {
+      const q = parseQuantidade(i.qtdReceber);
+      return acc + (isNaN(q) || q <= 0 ? 0 : q);
+    }, 0);
+    return Math.round(soma * 1000) / 1000;
   }, [itens]);
 
   return (
@@ -411,7 +519,9 @@ const RecebimentoLoteModal = ({
                 type="button"
                 className="recebimento-footer-btn-avancar"
                 disabled={itens.length === 0}
-                onClick={() => setEtapa(2)}
+                onClick={() => {
+                  if (validarItensRecebimento()) setEtapa(2);
+                }}
               >
                 <span>Identificação</span>
                 <svg
@@ -453,7 +563,7 @@ const RecebimentoLoteModal = ({
                         Materiais nesta Remessa
                       </span>
                       <span className="recebimento-step2-popover__count">
-                        {totalVolumes} {totalVolumes === 1 ? 'volume' : 'volumes'} ({itens.length} {itens.length === 1 ? 'item' : 'itens'})
+                        {formatarQuantidadeExibicao(totalVolumes)} {totalVolumes === 1 ? 'volume' : 'volumes'} ({itens.length} {itens.length === 1 ? 'item' : 'itens'})
                       </span>
                     </div>
                     <button
@@ -491,7 +601,7 @@ const RecebimentoLoteModal = ({
                           </span>
                         </div>
                         <span className="recebimento-step2-popover__item-qtd">
-                          +{item.qtdReceber} {item.unidade}
+                          +{formatarQuantidadeExibicao(item.qtdReceber)} {item.unidade}
                         </span>
                       </div>
                     ))}
@@ -549,7 +659,7 @@ const RecebimentoLoteModal = ({
                     <line x1="12" y1="22.08" x2="12" y2="12" />
                   </svg>
                   <strong className="recebimento-step2-summary-trigger__title">
-                    {totalVolumes} {totalVolumes === 1 ? 'volume a receber' : 'volumes a receber'}
+                    {formatarQuantidadeExibicao(totalVolumes)} {totalVolumes === 1 ? 'volume a receber' : 'volumes a receber'}
                   </strong>
                 </div>
 
@@ -651,7 +761,7 @@ const RecebimentoLoteModal = ({
               type="button"
               className={`recebimento-step-btn ${etapaAtual === 2 ? 'recebimento-step-btn--active' : ''}`}
               onClick={() => {
-                if (itens.length > 0) setEtapa(2);
+                if (itens.length > 0 && validarItensRecebimento()) setEtapa(2);
               }}
               disabled={itens.length === 0}
               title={itens.length === 0 ? 'Adicione ao menos um material para avançar' : 'Ir para identificação da remessa'}
@@ -721,7 +831,7 @@ const RecebimentoLoteModal = ({
                 </span>
                 {itens.length > 0 && (
                   <span className="recebimento-itens-header__badge">
-                    {totalVolumes} {totalVolumes === 1 ? 'volume' : 'volumes'} total
+                    {formatarQuantidadeExibicao(totalVolumes)} {totalVolumes === 1 ? 'volume' : 'volumes'} total
                   </span>
                 )}
               </div>
@@ -749,8 +859,22 @@ const RecebimentoLoteModal = ({
               ) : (
                 <div className="recebimento-itens-list">
                   {itens.map((item) => {
-                    const qtdReceberNum = parseInt(item.qtdReceber, 10) || 0;
-                    const novoSaldo = item.saldoAtual + qtdReceberNum;
+                    const permiteFracao = Boolean(
+                      item.permiteFracao ??
+                      materiais.find((m) => m.id === item.materialId)?.permiteFracao ??
+                      materiais.find((m) => m.id === item.materialId)?.permite_fracao
+                    );
+                    const qtdReceberNum = parseQuantidade(item.qtdReceber);
+                    const isValida =
+                      !isNaN(qtdReceberNum) &&
+                      isFinite(qtdReceberNum) &&
+                      qtdReceberNum > 0 &&
+                      (permiteFracao || Number.isInteger(qtdReceberNum));
+                    const saldoAtualNum = parseQuantidade(item.saldoAtual) || 0;
+                    const novoSaldo = isValida
+                      ? Math.round((saldoAtualNum + qtdReceberNum) * 1000) / 1000
+                      : saldoAtualNum;
+                    const erroQtd = !isValida && String(item.qtdReceber ?? '').trim() !== '';
 
                     return (
                       <div key={item.materialId} className="recebimento-item-card">
@@ -796,7 +920,7 @@ const RecebimentoLoteModal = ({
                                 type="button"
                                 className="recebimento-stepper__btn"
                                 onClick={() => handleMudarQuantidade(item.materialId, -1)}
-                                disabled={qtdReceberNum <= 1}
+                                disabled={qtdReceberNum <= (permiteFracao ? 0.001 : 1)}
                                 aria-label="Diminuir quantidade"
                               >
                                 <svg
@@ -812,9 +936,9 @@ const RecebimentoLoteModal = ({
                               </button>
                               <input
                                 type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                className="recebimento-stepper__input"
+                                inputMode={permiteFracao ? "decimal" : "numeric"}
+                                pattern={permiteFracao ? "[0-9]*[.,]?[0-9]*" : "[0-9]*"}
+                                className={`recebimento-stepper__input ${erroQtd ? 'recebimento-stepper__input--error' : ''}`}
                                 value={item.qtdReceber}
                                 onChange={(e) =>
                                   handleInputQuantidade(item.materialId, e.target.value)
@@ -846,7 +970,7 @@ const RecebimentoLoteModal = ({
                           {/* Projeção de Saldo Clara e Transparente */}
                           <div className="recebimento-item-card__projecao">
                             <span className="recebimento-projecao-atual">
-                              Atual: <strong>{item.saldoAtual}</strong> {item.unidade}
+                              Atual: <strong>{formatarQuantidadeExibicao(saldoAtualNum)}</strong> {item.unidade}
                             </span>
                             <svg
                               width="12"
@@ -859,10 +983,18 @@ const RecebimentoLoteModal = ({
                               <polyline points="9 18 15 12 9 6" />
                             </svg>
                             <span className="recebimento-projecao-novo">
-                              Novo: <strong>{novoSaldo}</strong> {item.unidade}
+                              Novo: <strong>{formatarQuantidadeExibicao(novoSaldo)}</strong> {item.unidade}
                             </span>
                           </div>
                         </div>
+
+                        {erroQtd && (
+                          <div className="recebimento-item-card__error" role="alert" style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '4px' }}>
+                            {!permiteFracao && !isNaN(qtdReceberNum) && isFinite(qtdReceberNum) && qtdReceberNum > 0 && !Number.isInteger(qtdReceberNum)
+                              ? 'Este material só aceita quantidades inteiras.'
+                              : 'Informe uma quantidade numérica maior que zero.'}
+                          </div>
+                        )}
 
                         {/* Validade do Lote (Opcional) */}
                         <div className="recebimento-item-card__validade-row">

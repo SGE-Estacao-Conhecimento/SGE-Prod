@@ -11,7 +11,8 @@ import '../components/Sidebar/Sidebar.css';
 import { pedidoService } from '../services/pedidos/pedidoService';
 import { materialService } from '../services/materiais/materialService';
 import { notificacaoService } from '../services/notificacoes/notificacaoService';
-import { DEMO_MATERIAIS } from '../data/demoData';
+import { USA_API, formatarErroApi } from '../services/api/client';
+import { DEMO_MATERIAIS, DEMO_PEDIDOS } from '../data/demoData';
 
 const TITLES = {
   inicio: 'Início',
@@ -51,16 +52,35 @@ const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
   const [pedidosLoading, setPedidosLoading] = useState(true);
   const [pedidosError, setPedidosError] = useState(null);
   const [materiaisReais, setMateriaisReais] = useState(materiais);
+  const [materiaisLoading, setMateriaisLoading] = useState(true);
+  const [materiaisError, setMateriaisError] = useState(null);
   const [autoFocusBuscaTrigger, setAutoFocusBuscaTrigger] = useState(0);
 
   const [notificacoes, setNotificacoes] = useState([]);
 
   useEffect(() => {
     let active = true;
+    setPedidosLoading(true);
+    setPedidosError(null);
     pedidoService.listarMeus()
-      .then((data) => { if (active) setPedidos(data || []); })
-      .catch(() => { if (active) setPedidos(DEMO_PEDIDOS); })
-      .finally(() => { if (active) setPedidosLoading(false); });
+      .then((data) => {
+        if (active) {
+          setPedidos(data || []);
+          setPedidosError(null);
+        }
+      })
+      .catch((err) => {
+        if (!active) return;
+        if (USA_API) {
+          setPedidos((prev) => (prev.length > 0 ? prev : []));
+          setPedidosError(formatarErroApi(err, 'Erro ao carregar seus pedidos da API.'));
+        } else {
+          setPedidos(DEMO_PEDIDOS);
+        }
+      })
+      .finally(() => {
+        if (active) setPedidosLoading(false);
+      });
     return () => { active = false; };
   }, []);
 
@@ -86,10 +106,26 @@ const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
 
   useEffect(() => {
     let active = true;
+    setMateriaisLoading(true);
+    setMateriaisError(null);
     materialService.listar()
-      .then((data) => { if (active) setMateriaisReais(data || []); })
-      .catch(() => {
-        if (active) setMateriaisReais(DEMO_MATERIAIS);
+      .then((data) => {
+        if (active) {
+          setMateriaisReais(data || []);
+          setMateriaisError(null);
+        }
+      })
+      .catch((err) => {
+        if (!active) return;
+        if (USA_API) {
+          setMateriaisReais((prev) => (prev.length > 0 ? prev : []));
+          setMateriaisError(formatarErroApi(err, 'Erro ao carregar catálogo de materiais da API.'));
+        } else {
+          setMateriaisReais(DEMO_MATERIAIS);
+        }
+      })
+      .finally(() => {
+        if (active) setMateriaisLoading(false);
       });
     return () => { active = false; };
   }, []);
@@ -159,7 +195,10 @@ const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
       ]);
 
       return pedidoFormatado;
-    } catch {
+    } catch (err) {
+      if (USA_API) {
+        throw err;
+      }
       const nextId = Math.max(...pedidos.map(p => Number(p.id) || 0), 100) + 1;
       const pedidoCriado = {
         id: nextId,
@@ -220,9 +259,18 @@ const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
       case 'pedidos':
         return (
           <PageTabTransition tabKey="pedidos">
-            {pedidosLoading && <p>Carregando seus pedidos...</p>}
-            {pedidosError && <p role="alert">{pedidosError}</p>}
-            {!pedidosLoading && !pedidosError && (
+            {pedidosLoading && <p className="sge-loading-text">Carregando seus pedidos...</p>}
+            {pedidosError && (
+              <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
+                <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{pedidosError}</span>
+              </div>
+            )}
+            {!pedidosLoading && (!pedidosError || pedidos.length > 0) && (
               <MeusPedidos
                 pedidos={pedidos}
                 user={user}
@@ -237,14 +285,27 @@ const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
       default:
         return (
           <PageTabTransition tabKey="inicio" className="usuario-inicio-container">
-            <UsuarioEstoque
-              materiais={materiaisReais}
-              pedidos={pedidos}
-              user={user}
-              onSolicitarMaterial={handleNovoPedidoSubmit}
-              onNavigateToPedidos={() => handleNavClick('pedidos')}
-              autoFocusBuscaTrigger={autoFocusBuscaTrigger}
-            />
+            {materiaisLoading && <p className="sge-loading-text">Carregando catálogo de materiais...</p>}
+            {materiaisError && (
+              <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
+                <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{materiaisError}</span>
+              </div>
+            )}
+            {!materiaisLoading && (!materiaisError || materiaisReais.length > 0) && (
+              <UsuarioEstoque
+                materiais={materiaisReais}
+                pedidos={pedidos}
+                user={user}
+                onSolicitarMaterial={handleNovoPedidoSubmit}
+                onNavigateToPedidos={() => handleNavClick('pedidos')}
+                autoFocusBuscaTrigger={autoFocusBuscaTrigger}
+              />
+            )}
           </PageTabTransition>
         );
     }

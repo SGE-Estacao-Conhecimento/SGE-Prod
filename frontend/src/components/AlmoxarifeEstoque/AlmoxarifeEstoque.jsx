@@ -559,7 +559,7 @@ const AlmoxarifeEstoque = ({
         if (itemRemessa) {
           const matAtualizado = {
             ...mat,
-            quantidade: mat.quantidade + itemRemessa.qtdRecebida
+            quantidade: Math.round(((Number(mat.quantidade) || 0) + Number(itemRemessa.qtdRecebida)) * 1000) / 1000
           };
           return matAtualizado;
         }

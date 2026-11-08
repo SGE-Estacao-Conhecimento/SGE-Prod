@@ -4,7 +4,11 @@ import { mockStore } from './mockDataStore';
  * Endereço da API real. Vazio = modo standalone (dados simulados no navegador).
  * Defina VITE_API_BASE_URL no .env do front (ex.: http://localhost:5170) para usar o back-end.
  */
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+export const API_BASE_URL = (
+  import.meta.env?.VITE_API_BASE_URL ||
+  globalThis.process?.env?.VITE_API_BASE_URL ||
+  ''
+).replace(/\/+$/, '');
 export const USA_API = API_BASE_URL !== '';
 
 export class ApiError extends Error {
@@ -16,21 +20,55 @@ export class ApiError extends Error {
   }
 }
 
-export const getStoredToken = () =>
-  localStorage.getItem('sge_token') || sessionStorage.getItem('sge_token') || 'mock_token';
+/**
+ * Converte um erro (ApiError ou genérico) em mensagem legível para a interface,
+ * diferenciando falhas de conectividade (status 0), permissão (401/403), 404 e erros internos (500).
+ */
+export const formatarErroApi = (erro, mensagemPadrao = 'Ocorreu um erro ao comunicar com o servidor.') => {
+  if (!erro) return mensagemPadrao;
+  if (erro.status === 0) {
+    return 'Servidor indisponível. Verifique sua conexão com a rede ou se a API está em execução.';
+  }
+  if (erro.status === 401) {
+    return 'Sessão expirada ou não autorizada. Faça login novamente.';
+  }
+  if (erro.status === 403) {
+    return 'Seu perfil de usuário não tem permissão para acessar estes dados.';
+  }
+  if (erro.status === 404) {
+    return 'Os dados solicitados não foram encontrados no servidor.';
+  }
+  if (erro.status >= 500) {
+    return 'Erro interno no servidor ao processar a requisição. Tente novamente mais tarde.';
+  }
+  return erro.message || mensagemPadrao;
+};
+
+export const getStoredToken = () => {
+  const localToken = typeof localStorage !== 'undefined' ? localStorage.getItem('sge_token') : null;
+  const sessionToken = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('sge_token') : null;
+  return localToken || sessionToken || 'mock_token';
+};
 
 export const clearStoredAuth = () => {
-  localStorage.removeItem('sge_token');
-  localStorage.removeItem('sge_user');
-  sessionStorage.removeItem('sge_token');
-  sessionStorage.removeItem('sge_user');
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('sge_token');
+    localStorage.removeItem('sge_user');
+  }
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem('sge_token');
+    sessionStorage.removeItem('sge_user');
+  }
 };
 
 const ROTAS_PUBLICAS = ['/api/auth/login', '/api/auth/logout', '/api/password-reset/request', '/api/password-reset/confirm'];
 
 /** Requisição HTTP para a API real, com token e erros no formato { message }. */
 const httpRequest = async (path, options = {}) => {
-  const token = localStorage.getItem('sge_token') || sessionStorage.getItem('sge_token');
+  const token =
+    (typeof localStorage !== 'undefined' && localStorage.getItem('sge_token')) ||
+    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('sge_token')) ||
+    null;
   // Envio de arquivos (FormData): o navegador define o Content-Type com o boundary do multipart.
   const ehFormulario = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers = { ...(ehFormulario ? {} : { 'Content-Type': 'application/json' }), ...(options.headers || {}) };
@@ -53,7 +91,9 @@ const httpRequest = async (path, options = {}) => {
     // Sessão expirada ou inválida: volta para a tela de login.
     if (resposta.status === 401 && !ROTAS_PUBLICAS.includes(path.split('?')[0])) {
       clearStoredAuth();
-      window.location.reload();
+      if (typeof window !== 'undefined' && window.location?.reload) {
+        window.location.reload();
+      }
     }
     throw new ApiError(dados?.message || `Erro ${resposta.status} ao comunicar com o servidor.`, resposta.status, dados?.errors || null);
   }

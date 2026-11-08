@@ -16,6 +16,7 @@ import { notificacaoService } from '../services/notificacoes/notificacaoService'
 import { remessaService } from '../services/remessas/remessaService';
 import { pedidoService } from '../services/pedidos/pedidoService';
 import { usuarioService } from '../services/usuarios/usuarioService';
+import { USA_API, formatarErroApi } from '../services/api/client';
 import { DEMO_MATERIAIS, DEMO_PEDIDOS, DEMO_MOVIMENTACOES, DEMO_USUARIOS } from '../data/demoData';
 
 const _PEDIDOS_BYPASS = [
@@ -79,29 +80,64 @@ const ALMOXARIFE_SECTIONS = navItemsAlmoxarife.map((item) => item.id);
 
 const Almoxarife = ({ onLogout, user }) => {
   const [materiais, setMateriais] = useState([]);
+  const [materiaisLoading, setMateriaisLoading] = useState(true);
   const [materiaisError, setMateriaisError] = useState(null);
   const [historicoMovimentacoes, setHistoricoMovimentacoes] = useState({});
   const [movimentacoes, setMovimentacoes] = useState([]);
   const [remessas, setRemessas] = useState([]);
   const [pedidos, setPedidos] = useState([]);
+  const [pedidosLoading, setPedidosLoading] = useState(true);
+  const [pedidosError, setPedidosError] = useState(null);
   const [notificacoes, setNotificacoes] = useState([]);
-  const [usuarios, setUsuarios] = useState(DEMO_USUARIOS);
+  const [usuarios, setUsuarios] = useState(USA_API ? [] : DEMO_USUARIOS);
+  const [usuariosLoading, setUsuariosLoading] = useState(true);
+  const [usuariosError, setUsuariosError] = useState(null);
 
   useEffect(() => {
     let active = true;
     usuarioService.listar()
-      .then((data) => { if (active && data?.length) setUsuarios(data); })
-      .catch(() => { if (active) setUsuarios(DEMO_USUARIOS); });
+      .then((data) => {
+        if (active) {
+          setUsuarios(data || []);
+          setUsuariosError(null);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          if (!USA_API) {
+            setUsuarios(DEMO_USUARIOS);
+            setUsuariosError(null);
+          } else {
+            setUsuarios((prev) => (prev.length > 0 ? prev : []));
+            setUsuariosError(formatarErroApi(err, 'Não foi possível carregar os usuários.'));
+          }
+        }
+      })
+      .finally(() => { if (active) setUsuariosLoading(false); });
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
     let active = true;
     pedidoService.listar()
-      .then((data) => { if (active) setPedidos(data || []); })
-      .catch(() => {
-        if (active) setPedidos(DEMO_PEDIDOS);
-      });
+      .then((data) => {
+        if (active) {
+          setPedidos(data || []);
+          setPedidosError(null);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          if (!USA_API) {
+            setPedidos(DEMO_PEDIDOS);
+            setPedidosError(null);
+          } else {
+            setPedidos((prev) => (prev.length > 0 ? prev : []));
+            setPedidosError(formatarErroApi(err, 'Não foi possível carregar os pedidos.'));
+          }
+        }
+      })
+      .finally(() => { if (active) setPedidosLoading(false); });
     return () => { active = false; };
   }, []);
 
@@ -156,13 +192,24 @@ const Almoxarife = ({ onLogout, user }) => {
   useEffect(() => {
     let active = true;
     materialService.listar()
-      .then((data) => { if (active) setMateriais(data || []); })
-      .catch(() => {
+      .then((data) => {
         if (active) {
-          setMateriais(DEMO_MATERIAIS);
+          setMateriais(data || []);
           setMateriaisError(null);
         }
-      });
+      })
+      .catch((err) => {
+        if (active) {
+          if (!USA_API) {
+            setMateriais(DEMO_MATERIAIS);
+            setMateriaisError(null);
+          } else {
+            setMateriais((prev) => (prev.length > 0 ? prev : []));
+            setMateriaisError(formatarErroApi(err, 'Não foi possível carregar os materiais do estoque.'));
+          }
+        }
+      })
+      .finally(() => { if (active) setMateriaisLoading(false); });
     return () => { active = false; };
   }, []);
 
@@ -174,7 +221,11 @@ const Almoxarife = ({ onLogout, user }) => {
         setNotificacoes(novasNotificacoes || []);
         setRemessas(novasRemessas || []);
       })
-      .catch(() => { /* Mantém a tela utilizável se a API estiver indisponível. */ });
+      .catch(() => {
+        if (active && !USA_API) {
+          /* Mantém a tela utilizável se a API estiver indisponível no modo simulado. */
+        }
+      });
     carregarDados();
     const intervalo = window.setInterval(carregarDados, 15000);
     return () => { active = false; window.clearInterval(intervalo); };
@@ -183,10 +234,10 @@ const Almoxarife = ({ onLogout, user }) => {
   useEffect(() => {
     let active = true;
     movimentacaoService.listar()
-      .then((movimentacoes) => {
+      .then((movs) => {
         if (!active) return;
-        setMovimentacoes(movimentacoes || []);
-        const agrupado = (movimentacoes || []).reduce((acc, item) => {
+        setMovimentacoes(movs || []);
+        const agrupado = (movs || []).reduce((acc, item) => {
           const lista = acc[item.produtoId] || [];
           lista.push({
             id: item.id,
@@ -202,13 +253,16 @@ const Almoxarife = ({ onLogout, user }) => {
         setHistoricoMovimentacoes(agrupado);
       })
       .catch(() => {
-        setMovimentacoes(DEMO_MOVIMENTACOES);
-        setHistoricoMovimentacoes(DEMO_MOVIMENTACOES.reduce((acc, item) => {
-          const lista = acc[item.produtoId] || [];
-          lista.push({ id: item.id, tipo: item.tipo, qtd: item.quantidade, data: new Date(item.data).toLocaleString('pt-BR'), responsavel: item.funcionarioNome, motivo: item.observacao });
-          acc[item.produtoId] = lista;
-          return acc;
-        }, {}));
+        if (!active) return;
+        if (!USA_API) {
+          setMovimentacoes(DEMO_MOVIMENTACOES);
+          setHistoricoMovimentacoes(DEMO_MOVIMENTACOES.reduce((acc, item) => {
+            const lista = acc[item.produtoId] || [];
+            lista.push({ id: item.id, tipo: item.tipo, qtd: item.quantidade, data: new Date(item.data).toLocaleString('pt-BR'), responsavel: item.funcionarioNome, motivo: item.observacao });
+            acc[item.produtoId] = lista;
+            return acc;
+          }, {}));
+        }
       });
     return () => { active = false; };
   }, []);
@@ -271,20 +325,33 @@ const Almoxarife = ({ onLogout, user }) => {
       case 'pedidos':
         return (
           <PageTabTransition tabKey="pedidos">
-            <PedidosView
-              pedidos={pedidos}
-              materiais={materiais}
-              usuariosDisponiveis={usuarios}
-              onConfirmarEntrega={handleConfirmarEntregaPedido}
-              onSave={(novo) => {
-                setPedidos(prev => [novo, ...prev]);
-              }}
-              onUpdateStatus={async (pedidoId, novoStatus, extras = {}) => {
-                // Falhas sobem para a tela de pedidos, que mantém o pedido na etapa anterior e avisa.
-                const atualizado = await pedidoService.atualizarStatus(pedidoId, novoStatus, extras);
-                setPedidos(prev => prev.map(p => p.id === pedidoId ? (atualizado || { ...p, status: novoStatus, ...extras }) : p));
-              }}
-            />
+            {pedidosLoading && <p>Carregando pedidos...</p>}
+            {pedidosError && (
+              <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
+                <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{pedidosError}</span>
+              </div>
+            )}
+            {!pedidosLoading && (!pedidosError || pedidos.length > 0) && (
+              <PedidosView
+                pedidos={pedidos}
+                materiais={materiais}
+                usuariosDisponiveis={usuarios}
+                onConfirmarEntrega={handleConfirmarEntregaPedido}
+                onSave={(novo) => {
+                  setPedidos(prev => [novo, ...prev]);
+                }}
+                onUpdateStatus={async (pedidoId, novoStatus, extras = {}) => {
+                  // Falhas sobem para a tela de pedidos, que mantém o pedido na etapa anterior e avisa.
+                  const atualizado = await pedidoService.atualizarStatus(pedidoId, novoStatus, extras);
+                  setPedidos(prev => prev.map(p => p.id === pedidoId ? (atualizado || { ...p, status: novoStatus, ...extras }) : p));
+                }}
+              />
+            )}
           </PageTabTransition>
         );
       case 'relatorios':
@@ -302,23 +369,35 @@ const Almoxarife = ({ onLogout, user }) => {
       default:
         return (
           <PageTabTransition tabKey="estoque">
-            {materiaisError && <p role="alert">{materiaisError}</p>}
-            <AlmoxarifeEstoque
-              materiais={materiais}
-              remessasExternas={remessas}
-              onCriarRemessa={handleCriarRemessa}
-              onNovoMaterial={handleNovoMaterial}
-              onAtualizarMaterial={handleAtualizarMaterial}
-              historicoMovimentacoes={historicoMovimentacoes}
-              onRegistrarMovimentacao={handleRegistrarMovimentacao}
-              onAjustarEstoque={handleAjustarEstoque}
-              isRecebimentoModalOpen={isRecebimentoModalOpen}
-              setIsRecebimentoModalOpen={setIsRecebimentoModalOpen}
-              isNovoModalOpen={isNovoMaterialModalOpen}
-              setIsNovoModalOpen={setIsNovoMaterialModalOpen}
-              draftRemessa={draftRemessa}
-              setDraftRemessa={setDraftRemessa}
-            />
+            {materiaisLoading && <p>Carregando estoque...</p>}
+            {materiaisError && (
+              <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
+                <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{materiaisError}</span>
+              </div>
+            )}
+            {!materiaisLoading && (!materiaisError || materiais.length > 0) && (
+              <AlmoxarifeEstoque
+                materiais={materiais}
+                remessasExternas={remessas}
+                onCriarRemessa={handleCriarRemessa}
+                onNovoMaterial={handleNovoMaterial}
+                onAtualizarMaterial={handleAtualizarMaterial}
+                historicoMovimentacoes={historicoMovimentacoes}
+                onRegistrarMovimentacao={handleRegistrarMovimentacao}
+                onAjustarEstoque={handleAjustarEstoque}
+                isRecebimentoModalOpen={isRecebimentoModalOpen}
+                setIsRecebimentoModalOpen={setIsRecebimentoModalOpen}
+                isNovoModalOpen={isNovoMaterialModalOpen}
+                setIsNovoModalOpen={setIsNovoMaterialModalOpen}
+                draftRemessa={draftRemessa}
+                setDraftRemessa={setDraftRemessa}
+              />
+            )}
           </PageTabTransition>
         );
     }

@@ -1000,7 +1000,7 @@
 }
 
 .recebimento-stepper__input {
-  width: 44px;
+  width: 56px;
   height: 32px;
   border: none;
   border-left: 1px solid #E2E8F0;
@@ -1010,8 +1010,14 @@
   font-weight: 700;
   color: #0F172A;
   outline: none;
-  padding: 0;
+  padding: 0 4px;
   background: #FFFFFF;
+}
+
+.recebimento-stepper__input--error {
+  background: #FEF2F2;
+  color: #DC2626;
+  border-color: #F87171;
 }
 
 /* Projeção de Estoque Transparente */

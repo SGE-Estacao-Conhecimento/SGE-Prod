@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { StatusBadge, BottomSheetModal, SortLoopButton, UnderlineTabs } from '../common';
+import { USA_API } from '../../services/api/client';
 import { DEMO_MATERIAIS } from '../../data/demoData';
 import './MeusPedidos.css';
 
@@ -95,18 +96,18 @@ const MeusPedidos = ({
       const nome = it?.materialNome || it?.nome || it?.material;
       if (nome && String(nome).trim() && nome !== 'undefined') return nome;
       const id = it?.produtoId || it?.id;
-      if (id) {
+      if (!USA_API && id) {
         const mat = DEMO_MATERIAIS.find(m => Number(m.id) === Number(id));
         if (mat?.nome) return mat.nome;
       }
-      return 'Material Solicitado';
+      return id ? `Material #${id}` : 'Material Solicitado';
     };
 
     const resolverUnidade = (it) => {
       const unid = it?.unidade;
       if (unid && String(unid).trim() && unid !== 'undefined') return unid;
       const id = it?.produtoId || it?.id;
-      if (id) {
+      if (!USA_API && id) {
         const mat = DEMO_MATERIAIS.find(m => Number(m.id) === Number(id));
         if (mat?.unidade) return mat.unidade;
       }

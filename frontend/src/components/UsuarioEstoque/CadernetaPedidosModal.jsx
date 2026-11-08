@@ -36,25 +36,43 @@ const CadernetaPedidosModal = ({
       return;
     }
 
+    const itensValidados = [];
+    for (const it of itens) {
+      const rawStr = String(it.quantidade ?? '').trim();
+      const raw = typeof it.quantidade === 'number'
+        ? it.quantidade
+        : (rawStr === '' ? NaN : Number(rawStr.replace(',', '.')));
+      if (isNaN(raw) || !Number.isFinite(raw) || raw <= 0) {
+        setErro(`Quantidade inválida para o material "${it.nome}". Informe um valor numérico maior que zero.`);
+        return;
+      }
+      const permiteFracao = Boolean(it.permiteFracao ?? it.permite_fracao);
+      if (!permiteFracao && !Number.isInteger(raw)) {
+        setErro(`O material "${it.nome}" não permite quantidades fracionárias.`);
+        return;
+      }
+      itensValidados.push({
+        produtoId: it.id,
+        materialNome: it.nome,
+        quantidade: permiteFracao ? Math.round(raw * 1000) / 1000 : raw,
+        unidade: it.unidade || 'UN',
+        itensPorEmbalagem: it.itensPorEmbalagem
+      });
+    }
+
     setErro('');
     setEnviando(true);
     try {
       await onSubmit({
-        itens: itens.map(it => ({
-          produtoId: it.id,
-          materialNome: it.nome,
-          quantidade: Math.max(1, parseInt(it.quantidade, 10) || 1),
-          unidade: it.unidade || 'UN',
-          itensPorEmbalagem: it.itensPorEmbalagem
-        })),
+        itens: itensValidados,
         justificativa: justificativa.trim(),
         urgente,
         prioridade: urgente ? 'Urgente' : 'Normal'
       });
       setJustificativa('');
       setUrgente(false);
-    } catch {
-      // Falha tratada externamente
+    } catch (error) {
+      setErro(error?.message || 'Não foi possível enviar o pedido. Tente novamente.');
     } finally {
       setEnviando(false);
     }

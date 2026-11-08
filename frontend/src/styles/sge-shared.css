@@ -843,5 +843,41 @@
   transform: scale(0.97);
 }
 
+/* ===== 22. BANNERS DE FEEDBACK E ALERTA OPERACIONAL (ANTI-SLOP) ===== */
+.sge-feedback-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 12px 0 20px 0;
+  line-height: 1.45;
+}
+
+.sge-feedback-banner--error {
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #991B1B;
+}
+
+.sge-feedback-banner--warning {
+  background-color: #FFFBEB;
+  border: 1px solid #FCD34D;
+  color: #92400E;
+}
+
+.sge-feedback-banner__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  color: #DC2626;
+}
+
+
 
 

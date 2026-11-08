@@ -19,6 +19,7 @@ import { usuarioService } from '../services/usuarios/usuarioService';
 import { setorService } from '../services/setores/setorService';
 import { movimentacaoService } from '../services/movimentacoes/movimentacaoService';
 import { notificacaoService } from '../services/notificacoes/notificacaoService';
+import { USA_API, formatarErroApi } from '../services/api/client';
 import { DEMO_MATERIAIS, DEMO_PEDIDOS, DEMO_USUARIOS, DEMO_MOVIMENTACOES } from '../data/demoData';
 import NovoMaterialModal from '../components/Estoque/NovoMaterialModal';
 import NovoUsuarioModal from '../components/Usuarios/NovoUsuarioModal';
@@ -254,11 +255,21 @@ const Administrativo = ({ onLogout, user }) => {
   useEffect(() => {
     let active = true;
     materialService.listar()
-      .then((data) => { if (active) setMateriais(data || []); })
-      .catch(() => {
+      .then((data) => {
         if (active) {
-          setMateriais(DEMO_MATERIAIS);
+          setMateriais(data || []);
           setMateriaisError(null);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          if (!USA_API) {
+            setMateriais(DEMO_MATERIAIS);
+            setMateriaisError(null);
+          } else {
+            setMateriais((prev) => (prev.length > 0 ? prev : []));
+            setMateriaisError(formatarErroApi(err, 'Não foi possível carregar os materiais do estoque.'));
+          }
         }
       })
       .finally(() => { if (active) setMateriaisLoading(false); });
@@ -271,7 +282,9 @@ const Administrativo = ({ onLogout, user }) => {
       .then((data) => {
         if (active) setNotificacoes((data || []).map(item => ({ ...item, lida: false, tempo: item.data ? new Date(item.data).toLocaleString('pt-BR') : '' })));
       })
-      .catch(() => { if (active) setNotificacoes([]); });
+      .catch(() => {
+        if (active && !USA_API) setNotificacoes([]);
+      });
     carregarNotificacoes();
     const intervalo = window.setInterval(carregarNotificacoes, 15000);
     return () => { active = false; window.clearInterval(intervalo); };
@@ -285,7 +298,9 @@ const Administrativo = ({ onLogout, user }) => {
     movimentacaoService.listar()
       .then((data) => { if (active) setMovimentacoes(data || []); })
       .catch(() => {
-        if (active) setMovimentacoes(DEMO_MOVIMENTACOES);
+        if (active && !USA_API) {
+          setMovimentacoes(DEMO_MOVIMENTACOES);
+        }
       });
     return () => { active = false; };
   }, []);
@@ -294,18 +309,28 @@ const Administrativo = ({ onLogout, user }) => {
     let active = true;
     setorService.listar()
       .then((data) => { if (active) setSetores(data || []); })
-      .catch(() => { if (active) setSetores([]); });
+      .catch(() => { if (active && !USA_API) setSetores([]); });
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
     let active = true;
     usuarioService.listar()
-      .then((data) => { if (active) setUsuarios(data || []); })
-      .catch(() => {
+      .then((data) => {
         if (active) {
-          setUsuarios(DEMO_USUARIOS);
+          setUsuarios(data || []);
           setUsuariosError(null);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          if (!USA_API) {
+            setUsuarios(DEMO_USUARIOS);
+            setUsuariosError(null);
+          } else {
+            setUsuarios((prev) => (prev.length > 0 ? prev : []));
+            setUsuariosError(formatarErroApi(err, 'Não foi possível carregar a lista de usuários.'));
+          }
         }
       })
       .finally(() => { if (active) setUsuariosLoading(false); });
@@ -315,11 +340,21 @@ const Administrativo = ({ onLogout, user }) => {
   useEffect(() => {
     let active = true;
     pedidoService.listar()
-      .then((data) => { if (active) setPedidos(data || []); })
-      .catch(() => {
+      .then((data) => {
         if (active) {
-          setPedidos(DEMO_PEDIDOS);
+          setPedidos(data || []);
           setPedidosError(null);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          if (!USA_API) {
+            setPedidos(DEMO_PEDIDOS);
+            setPedidosError(null);
+          } else {
+            setPedidos((prev) => (prev.length > 0 ? prev : []));
+            setPedidosError(formatarErroApi(err, 'Não foi possível carregar os pedidos.'));
+          }
         }
       })
       .finally(() => { if (active) setPedidosLoading(false); });
@@ -329,16 +364,26 @@ const Administrativo = ({ onLogout, user }) => {
   useEffect(() => {
     let active = true;
     dashboardService.obter()
-      .then((data) => { if (active) setDashboard(data); })
-      .catch(() => {
+      .then((data) => {
         if (active) {
-          setDashboard({
-            totalProdutos: DEMO_MATERIAIS.length,
-            produtosEstoqueBaixo: DEMO_MATERIAIS.filter(m => m.quantidade <= m.estoqueMinimo).length,
-            pedidosPendentes: DEMO_PEDIDOS.filter(p => p.status === 'Pendente').length,
-            totalUsuarios: DEMO_USUARIOS.length
-          });
+          setDashboard(data);
           setDashboardError(null);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          if (!USA_API) {
+            setDashboard({
+              totalProdutos: DEMO_MATERIAIS.length,
+              produtosEstoqueBaixo: DEMO_MATERIAIS.filter(m => m.quantidade <= m.estoqueMinimo).length,
+              pedidosPendentes: DEMO_PEDIDOS.filter(p => p.status === 'Pendente').length,
+              totalUsuarios: DEMO_USUARIOS.length
+            });
+            setDashboardError(null);
+          } else {
+            setDashboard((prev) => prev);
+            setDashboardError(formatarErroApi(err, 'Não foi possível carregar os indicadores do painel.'));
+          }
         }
       })
       .finally(() => { if (active) setDashboardLoading(false); });
@@ -472,8 +517,17 @@ const Administrativo = ({ onLogout, user }) => {
         return (
           <div className="dashboard-page-scroll">
             {materiaisLoading && <p>Carregando materiais...</p>}
-            {materiaisError && <p role="alert">{materiaisError}</p>}
-            {!materiaisLoading && !materiaisError && (
+            {materiaisError && (
+              <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
+                <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{materiaisError}</span>
+              </div>
+            )}
+            {!materiaisLoading && (!materiaisError || materiais.length > 0) && (
               <EstoqueView
                 materiais={materiais}
                 onSave={handleSaveMaterial}
@@ -487,8 +541,17 @@ const Administrativo = ({ onLogout, user }) => {
         return (
           <div className="dashboard-page-scroll">
             {usuariosLoading && <p>Carregando usuários...</p>}
-            {usuariosError && <p role="alert">{usuariosError}</p>}
-            {!usuariosLoading && !usuariosError && (
+            {usuariosError && (
+              <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
+                <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{usuariosError}</span>
+              </div>
+            )}
+            {!usuariosLoading && (!usuariosError || usuarios.length > 0) && (
               <UsuariosView
                 usuarios={usuarios}
                 setores={setores}
@@ -504,8 +567,17 @@ const Administrativo = ({ onLogout, user }) => {
         return (
           <div className="dashboard-page-scroll">
             {pedidosLoading && <p>Carregando pedidos...</p>}
-            {pedidosError && <p role="alert">{pedidosError}</p>}
-            {!pedidosLoading && !pedidosError && (
+            {pedidosError && (
+              <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
+                <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{pedidosError}</span>
+              </div>
+            )}
+            {!pedidosLoading && (!pedidosError || pedidos.length > 0) && (
               <PedidosView
                 pedidos={pedidos}
                 onUpdateStatus={handleUpdatePedidoStatus}
@@ -568,7 +640,16 @@ const Administrativo = ({ onLogout, user }) => {
                 </div>
               )}
 
-              {dashboardError && <p role="alert">{dashboardError}</p>}
+              {dashboardError && (
+                <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
+                  <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span>{dashboardError}</span>
+                </div>
+              )}
               <section className="dashboard-section">
                 <KpiCards
                   data={{
