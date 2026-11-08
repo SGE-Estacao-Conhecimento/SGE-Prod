@@ -677,7 +677,6 @@
   box-sizing: border-box;
   margin: 0;
   transform-origin: center center; /* Zoom simétrico e proporcional sem estiramento excêntrico */
-  will-change: transform, opacity;
 }
 
 /* Puxador visual e interativo do Bottom Sheet no mobile (arraste ou toque para fechar) */

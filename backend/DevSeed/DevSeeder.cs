@@ -7,8 +7,10 @@ namespace Sge.Api.DevSeed;
 
 /// <summary>
 /// Inicialização e reset do ambiente local de desenvolvimento:
-/// - Garante de forma idempotente apenas o usuário administrador inicial (login: admin / senha: admin).
-/// - Não cadastra setores, materiais, funcionários, almoxarifes, pedidos, movimentações ou remessas fictícias.
+/// - Garante de forma idempotente os usuários padrões iniciais:
+///   * admin (login: admin / senha: admin / perfil: admin)
+///   * almoxarife (login: almoxarife / senha: almoxarife / perfil: almoxarifado)
+///   * usuario (login: usuario / senha: usuario / perfil: funcionario)
 /// - Permite reset explícito do banco local (dotnet run -- reset-dev --confirm) preservando estrutura, FKs e triggers.
 /// </summary>
 public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, ILogger<DevSeeder> logger)
@@ -16,31 +18,98 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
     public const string LoginAdminInicial = "admin";
     public const string SenhaAdminInicial = "admin";
 
+    public const string LoginAlmoxarifeInicial = "almoxarife";
+    public const string SenhaAlmoxarifeInicial = "almoxarife";
+
+    public const string LoginUsuarioInicial = "usuario";
+    public const string SenhaUsuarioInicial = "usuario";
+
     public async Task ExecutarAsync()
     {
         await using var con = await db.AbrirAsync();
         await GarantirColunaFuncionarioOpcionalAsync(con);
 
-        var adminExistenteId = await con.ExecuteScalarAsync<int?>(
-            "SELECT usuario_id FROM usuarios WHERE email = @login LIMIT 1",
-            new { login = LoginAdminInicial });
+        var setorAdminId = await ObterOuCriarSetorAsync(con, "Administração");
+        var setorAlmoxarifadoId = await ObterOuCriarSetorAsync(con, "Almoxarifado");
+        var setorGeralId = await ObterOuCriarSetorAsync(con, "Geral");
 
-        if (adminExistenteId is not null)
+        await GarantirUsuarioAsync(con, LoginAdminInicial, SenhaAdminInicial, Perfis.Admin, "Administrador", setorAdminId);
+        await GarantirUsuarioAsync(con, LoginAlmoxarifeInicial, SenhaAlmoxarifeInicial, Perfis.Almoxarifado, "Almoxarife", setorAlmoxarifadoId);
+        await GarantirUsuarioAsync(con, LoginUsuarioInicial, SenhaUsuarioInicial, Perfis.Funcionario, "Usuário", setorGeralId);
+    }
+
+    private async Task GarantirUsuarioAsync(
+        MySqlConnection con,
+        string login,
+        string senha,
+        string perfil,
+        string nomeFuncionario,
+        int setorId)
+    {
+        var usuarioExistente = await con.QuerySingleOrDefaultAsync<UsuarioSeedInfo>("""
+            SELECT u.usuario_id AS UsuarioId,
+                   u.funcionario_id AS FuncionarioId,
+                   u.perfil AS Perfil,
+                   u.ativo AS Ativo
+              FROM usuarios u
+             WHERE u.email = @login
+             LIMIT 1
+            """, new { login });
+
+        if (usuarioExistente is not null)
         {
-            logger.LogInformation("Usuário administrador inicial ('{Login}') já existe (id={Id}). Nenhuma alteração realizada.",
-                LoginAdminInicial, adminExistenteId.Value);
+            if (usuarioExistente.FuncionarioId is null or 0)
+            {
+                var funcionarioId = await con.ExecuteScalarAsync<int>("""
+                    INSERT INTO funcionarios (nome, setor_id, cpf, celular, ativo)
+                    VALUES (@nomeFuncionario, @setorId, NULL, NULL, TRUE);
+                    SELECT LAST_INSERT_ID();
+                    """, new { nomeFuncionario, setorId });
+
+                await con.ExecuteAsync(
+                    "UPDATE usuarios SET funcionario_id = @funcionarioId WHERE usuario_id = @usuarioId",
+                    new { funcionarioId, usuarioId = usuarioExistente.UsuarioId });
+
+                logger.LogInformation("Funcionário '{Nome}' vinculado ao usuário existente '{Login}' (id={Id}).",
+                    nomeFuncionario, login, usuarioExistente.UsuarioId);
+            }
+            else
+            {
+                logger.LogInformation("Usuário inicial '{Login}' já existe (id={Id}, perfil={Perfil}).",
+                    login, usuarioExistente.UsuarioId, usuarioExistente.Perfil);
+            }
             return;
         }
 
-        var hash = senhas.Hash(SenhaAdminInicial);
+        var novoFuncionarioId = await con.ExecuteScalarAsync<int>("""
+            INSERT INTO funcionarios (nome, setor_id, cpf, celular, ativo)
+            VALUES (@nomeFuncionario, @setorId, NULL, NULL, TRUE);
+            SELECT LAST_INSERT_ID();
+            """, new { nomeFuncionario, setorId });
+
+        var hash = senhas.Hash(senha);
         var id = await con.ExecuteScalarAsync<int>("""
             INSERT INTO usuarios (funcionario_id, email, senha_hash, perfil, ativo)
-            VALUES (NULL, @login, @hash, @perfil, TRUE);
+            VALUES (@novoFuncionarioId, @login, @hash, @perfil, TRUE);
             SELECT LAST_INSERT_ID();
-            """, new { login = LoginAdminInicial, hash, perfil = Perfis.Admin });
+            """, new { novoFuncionarioId, login, hash, perfil });
 
-        logger.LogInformation("Usuário administrador inicial criado com sucesso (id={Id}, login='{Login}', perfil='{Perfil}').",
-            id, LoginAdminInicial, Perfis.Admin);
+        logger.LogInformation("Usuário inicial criado com sucesso (id={Id}, login='{Login}', perfil='{Perfil}', funcionário='{Nome}').",
+            id, login, perfil, nomeFuncionario);
+    }
+
+    private static async Task<int> ObterOuCriarSetorAsync(MySqlConnection con, string nome)
+    {
+        var id = await con.ExecuteScalarAsync<int?>(
+            "SELECT setor_id FROM setores WHERE nome = @nome LIMIT 1", new { nome });
+
+        if (id is not null)
+            return id.Value;
+
+        return await con.ExecuteScalarAsync<int>("""
+            INSERT INTO setores (nome, ativo) VALUES (@nome, TRUE);
+            SELECT LAST_INSERT_ID();
+            """, new { nome });
     }
 
     public async Task ResetarAmbienteLocalAsync()
@@ -95,4 +164,6 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
             throw new InvalidOperationException(
                 $"Reset bloqueado por segurança: o servidor de banco '{csb.Server}' não é um ambiente local (127.0.0.1 / localhost).");
     }
+
+    private sealed record UsuarioSeedInfo(int UsuarioId, int? FuncionarioId, string Perfil, bool Ativo);
 }

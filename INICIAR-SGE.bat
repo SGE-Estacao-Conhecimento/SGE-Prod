@@ -51,7 +51,10 @@ echo.
 echo ============================================================================
 echo [SGE] Sistema iniciado e pronto para uso!
 echo       Endereco da aplicacao : http://localhost:5173
-echo       Acesso inicial padrao : usuario "admin" / senha "admin"
+echo       Acessos padrao (usuario / senha):
+echo         - Administrador : admin / admin
+echo         - Almoxarifado  : almoxarife / almoxarife
+echo         - Solicitante   : usuario / usuario
 echo ============================================================================
 
 REM 7. Abre o navegador somente apos a aplicacao estar disponivel

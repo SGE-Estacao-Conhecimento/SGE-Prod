@@ -407,7 +407,7 @@ function Start-AppProcesses([bool]$DatabaseRecreated = $false) {
             -WorkingDirectory "$RepoRoot\backend" `
             -WindowStyle Hidden
     } else {
-        Write-Host "[SGE] Backend ASP.NET Core ja esta em execucao na porta 5170. Verificando usuario inicial 'admin'..."
+        Write-Host "[SGE] Backend ASP.NET Core ja esta em execucao na porta 5170. Verificando usuarios iniciais ('admin', 'almoxarife', 'usuario')..."
         $prevEAP = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
         & dotnet run --no-build --project "$RepoRoot\backend\Sge.Api.csproj" -- seed-dev > $null 2>&1
@@ -533,7 +533,7 @@ try {
         'seed' {
             Ensure-DockerRunning
             Sync-BackendConfig
-            Write-Host "[SGE] Garantindo usuario administrador inicial ('admin') de forma idempotente..."
+            Write-Host "[SGE] Garantindo usuarios iniciais padroes ('admin', 'almoxarife', 'usuario') de forma idempotente..."
             $dllPath = Join-Path $RepoRoot "backend\bin\Debug\net10.0\Sge.Api.dll"
             $prevEAP = $ErrorActionPreference
             $ErrorActionPreference = 'Continue'
@@ -545,7 +545,7 @@ try {
             $seedExit = $LASTEXITCODE
             $ErrorActionPreference = $prevEAP
             if ($seedExit -ne 0) {
-                throw "Falha ao garantir o usuario administrador inicial ('admin')."
+                throw "Falha ao garantir os usuarios iniciais padroes."
             }
         }
         'reset' {
@@ -555,7 +555,7 @@ try {
                 throw "O comando reset funciona exclusivamente em ambiente de desenvolvimento local (ASPNETCORE_ENVIRONMENT=Development)."
             }
             if (-not $Force) {
-                Write-Warning "ATENCAO: Esta operacao apagara TODOS os dados do banco local (sge) e TODOS os objetos do bucket local MinIO (sge-documentos), mantendo apenas o usuario 'admin'."
+                Write-Warning "ATENCAO: Esta operacao apagara TODOS os dados do banco local (sge) e TODOS os objetos do bucket local MinIO (sge-documentos), mantendo os usuarios padroes ('admin', 'almoxarife', 'usuario')."
                 $confirm = Read-Host "Digite 'SIM' para confirmar a execucao"
                 if ($confirm -cne 'SIM') {
                     Write-Host "[SGE] Operacao de reset cancelada pelo usuario."
@@ -576,7 +576,7 @@ try {
                 if ($status -eq "healthy") { break }
                 Start-Sleep -Seconds 2
             }
-            Write-Host "[SGE] Limpando banco de dados local e recriando exclusivamente o usuario 'admin'..."
+            Write-Host "[SGE] Limpando banco de dados local e recriando os usuarios padroes ('admin', 'almoxarife', 'usuario')..."
             $dllPath = Join-Path $RepoRoot "backend\bin\Debug\net10.0\Sge.Api.dll"
             $prevEAP = $ErrorActionPreference
             $ErrorActionPreference = 'Continue'
@@ -595,7 +595,7 @@ try {
             $ErrorActionPreference = 'Continue'
             & docker compose run --rm --entrypoint /bin/sh minio-init -ec 'mc alias set sge http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null && mc rm --recursive --force sge/sge-documentos/ >/dev/null 2>&1 || true'
             $ErrorActionPreference = $prevEAP
-            Write-Host "[SGE] Reset completo do ambiente local concluido com sucesso (apenas 'admin' cadastrado e bucket MinIO vazio)."
+            Write-Host "[SGE] Reset completo do ambiente local concluido com sucesso (usuarios padroes cadastrados e bucket MinIO vazio)."
         }
         'stop' {
             Stop-AppProcesses
