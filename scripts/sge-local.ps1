@@ -324,7 +324,7 @@ function Ensure-FrontendEnv {
 
 function Test-BackendHealth {
     try {
-        $resp = Invoke-RestMethod -Uri "http://localhost:5170/api/health" -TimeoutSec 2 -ErrorAction Stop
+        $resp = Invoke-RestMethod -Uri "http://127.0.0.1:5170/api/health" -TimeoutSec 3 -ErrorAction Stop
         return ($null -ne $resp -and $resp.status -eq 'ok')
     } catch {
         return $false
@@ -333,7 +333,7 @@ function Test-BackendHealth {
 
 function Test-FrontendHealth {
     try {
-        $resp = Invoke-WebRequest -Uri "http://localhost:5173" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:5173" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
         return ($resp.StatusCode -eq 200)
     } catch {
         return $false
@@ -425,7 +425,7 @@ function Start-AppProcesses([bool]$DatabaseRecreated = $false) {
         Write-Host "[SGE] Frontend Vite ja esta em execucao na porta 5173."
     }
 
-    Write-Host "[SGE] Aguardando disponibilidade do Backend (http://localhost:5170/api/health)..."
+    Write-Host "[SGE] Aguardando disponibilidade do Backend (http://127.0.0.1:5170/api/health)..."
     $backendReady = $false
     for ($i = 1; $i -le 45; $i++) {
         if (Test-BackendHealth) {
@@ -435,11 +435,11 @@ function Start-AppProcesses([bool]$DatabaseRecreated = $false) {
         Start-Sleep -Seconds 2
     }
     if (-not $backendReady) {
-        throw "Tempo limite esgotado aguardando o Backend ficar disponivel em http://localhost:5170/api/health."
+        throw "Tempo limite esgotado aguardando o Backend ficar disponivel em http://127.0.0.1:5170/api/health."
     }
     Write-Host "[SGE] Backend disponivel e saudavel."
 
-    Write-Host "[SGE] Aguardando disponibilidade do Frontend (http://localhost:5173)..."
+    Write-Host "[SGE] Aguardando disponibilidade do Frontend (http://127.0.0.1:5173)..."
     $frontendReady = $false
     for ($i = 1; $i -le 45; $i++) {
         if (Test-FrontendHealth) {
@@ -449,7 +449,7 @@ function Start-AppProcesses([bool]$DatabaseRecreated = $false) {
         Start-Sleep -Seconds 2
     }
     if (-not $frontendReady) {
-        throw "Tempo limite esgotado aguardando o Frontend ficar disponivel em http://localhost:5173."
+        throw "Tempo limite esgotado aguardando o Frontend ficar disponivel em http://127.0.0.1:5173."
     }
     Write-Host "[SGE] Frontend disponivel em http://localhost:5173."
 }
@@ -490,7 +490,7 @@ function Show-Status {
     $localHealthStatus = "INDISPONIVEL"
     $lanHealthStatus = "INDISPONIVEL"
     try {
-        $hLocal = Invoke-RestMethod -Uri "http://localhost:5170/api/health" -TimeoutSec 3
+        $hLocal = Invoke-RestMethod -Uri "http://127.0.0.1:5170/api/health" -TimeoutSec 3
         $localHealthStatus = "OK ($($hLocal | ConvertTo-Json -Compress))"
     } catch {}
     try {
