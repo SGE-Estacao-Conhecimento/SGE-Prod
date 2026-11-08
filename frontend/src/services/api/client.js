@@ -2,13 +2,33 @@ import { mockStore } from './mockDataStore';
 
 /**
  * Endereço da API real. Vazio = modo standalone (dados simulados no navegador).
- * Defina VITE_API_BASE_URL no .env do front (ex.: http://localhost:5170) para usar o back-end.
+ * Defina VITE_API_BASE_URL no .env do front (ex.: http://localhost:5170 ou auto) para usar o back-end.
+ * Quando acessado por qualquer dispositivo na rede local (LAN), localhost/127.0.0.1 é resolvido
+ * automaticamente para o hostname/IP pelo qual o frontend foi acessado (window.location.hostname),
+ * sem exigir IP fixo de nenhum desenvolvedor.
  */
-export const API_BASE_URL = (
+const rawApiBaseUrl = (
   import.meta.env?.VITE_API_BASE_URL ||
   globalThis.process?.env?.VITE_API_BASE_URL ||
   ''
-).replace(/\/+$/, '');
+).trim().replace(/\/+$/, '');
+
+const resolveApiBaseUrl = (configuredUrl) => {
+  if (!configuredUrl) return '';
+  const hasWindowHost = typeof window !== 'undefined' && Boolean(window.location?.hostname);
+  const currentHost = hasWindowHost ? window.location.hostname : 'localhost';
+  const currentProtocol = (hasWindowHost && window.location?.protocol) ? window.location.protocol : 'http:';
+
+  if (configuredUrl.toLowerCase() === 'auto') {
+    return `${currentProtocol}//${currentHost}:5170`;
+  }
+  if (!hasWindowHost || currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    return configuredUrl;
+  }
+  return configuredUrl.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1)(?=[:/]|$)/i, `$1${currentHost}`);
+};
+
+export const API_BASE_URL = resolveApiBaseUrl(rawApiBaseUrl);
 export const USA_API = API_BASE_URL !== '';
 
 export class ApiError extends Error {

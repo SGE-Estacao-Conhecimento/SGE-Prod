@@ -5,7 +5,13 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: true, // Expõe na rede local (Wi-Fi) para acesso pelo celular
+    host: '0.0.0.0', // Escuta em todas as interfaces (localhost e rede local / LAN)
     port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:5170',
+        changeOrigin: true,
+      },
+    },
   },
 })

@@ -62,13 +62,14 @@ O backend lê suas configurações obrigatórias via `dotnet user-secrets` (em a
 
 ### 3.3. Frontend (`frontend/.env`)
 
-O arquivo `frontend/.env` (ignorado pelo Git) ativa o modo conectado à API real:
+Copie `frontend/.env.example` para `frontend/.env` (ou deixe que o script `scripts/sge-local.ps1 start` o crie automaticamente):
 
 ```env
 VITE_API_BASE_URL=http://localhost:5170
 ```
 
-Para utilizar o modo simulado (standalone em memória no navegador), basta deixar `VITE_API_BASE_URL=` vazio.
+- **Resolução dinâmica na rede local (LAN):** Não é necessário configurar IP fixo no `frontend/.env`. Quando outro dispositivo da rede local acessa `http://<IP_DA_MAQUINA>:5173`, o cliente HTTP (`frontend/src/services/api/client.js`) substitui automaticamente `localhost`/`127.0.0.1` pelo hostname/IP acessado no navegador (`window.location.hostname`).
+- Para utilizar o modo simulado (standalone em memória no navegador), basta deixar `VITE_API_BASE_URL=` vazio.
 
 ---
 
@@ -103,23 +104,31 @@ $env:SGE_SEED_SENHA="SgeDevLocal2026!"
 dotnet run --project backend/Sge.Api/Sge.Api.csproj -- seed-dev
 ```
 
-### 4.4. Iniciar Backend e Frontend
+### 4.4. Iniciar Backend e Frontend Manualmente (Opcional)
 
-Em dois terminais separados:
+O comando `.\scripts\sge-local.ps1 start` já inicia automaticamente o Backend (`0.0.0.0:5170`) e o Frontend (`0.0.0.0:5173`). Caso deseje iniciá-los manualmente em dois terminais separados:
 
-**Terminal 1 — Backend API (`http://localhost:5170`):**
+**Terminal 1 — Backend API (`http://0.0.0.0:5170`):**
 ```powershell
 cd backend/Sge.Api
-dotnet run --urls "http://localhost:5170"
+dotnet run --urls "http://0.0.0.0:5170"
 ```
 
-**Terminal 2 — Frontend Vite (`http://localhost:5173`):**
+**Terminal 2 — Frontend Vite (`http://0.0.0.0:5173`):**
 ```powershell
 cd frontend
 npm run dev
 ```
 
-### 4.5. Parar e Reiniciar Sem Perder Dados
+### 4.5. Regra do Firewall do Windows para Acesso LAN (Executar uma única vez)
+
+Para que outros dispositivos na mesma rede (Wi-Fi ou cabo) acessem as portas `5173` (Frontend) e `5170` (API) sem desabilitar o Firewall do Windows, crie a regra de entrada restrita à sub-rede local (`LocalSubnet`) em um terminal PowerShell executado como Administrador:
+
+```powershell
+New-NetFirewallRule -DisplayName "SGE-Prod LAN (5170, 5173)" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5170,5173 -RemoteAddress LocalSubnet
+```
+
+### 4.6. Parar e Reiniciar Sem Perder Dados
 
 - **Parar serviços preservando volumes:**
   ```powershell
@@ -134,16 +143,18 @@ npm run dev
 
 ---
 
-## 5. Endereços Locais de Acesso
+## 5. Endereços Locais e de Rede Local (LAN)
 
-| Componente | Endereço Local | Observação |
-| :--- | :--- | :--- |
-| **Frontend (Aplicação Web)** | `http://localhost:5173` | Interface React para Usuário, Almoxarife e Administração |
-| **Backend (API REST)** | `http://localhost:5170` | Endpoints `/api/*` |
-| **Healthcheck da API** | `http://localhost:5170/api/health` | Retorna `{"status":"ok"}` |
-| **MinIO API (S3)** | `http://127.0.0.1:9000` | Bucket privado `sge-documentos` |
-| **MinIO Console Web** | `http://127.0.0.1:9001` | Painel administrativo do MinIO |
-| **MySQL 8.4 (Docker)** | `127.0.0.1:3307` | Banco `sge` (usuário da aplicação: `sge_app`) |
+Execute `powershell -ExecutionPolicy Bypass -File .\scripts\sge-local.ps1 status` para visualizar o `<IP_LAN>` detectado automaticamente na máquina atual.
+
+| Componente | Endereço Local | Endereço na Rede Local (LAN) | Observação |
+| :--- | :--- | :--- | :--- |
+| **Frontend (Aplicação Web)** | `http://localhost:5173` | `http://<IP_LAN>:5173` | Escuta em `0.0.0.0:5173` |
+| **Backend (API REST)** | `http://localhost:5170` | `http://<IP_LAN>:5170` | Escuta em `0.0.0.0:5170` (CORS restrito a `localhost` e sub-redes privadas RFC 1918 em `Development`) |
+| **Healthcheck da API** | `http://localhost:5170/api/health` | `http://<IP_LAN>:5170/api/health` | Retorna `{"status":"ok"}` |
+| **MinIO API (S3)** | `http://127.0.0.1:9000` | *Isolado (não exposto na LAN)* | Bucket privado `sge-documentos` (acesso mediado pela API) |
+| **MinIO Console Web** | `http://127.0.0.1:9001` | *Isolado (não exposto na LAN)* | Painel administrativo local do MinIO |
+| **MySQL 8.4 (Docker)** | `127.0.0.1:3307` | *Isolado (não exposto na LAN)* | Banco `sge` restrito ao loopback local |
 
 ---
 

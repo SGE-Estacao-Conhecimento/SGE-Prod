@@ -118,7 +118,33 @@ builder.Services.AddAuthorization(o =>
     o.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
-    p.WithOrigins(origensCors).AllowAnyHeader().AllowAnyMethod()));
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        p.SetIsOriginAllowed(origin =>
+        {
+            if (origensCors.Contains(origin, StringComparer.OrdinalIgnoreCase))
+                return true;
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                return false;
+            if (uri.Scheme != Uri.UriSchemeHttp || (uri.Port != 5173 && uri.Port != 5174))
+                return false;
+            if (!System.Net.IPAddress.TryParse(uri.Host, out var ip) ||
+                ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+                return false;
+            var b = ip.GetAddressBytes();
+            // Aceita sub-redes privadas RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) e loopback (127.0.0.0/8)
+            return b[0] == 10
+                || (b[0] == 172 && b[1] >= 16 && b[1] <= 31)
+                || (b[0] == 192 && b[1] == 168)
+                || b[0] == 127;
+        }).AllowAnyHeader().AllowAnyMethod();
+    }
+    else
+    {
+        p.WithOrigins(origensCors).AllowAnyHeader().AllowAnyMethod();
+    }
+}));
 
 // Limita tentativas de login por IP (proteção contra força bruta).
 builder.Services.AddRateLimiter(o =>
