@@ -1,6 +1,6 @@
 # Padrões de Desenvolvimento do Back-end - SGE
 
-Referência obrigatória para todo o back-end (`backend/Sge.Api`). Vale para os três módulos,
+Referência obrigatória para todo o back-end (`backend`). Vale para os três módulos,
 na ordem definida: **1. Usuário, 2. Almoxarife, 3. Administração**.
 
 Ao iniciar um módulo:
@@ -27,7 +27,7 @@ Na dúvida entre uma solução simples e uma mais elaborada, escolher a simples 
 Organização por domínio (uma pasta por assunto), com as mesmas peças em todos os módulos:
 
 ```
-backend/Sge.Api/
+backend/
   Program.cs                 Registro de serviços e pipeline HTTP
   Infrastructure/            Itens transversais: conexão, erros, datas, números, classes-base
   <Dominio>/                 Ex.: Pedidos, Materiais, Favoritos, Recebimentos, Usuarios

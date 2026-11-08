@@ -18,7 +18,7 @@ O ambiente local do SGE é composto por quatro serviços integrados:
 ## 2. Pré-requisitos
 
 1. **Docker Desktop** (com WSL 2 habilitado no Windows)
-2. **.NET SDK** (compatível com o projeto `backend/Sge.Api`)
+2. **.NET SDK** (compatível com o projeto `backend`)
 3. **Node.js** (v20+ ou v24+) e `npm`
 4. **PowerShell** (Windows)
 
@@ -47,7 +47,7 @@ SGE_SEED_SENHA=SgeDevLocal2026!
 
 > **Nota sobre a porta do MySQL (`DB_PORT`):** Caso a máquina local já possua o serviço nativo `MySQL80` do Windows ocupando a porta `3306`, utilize `DB_PORT=3307` no `.env` para evitar conflito de porta sem interromper o serviço local do Windows.
 
-### 3.2. Backend (`backend/Sge.Api`)
+### 3.2. Backend (`backend`)
 
 O backend lê suas configurações obrigatórias via `dotnet user-secrets` (em ambiente `Development`) ou variáveis de ambiente:
 
@@ -101,7 +101,7 @@ Ou diretamente via CLI do .NET:
 
 ```powershell
 $env:SGE_SEED_SENHA="SgeDevLocal2026!"
-dotnet run --project backend/Sge.Api/Sge.Api.csproj -- seed-dev
+dotnet run --project backend/Sge.Api.csproj -- seed-dev
 ```
 
 ### 4.4. Iniciar Backend e Frontend Manualmente (Opcional)
@@ -110,7 +110,7 @@ O comando `.\scripts\sge-local.ps1 start` já inicia automaticamente o Backend (
 
 **Terminal 1 — Backend API (`http://0.0.0.0:5170`):**
 ```powershell
-cd backend/Sge.Api
+cd backend
 dotnet run --urls "http://0.0.0.0:5170"
 ```
 

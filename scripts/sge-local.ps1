@@ -166,8 +166,8 @@ function Start-AppProcesses {
     if (-not $apiConn) {
         Write-Host "[SGE] Iniciando Backend ASP.NET Core em 0.0.0.0:5170..."
         Start-Process -FilePath "dotnet" `
-            -ArgumentList "run --project `"$RepoRoot\backend\Sge.Api\Sge.Api.csproj`" --urls `"http://0.0.0.0:5170`"" `
-            -WorkingDirectory "$RepoRoot\backend\Sge.Api" `
+            -ArgumentList "run --project `"$RepoRoot\backend\Sge.Api.csproj`" --urls `"http://0.0.0.0:5170`"" `
+            -WorkingDirectory "$RepoRoot\backend" `
             -WindowStyle Hidden
     }
 
@@ -266,7 +266,7 @@ switch ($Action) {
         Ensure-DockerRunning
         Sync-BackendConfig
         Write-Host "[SGE] Executando seeder de desenvolvimento..."
-        dotnet run --project "$RepoRoot\backend\Sge.Api\Sge.Api.csproj" -- seed-dev
+        dotnet run --project "$RepoRoot\backend\Sge.Api.csproj" -- seed-dev
     }
     'stop' {
         Stop-AppProcesses
