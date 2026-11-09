@@ -103,8 +103,8 @@
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 0.22s ease,
-              margin 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 0.22s ease,
+    margin 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 0;
   overflow: hidden;
   width: 100%;
@@ -236,10 +236,21 @@
   flex-shrink: 0;
 }
 
-.dot-critico { background: #DC2626; }
-.dot-baixo { background: #F59E0B; }
-.dot-atencao { background: #EAB308; }
-.dot-regular { background: #10B981; }
+.dot-critico {
+  background: #DC2626;
+}
+
+.dot-baixo {
+  background: #F59E0B;
+}
+
+.dot-atencao {
+  background: #EAB308;
+}
+
+.dot-regular {
+  background: #10B981;
+}
 
 .chip-status--active .dot-status {
   background: #FFFFFF !important;
@@ -903,8 +914,15 @@
 }
 
 @keyframes fadeInTab {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Linha do Tempo / Histórico */
@@ -1410,9 +1428,21 @@
 }
 
 @keyframes shakeAlertCol {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-3px); }
-  40%, 80% { transform: translateX(3px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-3px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(3px);
+  }
 }
 
 .card-btn-number-wrap {
@@ -1622,8 +1652,13 @@
 }
 
 @keyframes fadeInModal {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUpModal {
@@ -1631,6 +1666,7 @@
     transform: translateY(40px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -1694,6 +1730,14 @@
 .almox-cockpit-header {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Grade de Estoque Estruturado no Cabeçalho (Padrão idêntico aos cards da aba Detalhes) */
+.almox-cockpit-stock-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   width: 100%;
 }

@@ -731,8 +731,8 @@ const AlmoxarifeEstoque = ({
       responsavel: 'Almoxarife',
       motivo: motivoMovimentacao.trim() || (
         tipoMovimentacao === 'entrada' ? 'Entrada manual avulsa' :
-        tipoMovimentacao === 'saida' ? 'Saída manual avulsa' :
-        'Ajuste físico de balanço'
+          tipoMovimentacao === 'saida' ? 'Saída manual avulsa' :
+            'Ajuste físico de balanço'
       )
     };
 
@@ -1085,7 +1085,7 @@ const AlmoxarifeEstoque = ({
               badge: totalConsumo,
               icon: (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                 </svg>
               )
             },
@@ -1131,309 +1131,308 @@ const AlmoxarifeEstoque = ({
         />
       ) : (
         <>
-      {/* Seção Superior Unificada: Busca + Botão de Filtro com Sanfona (A Geral do SGE) */}
-      <div className="almoxarife-estoque__top-section">
-        <SearchFilterBar
-          searchTerm={busca}
-          onSearchChange={setBusca}
-          onClear={() => setBusca('')}
-          placeholder="Buscar por nome, código ou prateleira..."
-          hasActiveFilter={temFiltroAtivo}
-          isFilterOpen={mostrarFiltros}
-          onToggleFilter={() => setMostrarFiltros(prev => !prev)}
-        />
-
-        <FilterDrawer isOpen={mostrarFiltros}>
-          <FilterGroup title="Status de Reposição">
-            <FilterChip
-              label="Todos"
-              count={metricasStatus.todos}
-              isActive={statusFiltro === 'todos'}
-              onClick={() => setStatusFiltro('todos')}
+          {/* Seção Superior Unificada: Busca + Botão de Filtro com Sanfona (A Geral do SGE) */}
+          <div className="almoxarife-estoque__top-section">
+            <SearchFilterBar
+              searchTerm={busca}
+              onSearchChange={setBusca}
+              onClear={() => setBusca('')}
+              placeholder="Buscar por nome, código ou prateleira..."
+              hasActiveFilter={temFiltroAtivo}
+              isFilterOpen={mostrarFiltros}
+              onToggleFilter={() => setMostrarFiltros(prev => !prev)}
             />
 
-            <FilterChip
-              label="Sem Estoque"
-              count={metricasStatus.semEstoque}
-              isActive={statusFiltro === 'sem_estoque'}
-              dotColor="#DC2626"
-              onClick={() => setStatusFiltro('sem_estoque')}
-            />
+            <FilterDrawer isOpen={mostrarFiltros}>
+              <FilterGroup title="Status de Reposição">
+                <FilterChip
+                  label="Todos"
+                  count={metricasStatus.todos}
+                  isActive={statusFiltro === 'todos'}
+                  onClick={() => setStatusFiltro('todos')}
+                />
 
-            <FilterChip
-              label="Estoque Baixo"
-              count={metricasStatus.estoqueBaixo}
-              isActive={statusFiltro === 'estoque_baixo'}
-              dotColor="#F59E0B"
-              onClick={() => setStatusFiltro('estoque_baixo')}
-            />
+                <FilterChip
+                  label="Sem Estoque"
+                  count={metricasStatus.semEstoque}
+                  isActive={statusFiltro === 'sem_estoque'}
+                  dotColor="#DC2626"
+                  onClick={() => setStatusFiltro('sem_estoque')}
+                />
 
-            <FilterChip
-              label="Atenção"
-              count={metricasStatus.atencao}
-              isActive={statusFiltro === 'atencao'}
-              dotColor="#EAB308"
-              onClick={() => setStatusFiltro('atencao')}
-            />
+                <FilterChip
+                  label="Estoque Baixo"
+                  count={metricasStatus.estoqueBaixo}
+                  isActive={statusFiltro === 'estoque_baixo'}
+                  dotColor="#F59E0B"
+                  onClick={() => setStatusFiltro('estoque_baixo')}
+                />
 
-            <FilterChip
-              label="Regular"
-              count={metricasStatus.regular}
-              isActive={statusFiltro === 'regular'}
-              dotColor="#10B981"
-              onClick={() => setStatusFiltro('regular')}
-            />
-          </FilterGroup>
-        </FilterDrawer>
-      </div>
+                <FilterChip
+                  label="Atenção"
+                  count={metricasStatus.atencao}
+                  isActive={statusFiltro === 'atencao'}
+                  dotColor="#EAB308"
+                  onClick={() => setStatusFiltro('atencao')}
+                />
 
-      {/* Contador de resultados e Seletor de Ordenação Inteligente (A Geral do SGE) */}
-      <div className="sge-meta-bar">
-        <span className="sge-meta-count">
-          {materiaisFiltrados.length === 1
-            ? '1 material encontrado'
-            : `${materiaisFiltrados.length} materiais encontrados`}
-        </span>
-
-        <SortLoopButton
-          currentLabel={ordenacaoAtual.label}
-          onToggleSort={alternarOrdenacao}
-        />
-      </div>
-
-      {/* Banner de Busca Cruzada entre Abas */}
-      {crossSearchResults > 0 && materiaisFiltrados.length === 0 && (
-        <div className="almox-cross-search-banner">
-          <div className="almox-cross-search-info">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-            <span>
-              Nenhum item em <strong>{abaEstoque === 'consumo' ? 'Consumo' : 'Patrimônio'}</strong>, mas encontramos <strong>{crossSearchResults}</strong> {crossSearchResults === 1 ? 'item' : 'itens'} em <strong>{abaEstoque === 'consumo' ? 'Patrimônio' : 'Consumo'}</strong> para "{busca}"
-            </span>
+                <FilterChip
+                  label="Regular"
+                  count={metricasStatus.regular}
+                  isActive={statusFiltro === 'regular'}
+                  dotColor="#10B981"
+                  onClick={() => setStatusFiltro('regular')}
+                />
+              </FilterGroup>
+            </FilterDrawer>
           </div>
-          <button
-            type="button"
-            className="almox-cross-search-btn"
-            onClick={() => setAbaEstoque(abaEstoque === 'consumo' ? 'patrimonio' : 'consumo')}
-          >
-            <span>Ver em {abaEstoque === 'consumo' ? 'Patrimônio' : 'Consumo'}</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </button>
-        </div>
-      )}
 
-      {/* Lista de Tickets do Almoxarife */}
-      <div className="almoxarife-estoque__ticket-list">
-        {materiaisFiltrados.length === 0 ? (
-          <div className="sge-empty-state empty-state-almoxarife">
-            <div className="sge-empty-state__icon-wrap">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-              </svg>
-            </div>
-            <h4 className="sge-empty-state__title">Nenhum material encontrado</h4>
-            <p className="sge-empty-state__desc">Tente ajustar os termos de busca ou selecione outro filtro de reposição.</p>
-            {(busca || temFiltroAtivo) && (
+          {/* Contador de resultados e Seletor de Ordenação Inteligente (A Geral do SGE) */}
+          <div className="sge-meta-bar">
+            <span className="sge-meta-count">
+              {materiaisFiltrados.length === 1
+                ? '1 material encontrado'
+                : `${materiaisFiltrados.length} materiais encontrados`}
+            </span>
+
+            <SortLoopButton
+              currentLabel={ordenacaoAtual.label}
+              onToggleSort={alternarOrdenacao}
+            />
+          </div>
+
+          {/* Banner de Busca Cruzada entre Abas */}
+          {crossSearchResults > 0 && materiaisFiltrados.length === 0 && (
+            <div className="almox-cross-search-banner">
+              <div className="almox-cross-search-info">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <span>
+                  Nenhum item em <strong>{abaEstoque === 'consumo' ? 'Consumo' : 'Patrimônio'}</strong>, mas encontramos <strong>{crossSearchResults}</strong> {crossSearchResults === 1 ? 'item' : 'itens'} em <strong>{abaEstoque === 'consumo' ? 'Patrimônio' : 'Consumo'}</strong> para "{busca}"
+                </span>
+              </div>
               <button
                 type="button"
-                className="sge-empty-state__btn btn-limpar-filtros"
-                onClick={() => {
-                  setBusca('');
-                  setStatusFiltro('todos');
-                }}
+                className="almox-cross-search-btn"
+                onClick={() => setAbaEstoque(abaEstoque === 'consumo' ? 'patrimonio' : 'consumo')}
               >
-                Limpar filtros
+                <span>Ver em {abaEstoque === 'consumo' ? 'Patrimônio' : 'Consumo'}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
               </button>
-            )}
-          </div>
-        ) : (
-          <>
-            {materiaisExibidos.map(item => {
-            const status = calcularStatusReposicao(item.quantidade, item.estoqueMinimo);
-            // Razão de preenchimento da barra de nível (base 2x o mínimo para escala regular)
-            const metaEscala = Math.max(item.estoqueMinimo * 2, 1);
-            const percentual = Math.min(100, Math.round((item.quantidade / metaEscala) * 100));
-
-            return (
-              <div
-                key={item.id}
-                className={`ticket-almoxarife ticket-almoxarife--${status.chave}`}
-                onClick={() => handleAbrirModalMovimentacao(item)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleAbrirModalMovimentacao(item);
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label={`${item.nome}, estoque ${item.quantidade} ${item.unidade}, status ${status.label}. Toque para abrir movimentações, histórico e detalhes.`}
-              >
-                {/* Lado Esquerdo: Identificação e Dados do Material */}
-                <div className="ticket-almoxarife__main">
-                  <div className="ticket-almoxarife__body">
-                    <div className="ticket-almoxarife__title-row">
-                      <h3 className="ticket-almoxarife__title">{item.nome}</h3>
-                      {item.dataValidade && (
-                        <span
-                          className={`validade-pill ${
-                            getStatusValidade(item.dataValidade)?.tipo === 'vencido'
-                              ? 'validade-pill--vencido'
-                              : getStatusValidade(item.dataValidade)?.tipo === 'atencao'
-                              ? 'validade-pill--atencao'
-                              : 'validade-pill--valido'
-                          }`}
-                          title={`Validade: ${formatarDataValidade(item.dataValidade)}`}
-                        >
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                            <line x1="16" y1="2" x2="16" y2="6" />
-                            <line x1="8" y1="2" x2="8" y2="6" />
-                            <line x1="3" y1="10" x2="21" y2="10" />
-                          </svg>
-                          <span>Val: {formatarDataValidadeCurta(item.dataValidade)}</span>
-                        </span>
-                      )}
-                    </div>
-                    {item.descricao && (
-                      <p className="ticket-almoxarife__desc">{item.descricao}</p>
-                    )}
-                  </div>
-
-                  {/* Endereçamento WMS em 2 Linhas: Complexo (Macro) + Badges Táteis (Micro) */}
-                  <div className="ticket-almoxarife__address">
-                    <div className="ticket-almoxarife__complexo-row" title={`Complexo: ${item.complexo || 'Almoxarifado Central'}`}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 21h18" />
-                        <path d="M5 21V7l8-4v18" />
-                        <path d="M19 21V11l-6-4" />
-                        <path d="M9 9h1" />
-                        <path d="M9 13h1" />
-                        <path d="M9 17h1" />
-                      </svg>
-                      <span className="ticket-almoxarife__complexo-text">
-                        {item.complexo || 'Almoxarifado Central'}
-                      </span>
-                    </div>
-
-                    <div className="ticket-almoxarife__badges-row">
-                      {item.locacao && (
-                        <span className="wms-badge wms-badge--locacao" title={`Locação: ${item.locacao}`}>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="m7.5 4.27 9 5.15" />
-                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                            <path d="m3.3 7 8.7 5 8.7-5" />
-                            <path d="M12 22V12" />
-                          </svg>
-                          <span>{item.locacao}</span>
-                        </span>
-                      )}
-
-                      {item.localizacao && (
-                        <span className="wms-badge wms-badge--localizacao" title={`Localização: ${item.localizacao}`}>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                            <circle cx="12" cy="10" r="3" />
-                          </svg>
-                          <span>{item.localizacao}</span>
-                        </span>
-                      )}
-
-                      {!item.locacao && !item.localizacao && (
-                        <span className="wms-badge wms-badge--empty">
-                          Sem endereço cadastrado
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Lado Direito: Topo com Código SKU no Canto Superior Direito + Saldo e Mínimo */}
-                <div className="ticket-almoxarife__side">
-                  <div className="ticket-almoxarife__side-top">
-                    {status.chave === 'atencao' && (
-                      <span
-                        className="ticket-almoxarife__atencao-badge"
-                        title="Atenção: estoque próximo do mínimo"
-                        aria-label="Atenção: estoque próximo do mínimo"
-                      >
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <line x1="12" y1="8" x2="12" y2="13" />
-                          <line x1="12" y1="17" x2="12.01" y2="17" />
-                        </svg>
-                      </span>
-                    )}
-                    <span className="sku-badge">{item.codigo}</span>
-                  </div>
-
-                  <div className="ticket-almoxarife__stock-wrap">
-                    <span className="ticket-almoxarife__stock-current">
-                      <strong>{item.quantidade}</strong> <small>{item.unidade}</small>
-                    </span>
-                    <span className="ticket-almoxarife__stock-min">
-                      mín. {item.estoqueMinimo} {item.unidade}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Barra de Nível Vertical na Borda Direita (Tank Gauge) */}
-                <div
-                  className="ticket-almoxarife__level-gauge"
-                  title={`Nível do estoque: ${percentual}%`}
-                  aria-hidden="true"
-                >
-                  {/* Linha de segurança do Estoque Mínimo (50% da escala) */}
-                  <div
-                    className="ticket-almoxarife__gauge-min-mark"
-                    style={{ bottom: '50%' }}
-                  />
-                  <div
-                    className="ticket-almoxarife__gauge-fill"
-                    style={{
-                      height: `${item.quantidade > 0 ? Math.max(percentual, 8) : 0}%`,
-                      backgroundColor: status.pontoCor
-                    }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Scroll Infinito Automático (Sentinela invisível para carregar novos itens) */}
-          {temMaisItens && (
-            <div ref={sentinelRef} className="sge-infinite-scroll__sentinel" aria-hidden="true" />
-          )}
-
-          {/* Indicador discreto de fim da lista */}
-          {!temMaisItens && materiaisFiltrados.length > 0 && (
-            <div className="sge-infinite-scroll__all-loaded">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              <span>Fim dos materiais ({materiaisFiltrados.length} {materiaisFiltrados.length === 1 ? 'item' : 'itens'})</span>
             </div>
           )}
+
+          {/* Lista de Tickets do Almoxarife */}
+          <div className="almoxarife-estoque__ticket-list">
+            {materiaisFiltrados.length === 0 ? (
+              <div className="sge-empty-state empty-state-almoxarife">
+                <div className="sge-empty-state__icon-wrap">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                  </svg>
+                </div>
+                <h4 className="sge-empty-state__title">Nenhum material encontrado</h4>
+                <p className="sge-empty-state__desc">Tente ajustar os termos de busca ou selecione outro filtro de reposição.</p>
+                {(busca || temFiltroAtivo) && (
+                  <button
+                    type="button"
+                    className="sge-empty-state__btn btn-limpar-filtros"
+                    onClick={() => {
+                      setBusca('');
+                      setStatusFiltro('todos');
+                    }}
+                  >
+                    Limpar filtros
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                {materiaisExibidos.map(item => {
+                  const status = calcularStatusReposicao(item.quantidade, item.estoqueMinimo);
+                  // Razão de preenchimento da barra de nível (base 2x o mínimo para escala regular)
+                  const metaEscala = Math.max(item.estoqueMinimo * 2, 1);
+                  const percentual = Math.min(100, Math.round((item.quantidade / metaEscala) * 100));
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`ticket-almoxarife ticket-almoxarife--${status.chave}`}
+                      onClick={() => handleAbrirModalMovimentacao(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleAbrirModalMovimentacao(item);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${item.nome}, estoque ${item.quantidade} ${item.unidade}, status ${status.label}. Toque para abrir movimentações, histórico e detalhes.`}
+                    >
+                      {/* Lado Esquerdo: Identificação e Dados do Material */}
+                      <div className="ticket-almoxarife__main">
+                        <div className="ticket-almoxarife__body">
+                          <div className="ticket-almoxarife__title-row">
+                            <h3 className="ticket-almoxarife__title">{item.nome}</h3>
+                            {item.dataValidade && (
+                              <span
+                                className={`validade-pill ${getStatusValidade(item.dataValidade)?.tipo === 'vencido'
+                                    ? 'validade-pill--vencido'
+                                    : getStatusValidade(item.dataValidade)?.tipo === 'atencao'
+                                      ? 'validade-pill--atencao'
+                                      : 'validade-pill--valido'
+                                  }`}
+                                title={`Validade: ${formatarDataValidade(item.dataValidade)}`}
+                              >
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                  <line x1="16" y1="2" x2="16" y2="6" />
+                                  <line x1="8" y1="2" x2="8" y2="6" />
+                                  <line x1="3" y1="10" x2="21" y2="10" />
+                                </svg>
+                                <span>Val: {formatarDataValidadeCurta(item.dataValidade)}</span>
+                              </span>
+                            )}
+                          </div>
+                          {item.descricao && (
+                            <p className="ticket-almoxarife__desc">{item.descricao}</p>
+                          )}
+                        </div>
+
+                        {/* Endereçamento WMS em 2 Linhas: Complexo (Macro) + Badges Táteis (Micro) */}
+                        <div className="ticket-almoxarife__address">
+                          <div className="ticket-almoxarife__complexo-row" title={`Complexo: ${item.complexo || 'Almoxarifado Central'}`}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 21h18" />
+                              <path d="M5 21V7l8-4v18" />
+                              <path d="M19 21V11l-6-4" />
+                              <path d="M9 9h1" />
+                              <path d="M9 13h1" />
+                              <path d="M9 17h1" />
+                            </svg>
+                            <span className="ticket-almoxarife__complexo-text">
+                              {item.complexo || 'Almoxarifado Central'}
+                            </span>
+                          </div>
+
+                          <div className="ticket-almoxarife__badges-row">
+                            {item.locacao && (
+                              <span className="wms-badge wms-badge--locacao" title={`Locação: ${item.locacao}`}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="m7.5 4.27 9 5.15" />
+                                  <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                                  <path d="m3.3 7 8.7 5 8.7-5" />
+                                  <path d="M12 22V12" />
+                                </svg>
+                                <span>{item.locacao}</span>
+                              </span>
+                            )}
+
+                            {item.localizacao && (
+                              <span className="wms-badge wms-badge--localizacao" title={`Localização: ${item.localizacao}`}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                                  <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                <span>{item.localizacao}</span>
+                              </span>
+                            )}
+
+                            {!item.locacao && !item.localizacao && (
+                              <span className="wms-badge wms-badge--empty">
+                                Sem endereço cadastrado
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Lado Direito: Topo com Código SKU no Canto Superior Direito + Saldo e Mínimo */}
+                      <div className="ticket-almoxarife__side">
+                        <div className="ticket-almoxarife__side-top">
+                          {status.chave === 'atencao' && (
+                            <span
+                              className="ticket-almoxarife__atencao-badge"
+                              title="Atenção: estoque próximo do mínimo"
+                              aria-label="Atenção: estoque próximo do mínimo"
+                            >
+                              <svg
+                                width="10"
+                                height="10"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3.2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <line x1="12" y1="8" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                              </svg>
+                            </span>
+                          )}
+                          <span className="sku-badge">{item.codigo}</span>
+                        </div>
+
+                        <div className="ticket-almoxarife__stock-wrap">
+                          <span className="ticket-almoxarife__stock-current">
+                            <strong>{item.quantidade}</strong> <small>{item.unidade}</small>
+                          </span>
+                          <span className="ticket-almoxarife__stock-min">
+                            mín. {item.estoqueMinimo} {item.unidade}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Barra de Nível Vertical na Borda Direita (Tank Gauge) */}
+                      <div
+                        className="ticket-almoxarife__level-gauge"
+                        title={`Nível do estoque: ${percentual}%`}
+                        aria-hidden="true"
+                      >
+                        {/* Linha de segurança do Estoque Mínimo (50% da escala) */}
+                        <div
+                          className="ticket-almoxarife__gauge-min-mark"
+                          style={{ bottom: '50%' }}
+                        />
+                        <div
+                          className="ticket-almoxarife__gauge-fill"
+                          style={{
+                            height: `${item.quantidade > 0 ? Math.max(percentual, 8) : 0}%`,
+                            backgroundColor: status.pontoCor
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Scroll Infinito Automático (Sentinela invisível para carregar novos itens) */}
+                {temMaisItens && (
+                  <div ref={sentinelRef} className="sge-infinite-scroll__sentinel" aria-hidden="true" />
+                )}
+
+                {/* Indicador discreto de fim da lista */}
+                {!temMaisItens && materiaisFiltrados.length > 0 && (
+                  <div className="sge-infinite-scroll__all-loaded">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span>Fim dos materiais ({materiaisFiltrados.length} {materiaisFiltrados.length === 1 ? 'item' : 'itens'})</span>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </>
-      )}
-      </div>
-      </>
       )}
 
       {/* Cockpit do Material com 3 Abas: Detalhes, Movimentar, Histórico (A Geral do SGE) */}
@@ -1447,13 +1446,12 @@ const AlmoxarifeEstoque = ({
           materialModal ? (
             <div className="almox-cockpit-header">
               <div
-                className={`modal-title-btn-box ${
-                  materialModalTab !== 'detalhes'
+                className={`modal-title-btn-box ${materialModalTab !== 'detalhes'
                     ? 'modal-title-btn-box--plain'
                     : isEditandoDetalhes
-                    ? 'modal-title-btn-box--editing'
-                    : 'modal-title-btn-box--view'
-                }`}
+                      ? 'modal-title-btn-box--editing'
+                      : 'modal-title-btn-box--view'
+                  }`}
               >
                 {isEditandoDetalhes ? (
                   <>
@@ -1480,24 +1478,83 @@ const AlmoxarifeEstoque = ({
                     </span>
                   </>
                 ) : (
-                  <span className="modal-title-btn-text">{materialModal.nome}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span className="modal-title-btn-text">{materialModal.nome}</span>
+                    {materialModal.bemDuravel && (
+                      <span className="almox-cockpit-durable-tag">
+                        Bem Durável
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
 
-              {/* Barra persistente de Estoque Atual e Estoque Mínimo (visível e fixa em todas as abas) */}
-              <div className="almox-cockpit-stock-bar">
-                <span className={`almox-cockpit-stock-pill almox-cockpit-stock-pill--${calcularStatusReposicao(materialModal.quantidade, materialModal.estoqueMinimo).classe}`}>
-                  <span className="almox-cockpit-stock-dot" />
-                  Estoque Atual: <strong>{materialModal.quantidade} {materialModal.unidade}</strong>
-                </span>
-                <span className="almox-cockpit-min-pill">
-                  Estoque Mínimo: <strong>{materialModal.estoqueMinimo} {materialModal.unidade}</strong>
-                </span>
-                {materialModal.bemDuravel && (
-                  <span className="almox-cockpit-durable-tag">
-                    Bem Durável
-                  </span>
-                )}
+              {/* Indicadores de Estoque Atual e Mínimo (padrão estruturado idêntico aos cards de detalhes) */}
+              <div className="almox-cockpit-stock-grid">
+                {/* 1. Saldo / Estoque Atual (Fixo / Transacional) */}
+                <div className="detail-card detail-card--static">
+                  <div className="detail-card__header">
+                    <span className="detail-label">Estoque Atual</span>
+                  </div>
+                  <div className="detail-card__value-wrap">
+                    <span className="detail-value detail-value--accent">
+                      {materialModal.quantidade} {materialModal.unidade}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Estoque Mínimo (Editável no modo edição) */}
+                <div
+                  className={`detail-card ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
+                  onClick={
+                    isEditandoDetalhes
+                      ? (e) => {
+                        const el = e.currentTarget.querySelector('input');
+                        if (el && document.activeElement !== el) el.focus();
+                      }
+                      : undefined
+                  }
+                >
+                  <div className="detail-card__header">
+                    <span className="detail-label">Estoque Mínimo</span>
+                    {isEditandoDetalhes && (
+                      <span className="detail-card__pencil" aria-hidden="true">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                      </span>
+                    )}
+                  </div>
+                  <div className="detail-card__value-wrap">
+                    {isEditandoDetalhes ? (
+                      <div className="card-btn-number-wrap">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          className="card-btn-input"
+                          value={detalhesForm.estoqueMinimo}
+                          onChange={e => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            setDetalhesForm(prev => ({ ...prev, estoqueMinimo: val }));
+                          }}
+                          enterKeyHint="done"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.target.blur();
+                            }
+                          }}
+                          aria-label="Estoque Mínimo"
+                        />
+                        <span className="card-btn-unit">{detalhesForm.unidade || materialModal.unidade}</span>
+                      </div>
+                    ) : (
+                      <span className="detail-value">{materialModal.estoqueMinimo} {materialModal.unidade}</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           ) : ''
@@ -1611,9 +1668,9 @@ const AlmoxarifeEstoque = ({
                     onClick={
                       isEditandoDetalhes
                         ? () => {
-                            setNovoCodigoInput(detalhesForm.codigo || materialModal?.codigo || '');
-                            setIsConfirmarCodigoOpen(true);
-                          }
+                          setNovoCodigoInput(detalhesForm.codigo || materialModal?.codigo || '');
+                          setIsConfirmarCodigoOpen(true);
+                        }
                         : undefined
                     }
                     title={
@@ -1649,9 +1706,9 @@ const AlmoxarifeEstoque = ({
                     onClick={
                       isEditandoDetalhes
                         ? (e) => {
-                            const el = e.currentTarget.querySelector('select');
-                            if (el && document.activeElement !== el) el.focus();
-                          }
+                          const el = e.currentTarget.querySelector('select');
+                          if (el && document.activeElement !== el) el.focus();
+                        }
                         : undefined
                     }
                   >
@@ -1697,11 +1754,11 @@ const AlmoxarifeEstoque = ({
                       onClick={
                         isEditandoDetalhes
                           ? (e) => {
-                              if (e.target.tagName !== 'INPUT') {
-                                const el = e.currentTarget.querySelector('input');
-                                if (el && document.activeElement !== el) el.focus();
-                              }
+                            if (e.target.tagName !== 'INPUT') {
+                              const el = e.currentTarget.querySelector('input');
+                              if (el && document.activeElement !== el) el.focus();
                             }
+                          }
                           : undefined
                       }
                     >
@@ -1748,11 +1805,11 @@ const AlmoxarifeEstoque = ({
                       onClick={
                         isEditandoDetalhes
                           ? (e) => {
-                              if (e.target.tagName !== 'INPUT') {
-                                const el = e.currentTarget.querySelector('input');
-                                if (el && document.activeElement !== el) el.focus();
-                              }
+                            if (e.target.tagName !== 'INPUT') {
+                              const el = e.currentTarget.querySelector('input');
+                              if (el && document.activeElement !== el) el.focus();
                             }
+                          }
                           : undefined
                       }
                     >
@@ -1801,11 +1858,11 @@ const AlmoxarifeEstoque = ({
                       onClick={
                         isEditandoDetalhes
                           ? (e) => {
-                              if (e.target.tagName !== 'SELECT') {
-                                const el = e.currentTarget.querySelector('select');
-                                if (el && document.activeElement !== el) el.focus();
-                              }
+                            if (e.target.tagName !== 'SELECT') {
+                              const el = e.currentTarget.querySelector('select');
+                              if (el && document.activeElement !== el) el.focus();
                             }
+                          }
                           : undefined
                       }
                     >
@@ -1854,10 +1911,10 @@ const AlmoxarifeEstoque = ({
                             {isUnidadeIndividual(materialModal.unidade)
                               ? (materialModal.unidade === 'Par' ? 'Par (PAR)' : 'Unidade (UN)')
                               : isUnidadeCaixa(materialModal.unidade)
-                              ? 'Caixa (CX)'
-                              : materialModal.unidade === 'Pacote'
-                              ? 'Pacote (PCT)'
-                              : materialModal.unidade}
+                                ? 'Caixa (CX)'
+                                : materialModal.unidade === 'Pacote'
+                                  ? 'Pacote (PCT)'
+                                  : materialModal.unidade}
                           </span>
                         )}
                       </div>
@@ -1868,19 +1925,17 @@ const AlmoxarifeEstoque = ({
 
                     {/* Metade Direita (50%): Quantidade por Embalagem */}
                     <div
-                      className={`detail-split__col ${
-                        isEditandoDetalhes && !isUnidadeIndividual(detalhesForm.unidade) ? 'detail-split__col--clickable' : ''
-                      } ${isEditandoDetalhes && isUnidadeIndividual(detalhesForm.unidade) ? 'detail-split__col--locked' : ''} ${
-                        campoErro === 'itensPorEmbalagem' ? 'detail-split__col--error' : ''
-                      }`}
+                      className={`detail-split__col ${isEditandoDetalhes && !isUnidadeIndividual(detalhesForm.unidade) ? 'detail-split__col--clickable' : ''
+                        } ${isEditandoDetalhes && isUnidadeIndividual(detalhesForm.unidade) ? 'detail-split__col--locked' : ''} ${campoErro === 'itensPorEmbalagem' ? 'detail-split__col--error' : ''
+                        }`}
                       onClick={
                         isEditandoDetalhes && !isUnidadeIndividual(detalhesForm.unidade)
                           ? (e) => {
-                              if (e.target.tagName !== 'INPUT') {
-                                const el = e.currentTarget.querySelector('input');
-                                if (el && document.activeElement !== el) el.focus();
-                              }
+                            if (e.target.tagName !== 'INPUT') {
+                              const el = e.currentTarget.querySelector('input');
+                              if (el && document.activeElement !== el) el.focus();
                             }
+                          }
                           : undefined
                       }
                     >
@@ -1944,8 +1999,8 @@ const AlmoxarifeEstoque = ({
                             {isUnidadeIndividual(materialModal.unidade)
                               ? `1 ${materialModal.unidade === 'Par' ? 'par' : 'un'} (individual)`
                               : materialModal.itensPorEmbalagem
-                              ? `${materialModal.itensPorEmbalagem} un / emb.`
-                              : 'Não informado'}
+                                ? `${materialModal.itensPorEmbalagem} un / emb.`
+                                : 'Não informado'}
                           </span>
                         )}
                       </div>
@@ -1958,9 +2013,9 @@ const AlmoxarifeEstoque = ({
                     onClick={
                       isEditandoDetalhes
                         ? (e) => {
-                            const el = e.currentTarget.querySelector('select');
-                            if (el && document.activeElement !== el) el.focus();
-                          }
+                          const el = e.currentTarget.querySelector('select');
+                          if (el && document.activeElement !== el) el.focus();
+                        }
                         : undefined
                     }
                   >
@@ -1996,81 +2051,16 @@ const AlmoxarifeEstoque = ({
                     </div>
                   </div>
 
-                  {/* 5. Estoque Mínimo (Editável / Número com Teclado Numérico e Tecla OK) */}
-                  <div
-                    className={`detail-card ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
-                    onClick={
-                      isEditandoDetalhes
-                        ? (e) => {
-                            const el = e.currentTarget.querySelector('input');
-                            if (el && document.activeElement !== el) el.focus();
-                          }
-                        : undefined
-                    }
-                  >
-                    <div className="detail-card__header">
-                      <span className="detail-label">Estoque Mínimo</span>
-                      {isEditandoDetalhes && (
-                        <span className="detail-card__pencil" aria-hidden="true">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 20h9" />
-                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                          </svg>
-                        </span>
-                      )}
-                    </div>
-                    <div className="detail-card__value-wrap">
-                      {isEditandoDetalhes ? (
-                        <div className="card-btn-number-wrap">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            className="card-btn-input"
-                            value={detalhesForm.estoqueMinimo}
-                            onChange={e => {
-                              const val = e.target.value.replace(/\D/g, '');
-                              setDetalhesForm({ ...detalhesForm, estoqueMinimo: val });
-                            }}
-                            enterKeyHint="done"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.target.blur();
-                              }
-                            }}
-                            aria-label="Estoque Mínimo"
-                          />
-                          <span className="card-btn-unit">{detalhesForm.unidade || materialModal.unidade}</span>
-                        </div>
-                      ) : (
-                        <span className="detail-value">{materialModal.estoqueMinimo} {materialModal.unidade}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 6. Saldo Atual (Fixo / Transacional na aba Movimentar) */}
-                  <div className="detail-card detail-card--static">
-                    <div className="detail-card__header">
-                      <span className="detail-label">Saldo Atual em Estoque</span>
-                    </div>
-                    <div className="detail-card__value-wrap">
-                      <span className="detail-value detail-value--accent">
-                        {materialModal.quantidade} {materialModal.unidade}
-                      </span>
-                    </div>
-                  </div>
-
                   {/* Classificação: Bem Durável vs Material de Consumo */}
                   <div
                     className={`detail-card ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
                     onClick={
                       isEditandoDetalhes
                         ? () => setDetalhesForm(prev => ({
-                            ...prev,
-                            bemDuravel: !prev.bemDuravel,
-                            dataValidade: !prev.bemDuravel ? '' : prev.dataValidade
-                          }))
+                          ...prev,
+                          bemDuravel: !prev.bemDuravel,
+                          dataValidade: !prev.bemDuravel ? '' : prev.dataValidade
+                        }))
                         : undefined
                     }
                   >
@@ -2109,15 +2099,15 @@ const AlmoxarifeEstoque = ({
                     </div>
                   </div>
 
-                  {/* 7. Validade (Opcional, Editável / Data) */}
+                  {/* Validade (Opcional, Editável / Data) */}
                   <div
-                    className={`detail-card ${isEditandoDetalhes && !(isEditandoDetalhes ? detalhesForm.bemDuravel : materialModal.bemDuravel) ? 'detail-card--button detail-card--editing' : ''}`}
+                    className={`detail-card detail-card--full ${isEditandoDetalhes && !(isEditandoDetalhes ? detalhesForm.bemDuravel : materialModal.bemDuravel) ? 'detail-card--button detail-card--editing' : ''}`}
                     onClick={
                       isEditandoDetalhes && !detalhesForm.bemDuravel
                         ? (e) => {
-                            const el = e.currentTarget.querySelector('input');
-                            if (el && document.activeElement !== el) el.focus();
-                          }
+                          const el = e.currentTarget.querySelector('input');
+                          if (el && document.activeElement !== el) el.focus();
+                        }
                         : undefined
                     }
                   >
@@ -2168,9 +2158,9 @@ const AlmoxarifeEstoque = ({
                     onClick={
                       isEditandoDetalhes
                         ? (e) => {
-                            const el = e.currentTarget.querySelector('textarea');
-                            if (el && document.activeElement !== el) el.focus();
-                          }
+                          const el = e.currentTarget.querySelector('textarea');
+                          if (el && document.activeElement !== el) el.focus();
+                        }
                         : undefined
                     }
                   >
