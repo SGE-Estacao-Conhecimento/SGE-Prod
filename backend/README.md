@@ -12,7 +12,7 @@ Padrões de arquitetura e organização: ver [`PADROES_DESENVOLVIMENTO.md`](../P
 backend/
   Program.cs            Configuração: banco, autenticação, CORS, erros, limites de login
   Infrastructure/       Conexão, transação, erros, datas, números, RepositorioBase
-    Armazenamento/      Fotos no MinIO: validação, SHA-256 e chave na base; envio pelo SDK S3
+    Armazenamento/      Fotos e anexos no MinIO: validação, otimização de imagens (SkiaSharp), SHA-256 e chave na base; envio pelo SDK S3
   Auth/                 Login (e-mail ou CPF), token JWT, perfis, alteração de senha
   Materiais/            Catálogo, cadastro e edição de materiais
   Estoque/              Saldo e histórico: entrada manual, balanço, listagem de movimentações
@@ -100,7 +100,7 @@ Para o front usar a API, crie `frontend/.env` com `VITE_API_BASE_URL=http://loca
 | POST | `/api/movimentacoes/ajuste` | equipe | Balanço: define o novo saldo e registra a diferença |
 | GET | `/api/remessas` | equipe | Recebimentos e doações |
 | POST | `/api/remessas` | equipe | Cria o recebimento em preparação (repetível pelo `identificadorOperacao`) |
-| POST | `/api/remessas/{id}/fotos` | equipe | Envia uma foto (multipart, campo `arquivo`; JPG/PNG/WEBP até 10 MB; até 10 por recebimento) |
+| POST | `/api/remessas/{id}/fotos` | equipe | Envia uma foto (multipart, campo `arquivo`; JPG/PNG/WEBP até 10 MB; otimizada até 1920px antes de gravar no MinIO; até 10 por recebimento) |
 | POST | `/api/remessas/{id}/confirmar` | equipe | Confirma (exige foto) e dá entrada no estoque, uma única vez |
 | GET | `/api/remessas/{id}/fotos/{anexoId}` | equipe | Exibe a foto (transmitida pela API) |
 | GET | `/api/usuarios` | equipe | Lista de usuários, somente leitura (sem CPF) |

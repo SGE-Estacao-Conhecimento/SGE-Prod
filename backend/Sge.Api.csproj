@@ -12,6 +12,7 @@
     <PackageReference Include="Dapper" Version="2.1.89" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
     <PackageReference Include="MySqlConnector" Version="2.6.2" />
+    <PackageReference Include="SkiaSharp" Version="4.155.0" />
   </ItemGroup>
 
 </Project>

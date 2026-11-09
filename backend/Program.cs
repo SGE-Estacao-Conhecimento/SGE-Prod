@@ -47,6 +47,7 @@ builder.Services.AddSingleton(new DbConnectionFactory(connectionString));
 builder.Services.AddSingleton(new AppClock(fusoHorario));
 builder.Services.AddSingleton<PasswordService>();
 builder.Services.AddSingleton<TokenService>();
+builder.Services.AddSingleton<ProcessadorImagemService>();
 
 builder.Services.AddScoped<AuthRepository>();
 builder.Services.AddScoped<MaterialRepository>();

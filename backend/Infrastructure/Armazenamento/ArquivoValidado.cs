@@ -25,7 +25,7 @@ public sealed class ArquivoValidado : IAsyncDisposable
     public long TamanhoBytes { get; }
     public string Sha256 { get; }
 
-    internal Stream AbrirLeitura() =>
+    public Stream AbrirLeitura() =>
         new FileStream(_caminhoTemporario, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
 
     public ValueTask DisposeAsync()

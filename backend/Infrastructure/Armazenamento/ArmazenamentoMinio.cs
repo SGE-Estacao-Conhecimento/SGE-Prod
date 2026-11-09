@@ -13,7 +13,10 @@ public sealed class ArmazenamentoMinio : ArmazenamentoArquivosBase, IDisposable
     private readonly AmazonS3Client _cliente;
     private readonly string _bucket;
 
-    public ArmazenamentoMinio(ArmazenamentoOpcoes opcoes, ILogger<ArmazenamentoMinio> logger) : base(logger)
+    public ArmazenamentoMinio(
+        ArmazenamentoOpcoes opcoes,
+        ProcessadorImagemService processadorImagem,
+        ILogger<ArmazenamentoMinio> logger) : base(logger, processadorImagem)
     {
         _bucket = opcoes.Bucket;
         _cliente = new AmazonS3Client(

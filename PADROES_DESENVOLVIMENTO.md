@@ -78,13 +78,14 @@ backend/
 
 ### Casos já definidos
 
-**Armazenamento de arquivos (MinIO). Classe abstrata `ArmazenamentoArquivosBase`.**
-- A base executa as etapas exigidas pelo `guia-minIO-conexao-sql.md`, iguais para qualquer destino:
-  - validação de extensão, conteúdo e tamanho;
-  - cálculo do SHA-256 no servidor;
+**Armazenamento de arquivos (MinIO). Classe abstrata `ArmazenamentoArquivosBase` e `ProcessadorImagemService`.**
+- A base executa as etapas exigidas pelo `guia-minIO-conexao-sql.md`, iguais para qualquer destino, apoiada pelo `ProcessadorImagemService`:
+  - validação de extensão, assinatura binária (magic bytes) e tamanho;
+  - otimização automática de imagens (correção de orientação EXIF, remoção de metadados, redimensionamento proporcional limitado a 1920px sem ampliação, compressão JPEG a 80% para imagens opacas e preservação de formato/canal alfa para PNG e WebP com transparência) e preservação intacta de arquivos que não sejam imagens;
+  - cálculo do SHA-256 e do tamanho final no servidor após o processamento;
   - geração de uma chave estável do objeto, nunca a partir de caminhos enviados pelo cliente.
 - Só o envio e a leitura do objeto ficam abstratos ("método modelo").
-- Implementações: `ArmazenamentoMinio` (real) e uma implementação em memória para testes. Ambas herdam as mesmas validações (LSP).
+- Implementações: `ArmazenamentoMinio` (real) e `ArmazenamentoEmMemoria` (em `backend.Tests/` para testes automatizados). Ambas herdam as mesmas validações (LSP).
 
 **Envio de e-mail. Interface `IEnvioEmail`.**
 - Contrato pequeno (enviar mensagem), sem código compartilhado entre o provedor real e o de teste.
@@ -171,8 +172,8 @@ Resolvidos no Módulo 2 (por necessidade do próprio módulo):
 
 | Data | Exceção | Justificativa |
 |---|---|---|
-| 07/11/2026 | `ArmazenamentoArquivosBase` tem por enquanto só a implementação `ArmazenamentoMinio`; a implementação em memória prevista na seção 5 não foi criada | Ainda não há projeto de testes automatizados em C#. Os testes usaram um servidor S3 compatível local. Simular envio bem-sucedido na API é proibido pelo guia do MinIO |
 | 07/11/2026 | O `RemessaService` só é registrado quando o armazenamento está configurado | Permite rodar `seed-dev` sem as variáveis S3; a API normal não inicia sem elas |
+| 09/11/2026 | Adição do pacote `SkiaSharp` em `Sge.Api.csproj` e criação do projeto `backend.Tests/Sge.Api.Tests.csproj` (xUnit) | Aprovado para processamento e compressão de imagens no servidor e verificação automatizada dos cenários de imagem e armazenamento |
 
 ### Histórico de decisões
 
@@ -190,3 +191,4 @@ Resolvidos no Módulo 2 (por necessidade do próprio módulo):
 | 07/11/2026 | O sistema não pode ficar sem administrador ativo: desativar, excluir ou trocar o perfil do último administrador é recusado. |
 | 07/11/2026 | Senha com no mínimo 8 caracteres no cadastro, na edição e na troca de senha. |
 | 07/11/2026 | Operações que bloqueiam vários registros o fazem sempre na mesma ordem (ex.: administradores ativos antes do usuário alterado), para evitar travamento entre operações simultâneas. |
+| 09/11/2026 | Otimização automática de imagens antes do envio ao MinIO (`ProcessadorImagemService` com SkiaSharp): redimensionamento proporcional acima de 1920px, correção de orientação EXIF, remoção de metadados, compressão JPEG 80% para imagens opacas e preservação de PNG/WebP quando houver transparência. |
