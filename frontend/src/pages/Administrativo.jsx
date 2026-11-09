@@ -265,6 +265,8 @@ const Administrativo = ({ onLogout, user }) => {
       setMateriais(prev => material.id
         ? prev.map(item => item.id === material.id ? saved : item)
         : [saved, ...prev]);
+      const movsAtualizadas = await movimentacaoService.listar();
+      if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
     } catch (error) {
       // Aviso pontual: a tela de estoque continua disponível (antes o erro substituía a tela inteira).
       alert(error?.message || 'Não foi possível salvar o material.');
@@ -335,6 +337,8 @@ const Administrativo = ({ onLogout, user }) => {
             {!materiaisLoading && (!materiaisError || materiais.length > 0) && (
               <EstoqueView
                 materiais={materiais}
+                movimentacoes={movimentacoes}
+                remessas={remessas}
                 onSave={handleSaveMaterial}
                 onDelete={handleDeleteMaterial}
                 initialStatus={estoqueStatusInicial}

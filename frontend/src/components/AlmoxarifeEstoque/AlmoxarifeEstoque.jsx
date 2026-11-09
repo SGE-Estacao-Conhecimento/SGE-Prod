@@ -11,6 +11,7 @@ import {
   UnderlineTabs
 } from '../common';
 import RecebimentoLoteModal from './RecebimentoLoteModal/RecebimentoLoteModal';
+import HistoricoMovimentacoesTab from '../Estoque/HistoricoMovimentacoesTab';
 import './AlmoxarifeEstoque.css';
 
 // Lista de complexos disponíveis para endereçamento físico (A Geral do SGE)
@@ -198,6 +199,7 @@ const AlmoxarifeEstoque = ({
   remessasExternas = [],
   onCriarRemessa,
   historicoMovimentacoes = {},
+  movimentacoes = [],
   onAtualizarMaterial,
   onRegistrarMovimentacao,
   onAjustarEstoque,
@@ -220,8 +222,8 @@ const AlmoxarifeEstoque = ({
   const [statusFiltro, setStatusFiltro] = useState('todos');
   const [indiceOrdenacao, setIndiceOrdenacao] = useState(0);
 
-  // Divisão de Estoque: Materiais de Consumo vs Bens Duráveis / Patrimônio
-  const [abaEstoque, setAbaEstoque] = useState('consumo'); // 'consumo' | 'duraveis'
+  // Divisão de Estoque: Consumo, Patrimônio ou Histórico
+  const [abaEstoque, setAbaEstoque] = useState('consumo'); // 'consumo' | 'patrimonio' | 'historico'
 
   // Gestos touch / arrasto para troca fluida de abas no estoque
   const touchEstoqueStartRef = useRef({ x: 0, y: 0 });
@@ -238,10 +240,12 @@ const AlmoxarifeEstoque = ({
     const deltaY = e.changedTouches[0].clientY - touchEstoqueStartRef.current.y;
     // Bloqueio direcional para preservar o scroll vertical nativo
     if (Math.abs(deltaX) > 48 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-      if (deltaX < 0 && abaEstoque === 'consumo') {
-        setAbaEstoque('duraveis');
-      } else if (deltaX > 0 && abaEstoque === 'duraveis') {
-        setAbaEstoque('consumo');
+      if (deltaX < 0) {
+        if (abaEstoque === 'consumo') setAbaEstoque('patrimonio');
+        else if (abaEstoque === 'patrimonio') setAbaEstoque('historico');
+      } else if (deltaX > 0) {
+        if (abaEstoque === 'historico') setAbaEstoque('patrimonio');
+        else if (abaEstoque === 'patrimonio') setAbaEstoque('consumo');
       }
     }
   };
@@ -324,6 +328,32 @@ const AlmoxarifeEstoque = ({
   });
   const draftRemessa = controlledDraftRemessa !== undefined ? controlledDraftRemessa : internalDraftRemessa;
   const setDraftRemessa = setControlledDraftRemessa || setInternalDraftRemessa;
+
+  // Adiciona item faltante vinculado à mesma Nota Fiscal / Remessa (Etapa 2)
+  const handleAdicionarItemNF = (origem) => {
+    const docIdentificacao =
+      origem.documentoDoador ||
+      origem.documentoOrigem ||
+      origem.fornecedor ||
+      origem.numeroRemessa ||
+      (origem.recebimentoId ? `REM-${origem.recebimentoId}` : origem.id ? `REM-${origem.id}` : 'Nota Fiscal Original');
+
+    const recId = origem.recebimentoId || (typeof origem.id === 'number' && (origem.tipoOperacao === 'nota_fiscal' || origem.itens) ? origem.id : null);
+    const numRemessa = origem.numeroRemessa || (recId ? `REM-${recId}` : '');
+
+    setDraftRemessa({
+      etapaAtual: 1,
+      isComplementoNF: true,
+      remessaPaiNumero: numRemessa,
+      recebimentoIdOriginal: recId,
+      tipoOrigem: origem.tipoOrigem || 'compra_nf',
+      documentoDoador: docIdentificacao,
+      observacao: `Complemento de item faltante da NF / Remessa ${numRemessa || docIdentificacao}`,
+      itens: [],
+      fotos: []
+    });
+    setIsRecebimentoModalOpen(true);
+  };
 
   // Histórico de remessas e doações salvas para relatórios e auditorias (SGE Core)
   const [remessasHistorico, setRemessasHistorico] = useState(remessasExternas);
@@ -449,13 +479,13 @@ const AlmoxarifeEstoque = ({
 
   // Contagem geral para as abas de topo
   const totalConsumo = useMemo(() => materiais.filter(m => !m.bemDuravel).length, [materiais]);
-  const totalDuraveis = useMemo(() => materiais.filter(m => !!m.bemDuravel).length, [materiais]);
+  const totalPatrimonio = useMemo(() => materiais.filter(m => !!m.bemDuravel).length, [materiais]);
 
   // Contagem de resultados na OUTRA aba para o cross-search banner
   const crossSearchResults = useMemo(() => {
-    if (!busca.trim()) return 0;
+    if (!busca.trim() || abaEstoque === 'historico') return 0;
     const termo = busca.toLowerCase().trim();
-    const outraAba = abaEstoque === 'consumo' ? 'duraveis' : 'consumo';
+    const outraAba = abaEstoque === 'consumo' ? 'patrimonio' : 'consumo';
     return materiais
       .filter(item => outraAba === 'consumo' ? !item.bemDuravel : !!item.bemDuravel)
       .filter(item =>
@@ -468,6 +498,9 @@ const AlmoxarifeEstoque = ({
 
   // Contadores para os chips de filtro operacional da aba ativa
   const metricasStatus = useMemo(() => {
+    if (abaEstoque === 'historico') {
+      return { todos: 0, semEstoque: 0, estoqueBaixo: 0, atencao: 0, regular: 0 };
+    }
     let semEstoque = 0;
     let estoqueBaixo = 0;
     let atencao = 0;
@@ -986,7 +1019,7 @@ const AlmoxarifeEstoque = ({
       localizacao: '',
       dataValidade: '',
       descricao: '',
-      bemDuravel: abaEstoque === 'duraveis'
+      bemDuravel: abaEstoque === 'patrimonio'
     });
   };
 
@@ -1057,13 +1090,24 @@ const AlmoxarifeEstoque = ({
               )
             },
             {
-              id: 'duraveis',
-              label: 'Bens Duráveis',
-              badge: totalDuraveis,
+              id: 'patrimonio',
+              label: 'Patrimônio',
+              badge: totalPatrimonio,
               icon: (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                   <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+              )
+            },
+            {
+              id: 'historico',
+              label: 'Histórico',
+              badge: movimentacoes.length,
+              icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 14 14" />
                 </svg>
               )
             }
@@ -1078,6 +1122,15 @@ const AlmoxarifeEstoque = ({
         />
       </div>
 
+      {abaEstoque === 'historico' ? (
+        <HistoricoMovimentacoesTab
+          movimentacoes={movimentacoes}
+          materiais={materiais}
+          remessas={remessasExternas}
+          onAdicionarItemNF={handleAdicionarItemNF}
+        />
+      ) : (
+        <>
       {/* Seção Superior Unificada: Busca + Botão de Filtro com Sanfona (A Geral do SGE) */}
       <div className="almoxarife-estoque__top-section">
         <SearchFilterBar
@@ -1158,15 +1211,19 @@ const AlmoxarifeEstoque = ({
               <line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
             <span>
-              Nenhum item em <strong>{abaEstoque === 'consumo' ? 'Consumo' : 'Bens Duráveis'}</strong>, mas encontramos <strong>{crossSearchResults}</strong> {crossSearchResults === 1 ? 'item' : 'itens'} em <strong>{abaEstoque === 'consumo' ? 'Bens Duráveis' : 'Materiais de Consumo'}</strong> para "{busca}"
+              Nenhum item em <strong>{abaEstoque === 'consumo' ? 'Consumo' : 'Patrimônio'}</strong>, mas encontramos <strong>{crossSearchResults}</strong> {crossSearchResults === 1 ? 'item' : 'itens'} em <strong>{abaEstoque === 'consumo' ? 'Patrimônio' : 'Consumo'}</strong> para "{busca}"
             </span>
           </div>
           <button
             type="button"
             className="almox-cross-search-btn"
-            onClick={() => setAbaEstoque(abaEstoque === 'consumo' ? 'duraveis' : 'consumo')}
+            onClick={() => setAbaEstoque(abaEstoque === 'consumo' ? 'patrimonio' : 'consumo')}
           >
-            Ver em {abaEstoque === 'consumo' ? 'Bens Duráveis' : 'Consumo'} &rarr;
+            <span>Ver em {abaEstoque === 'consumo' ? 'Patrimônio' : 'Consumo'}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
           </button>
         </div>
       )}
@@ -1376,6 +1433,8 @@ const AlmoxarifeEstoque = ({
         </>
       )}
       </div>
+      </>
+      )}
 
       {/* Cockpit do Material com 3 Abas: Detalhes, Movimentar, Histórico (A Geral do SGE) */}
       <BottomSheetModal

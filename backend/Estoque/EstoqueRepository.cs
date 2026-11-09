@@ -36,6 +36,8 @@ public sealed class EstoqueRepository(DbConnectionFactory db) : RepositorioBase(
         public int? PedidoId { get; set; }
         public int? RecebimentoId { get; set; }
         public DateTime? RecebimentoData { get; set; }
+        public string? DocumentoOrigem { get; set; }
+        public string? TipoOrigem { get; set; }
     }
 
     /// <summary>
@@ -92,7 +94,8 @@ public sealed class EstoqueRepository(DbConnectionFactory db) : RepositorioBase(
         var linhas = await con.QueryAsync<MovimentacaoLinha>("""
             SELECT m.movimentacao_id, m.produto_id, p.nome AS produto_nome, m.tipo, m.sentido, m.quantidade,
                    m.saldo_apos, m.motivo, m.data_movimentacao, f.nome AS responsavel_nome,
-                   pi.pedido_id, ri.recebimento_id, r.data_registro AS recebimento_data
+                   pi.pedido_id, ri.recebimento_id, r.data_registro AS recebimento_data,
+                   r.origem_nome AS documento_origem, r.tipo_origem
               FROM movimentacoes_estoque m
               JOIN produtos p ON p.produto_id = m.produto_id
               JOIN usuarios u ON u.usuario_id = m.usuario_id
@@ -116,7 +119,8 @@ public sealed class EstoqueRepository(DbConnectionFactory db) : RepositorioBase(
         var linha = await t.Conexao.QuerySingleAsync<MovimentacaoLinha>("""
             SELECT m.movimentacao_id, m.produto_id, p.nome AS produto_nome, m.tipo, m.sentido, m.quantidade,
                    m.saldo_apos, m.motivo, m.data_movimentacao, f.nome AS responsavel_nome,
-                   NULL AS pedido_id, NULL AS recebimento_id, NULL AS recebimento_data
+                   NULL AS pedido_id, NULL AS recebimento_id, NULL AS recebimento_data,
+                   NULL AS documento_origem, NULL AS tipo_origem
               FROM movimentacoes_estoque m
               JOIN produtos p ON p.produto_id = m.produto_id
               JOIN usuarios u ON u.usuario_id = m.usuario_id
@@ -132,11 +136,15 @@ public sealed class EstoqueRepository(DbConnectionFactory db) : RepositorioBase(
 
     private static MovimentacaoDto Montar(MovimentacaoLinha l)
     {
+        var numeroRemessa = l.RecebimentoId is { } rec
+            ? NumeroRemessa.Formatar(rec, l.RecebimentoData ?? l.DataMovimentacao)
+            : null;
+
         var observacao = l.Motivo ?? l.Tipo switch
         {
             TipoMovimentacao.SaidaPedido when l.PedidoId is { } pedido => $"Atendimento do Pedido #{pedido}",
-            TipoMovimentacao.EntradaRecebimento when l.RecebimentoId is { } rec =>
-                $"Remessa {NumeroRemessa.Formatar(rec, l.RecebimentoData ?? l.DataMovimentacao)} recebida",
+            TipoMovimentacao.EntradaRecebimento when numeroRemessa is not null =>
+                $"Remessa {numeroRemessa} recebida",
             _ => "Movimentação registrada"
         };
 
@@ -144,6 +152,11 @@ public sealed class EstoqueRepository(DbConnectionFactory db) : RepositorioBase(
             l.MovimentacaoId, l.ProdutoId, l.ProdutoNome,
             TipoMovimentacao.ParaFront(l.Tipo, l.Sentido, l.Motivo),
             Numeros.Normalizar(l.Quantidade), Numeros.Normalizar(l.SaldoApos),
-            AppClock.ComoUtc(l.DataMovimentacao), l.ResponsavelNome, observacao);
+            AppClock.ComoUtc(l.DataMovimentacao), l.ResponsavelNome, observacao,
+            l.RecebimentoId,
+            numeroRemessa,
+            l.DocumentoOrigem,
+            l.TipoOrigem is not null ? OrigemRemessa.ParaFront(l.TipoOrigem) : null,
+            l.PedidoId);
     }
 }

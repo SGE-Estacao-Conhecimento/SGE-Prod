@@ -56,6 +56,55 @@
   box-sizing: border-box;
 }
 
+/* ===== BANNER MODO COMPLEMENTO DE NOTA FISCAL ===== */
+.recebimento-complemento-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #F0FDFA;
+  border: 1px solid rgba(1, 127, 123, 0.25);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.recebimento-complemento-banner__icon {
+  color: var(--accent, #017F7B);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.recebimento-complemento-banner__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.recebimento-complemento-banner__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #0F172A);
+}
+
+.recebimento-complemento-banner__desc {
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+  line-height: 1.4;
+}
+
+.recebimento-input--readonly {
+  background: #F1F5F9 !important;
+  color: #475569 !important;
+  cursor: not-allowed;
+  border-color: #CBD5E1 !important;
+}
+
+.recebimento-helper-text {
+  font-size: 11px;
+  color: #64748B;
+  display: block;
+  margin-top: 4px;
+}
+
 .recebimento-step-btn {
   display: flex;
   align-items: center;

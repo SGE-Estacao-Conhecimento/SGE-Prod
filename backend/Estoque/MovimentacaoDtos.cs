@@ -47,4 +47,9 @@ public sealed record MovimentacaoDto(
     decimal SaldoApos,
     DateTime Data,
     string FuncionarioNome,
-    string Observacao);
+    string Observacao,
+    int? RecebimentoId = null,
+    string? NumeroRemessa = null,
+    string? DocumentoOrigem = null,
+    string? TipoOrigem = null,
+    int? PedidoId = null);

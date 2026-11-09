@@ -125,19 +125,34 @@ const Almoxarife = ({ onLogout, user }) => {
 
   const handleRegistrarMovimentacao = async (movimentacao) => {
     await movimentacaoService.registrar(movimentacao);
-    const atualizados = await materialService.listar();
+    const [atualizados, movsAtualizadas] = await Promise.all([
+      materialService.listar(),
+      movimentacaoService.listar()
+    ]);
     setMateriais(atualizados || []);
+    if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
   };
 
   const handleAjustarEstoque = async (ajuste) => {
     await movimentacaoService.ajustar(ajuste);
-    setMateriais(await materialService.listar());
+    const [atualizados, movsAtualizadas] = await Promise.all([
+      materialService.listar(),
+      movimentacaoService.listar()
+    ]);
+    setMateriais(atualizados || []);
+    if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
   };
 
   const handleCriarRemessa = async (remessa) => {
     const criada = await remessaService.criar(remessa);
-    setRemessas(await remessaService.listar());
-    setMateriais(await materialService.listar());
+    const [remessasAtualizadas, materiaisAtualizados, movsAtualizadas] = await Promise.all([
+      remessaService.listar(),
+      materialService.listar(),
+      movimentacaoService.listar()
+    ]);
+    setRemessas(remessasAtualizadas || []);
+    setMateriais(materiaisAtualizados || []);
+    if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
     return criada;
   };
 
@@ -350,6 +365,7 @@ const Almoxarife = ({ onLogout, user }) => {
                 onNovoMaterial={handleNovoMaterial}
                 onAtualizarMaterial={handleAtualizarMaterial}
                 historicoMovimentacoes={historicoMovimentacoes}
+                movimentacoes={movimentacoes}
                 onRegistrarMovimentacao={handleRegistrarMovimentacao}
                 onAjustarEstoque={handleAjustarEstoque}
                 isRecebimentoModalOpen={isRecebimentoModalOpen}
