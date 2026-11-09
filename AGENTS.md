@@ -20,6 +20,11 @@
    de ambiente ou `dotnet user-secrets`. Não crie arquivos `appsettings*.json`
    com valores sensíveis, e não grave valores em `appsettings.json`
    (as chaves `ConnectionStrings:DefaultConnection` e `Jwt:Key` ficam vazias).
+5. **Integridade entre camadas (Banco de Dados e Back-end).** Sempre
+   verifique se a mudança afeta o banco de dados e o back-end. Caso afete,
+   altere também essas camadas, corrigindo quaisquer inconsistências de
+   ponta a ponta, sem deixar erros de lógica ou violar regras de negócio,
+   contratos e constraints de schema.
 
 ## 2. Fonte da Verdade
 
@@ -63,7 +68,9 @@ Diretrizes:
 4. Siga os padrões arquiteturais e convenções de nomenclatura estabelecidos.
 5. Evite novas dependências e abstrações sem necessidade comprovada. Toda
    dependência nova deve ser justificada e aprovada.
-6. Considere o impacto da mudança no restante da aplicação.
+6. Considere o impacto da mudança no restante da aplicação: avalie se
+   a alteração afeta o banco de dados e o back-end, garantindo a
+   consistência integral entre as camadas sem deixar lacunas lógicas.
 7. Resolva o problema atual de forma simples e sustentável. Não otimize
    nem generalize para requisitos hipotéticos.
 

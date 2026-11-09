@@ -495,10 +495,14 @@ const RecebimentoLoteModal = ({
             </div>
             <div>
               <h2 className="recebimento-modal-title__text">
-                Recebimento em Lote / Entrada
+                {draftRemessa?.isComplementoNF
+                  ? 'Complemento de Nota Fiscal / Remessa'
+                  : 'Recebimento em Lote / Entrada'}
               </h2>
               <span className="recebimento-modal-title__sub">
-                {etapaAtual === 1
+                {draftRemessa?.isComplementoNF
+                  ? `Vinculado a: ${draftRemessa.remessaPaiNumero || draftRemessa.documentoDoador || 'NF Original'} (Apenas novos itens)`
+                  : etapaAtual === 1
                   ? 'Etapa 1: Seleção de materiais e conferência de volumes'
                   : 'Etapa 2: Identificação e documentação da remessa'}
               </span>
@@ -776,6 +780,27 @@ const RecebimentoLoteModal = ({
             </button>
           </div>
 
+          {/* BANNER INFORMATIVO: MODO COMPLEMENTO DE NOTA FISCAL / REMESSA */}
+          {draftRemessa?.isComplementoNF && (
+            <div className="recebimento-complemento-banner" role="status">
+              <div className="recebimento-complemento-banner__icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+              </div>
+              <div className="recebimento-complemento-banner__text">
+                <span className="recebimento-complemento-banner__title">
+                  Complemento vinculado: {draftRemessa.remessaPaiNumero ? `Remessa ${draftRemessa.remessaPaiNumero}` : ''} {draftRemessa.documentoDoador ? `(${draftRemessa.documentoDoador})` : ''}
+                </span>
+                <span className="recebimento-complemento-banner__desc">
+                  Adicione os materiais que faltaram nesta entrega. O histórico anterior não será alterado; uma nova entrada será gerada vinculada à mesma Nota Fiscal.
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* ==================== ETAPA 1: MATERIAIS E VOLUMES ==================== */}
           {etapaAtual === 1 && (
             <div className="recebimento-step-pane">
@@ -1032,8 +1057,11 @@ const RecebimentoLoteModal = ({
                         type="button"
                         role="radio"
                         aria-checked={isSelected}
-                        className={`recebimento-origem-card ${isSelected ? 'recebimento-origem-card--selected' : ''}`}
-                        onClick={() => handleTrocarTipoOrigem(opcao.id)}
+                        disabled={Boolean(draftRemessa?.isComplementoNF)}
+                        className={`recebimento-origem-card ${isSelected ? 'recebimento-origem-card--selected' : ''} ${draftRemessa?.isComplementoNF ? 'recebimento-origem-card--disabled' : ''}`}
+                        onClick={() => {
+                          if (!draftRemessa?.isComplementoNF) handleTrocarTipoOrigem(opcao.id);
+                        }}
                       >
                         <div className="recebimento-origem-card__top">
                           <div className="recebimento-origem-card__icon-box">
@@ -1072,7 +1100,7 @@ const RecebimentoLoteModal = ({
                   <input
                     id="recebimento-doc-input"
                     type="text"
-                    className="recebimento-input"
+                    className={`recebimento-input ${draftRemessa?.isComplementoNF ? 'recebimento-input--readonly' : ''}`}
                     placeholder={
                       tipoOrigem === 'doacao'
                         ? 'Ex: Fundação Vale, Doação Externa...'
@@ -1081,8 +1109,14 @@ const RecebimentoLoteModal = ({
                         : 'Ex: Devolução de evento, Sobra de oficina...'
                     }
                     value={documentoDoador}
+                    readOnly={Boolean(draftRemessa?.isComplementoNF)}
                     onChange={(e) => updateDraft({ documentoDoador: e.target.value })}
                   />
+                  {draftRemessa?.isComplementoNF && (
+                    <span className="recebimento-helper-text">
+                      Origem e documento fixados conforme a Nota Fiscal / Remessa original vinculada.
+                    </span>
+                  )}
                 </div>
 
                 <div className="recebimento-input-group">

@@ -15,6 +15,12 @@
   gap: 16px;
 }
 
+/* Sub-abas de Estoque (Consumo, Patrimônio, Histórico) */
+.estoque-tabs-wrapper {
+  margin-top: -4px;
+  margin-bottom: 2px;
+}
+
 .estoque-title {
   font-size: 20px;
   font-weight: 700;
