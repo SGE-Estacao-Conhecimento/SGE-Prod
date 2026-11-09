@@ -107,7 +107,6 @@ export const normalizarMaterial = (item) => {
     }
   }
 
-  const locacao = item.locacao || '';
   const dataValidade = item.dataValidade || item.validade || '';
   const bemDuravel = item.bemDuravel !== undefined
     ? !!item.bemDuravel
@@ -118,7 +117,6 @@ export const normalizarMaterial = (item) => {
       ...item,
       bemDuravel,
       itensPorEmbalagem,
-      locacao,
       dataValidade: bemDuravel ? '' : dataValidade
     };
   }
@@ -129,7 +127,6 @@ export const normalizarMaterial = (item) => {
       bemDuravel,
       itensPorEmbalagem,
       complexo: comp.trim() || 'Almoxarifado Central',
-      locacao,
       localizacao: resto.join('•').trim(),
       dataValidade: bemDuravel ? '' : dataValidade
     };
@@ -139,7 +136,6 @@ export const normalizarMaterial = (item) => {
     bemDuravel,
     itensPorEmbalagem,
     complexo: 'Almoxarifado Central',
-    locacao,
     localizacao: item.localizacao || '',
     dataValidade: bemDuravel ? '' : dataValidade
   };
@@ -272,7 +268,6 @@ const AlmoxarifeEstoque = ({
     categoria: '',
     estoqueMinimo: 0,
     complexo: 'Almoxarifado Central',
-    locacao: '',
     localizacao: '',
     dataValidade: '',
     descricao: '',
@@ -294,7 +289,6 @@ const AlmoxarifeEstoque = ({
     quantidade: 0,
     estoqueMinimo: 5,
     complexo: 'Almoxarifado Central',
-    locacao: '',
     localizacao: '',
     dataValidade: '',
     descricao: '',
@@ -549,7 +543,6 @@ const AlmoxarifeEstoque = ({
         (item.codigo && item.codigo.toLowerCase().includes(termo)) ||
         (item.categoria && item.categoria.toLowerCase().includes(termo)) ||
         (item.complexo && item.complexo.toLowerCase().includes(termo)) ||
-        (item.locacao && item.locacao.toLowerCase().includes(termo)) ||
         (item.localizacao && item.localizacao.toLowerCase().includes(termo)) ||
         (item.descricao && item.descricao.toLowerCase().includes(termo))
       );
@@ -661,7 +654,6 @@ const AlmoxarifeEstoque = ({
       categoria: matNormalizado.categoria || 'Escritório',
       estoqueMinimo: matNormalizado.estoqueMinimo ?? 5,
       complexo: matNormalizado.complexo || 'Almoxarifado Central',
-      locacao: matNormalizado.locacao || '',
       localizacao: matNormalizado.localizacao || '',
       dataValidade: matNormalizado.dataValidade || '',
       descricao: matNormalizado.descricao || ''
@@ -792,7 +784,6 @@ const AlmoxarifeEstoque = ({
       categoria: materialModal.categoria || 'Escritório',
       estoqueMinimo: materialModal.estoqueMinimo ?? 5,
       complexo: materialModal.complexo || 'Almoxarifado Central',
-      locacao: materialModal.locacao || '',
       localizacao: materialModal.localizacao || '',
       dataValidade: materialModal.dataValidade || '',
       descricao: materialModal.descricao || '',
@@ -815,7 +806,6 @@ const AlmoxarifeEstoque = ({
         categoria: materialModal.categoria || 'Escritório',
         estoqueMinimo: materialModal.estoqueMinimo ?? 5,
         complexo: materialModal.complexo || 'Almoxarifado Central',
-        locacao: materialModal.locacao || '',
         localizacao: materialModal.localizacao || '',
         dataValidade: materialModal.dataValidade || '',
         descricao: materialModal.descricao || '',
@@ -874,7 +864,6 @@ const AlmoxarifeEstoque = ({
       categoria: detalhesForm.categoria || materialModal.categoria,
       estoqueMinimo: Number(detalhesForm.estoqueMinimo) || materialModal.estoqueMinimo,
       complexo: detalhesForm.complexo || materialModal.complexo || 'Almoxarifado Central',
-      locacao: detalhesForm.locacao.trim(),
       localizacao: detalhesForm.localizacao.trim(),
       dataValidade: ehBemDuravel ? '' : (detalhesForm.dataValidade || ''),
       descricao: detalhesForm.descricao.trim(),
@@ -985,7 +974,6 @@ const AlmoxarifeEstoque = ({
       quantidade: Number(novoItemForm.quantidade) || 0,
       estoqueMinimo: Number(novoItemForm.estoqueMinimo) || 5,
       complexo: novoItemForm.complexo || 'Almoxarifado Central',
-      locacao: novoItemForm.locacao.trim(),
       localizacao: novoItemForm.localizacao.trim(),
       dataValidade: ehBemDuravel ? '' : (novoItemForm.dataValidade || ''),
       descricao: novoItemForm.descricao.trim(),
@@ -1015,7 +1003,6 @@ const AlmoxarifeEstoque = ({
       quantidade: 0,
       estoqueMinimo: 5,
       complexo: 'Almoxarifado Central',
-      locacao: '',
       localizacao: '',
       dataValidade: '',
       descricao: '',
@@ -1323,18 +1310,6 @@ const AlmoxarifeEstoque = ({
                           </div>
 
                           <div className="ticket-almoxarife__badges-row">
-                            {item.locacao && (
-                              <span className="wms-badge wms-badge--locacao" title={`Locação: ${item.locacao}`}>
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="m7.5 4.27 9 5.15" />
-                                  <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                                  <path d="m3.3 7 8.7 5 8.7-5" />
-                                  <path d="M12 22V12" />
-                                </svg>
-                                <span>{item.locacao}</span>
-                              </span>
-                            )}
-
                             {item.localizacao && (
                               <span className="wms-badge wms-badge--localizacao" title={`Localização: ${item.localizacao}`}>
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1345,9 +1320,9 @@ const AlmoxarifeEstoque = ({
                               </span>
                             )}
 
-                            {!item.locacao && !item.localizacao && (
+                            {!item.localizacao && (
                               <span className="wms-badge wms-badge--empty">
-                                Sem endereço cadastrado
+                                Sem localização cadastrada
                               </span>
                             )}
                           </div>
@@ -1700,7 +1675,51 @@ const AlmoxarifeEstoque = ({
                     </div>
                   </div>
 
-                  {/* 2. Complexo (Editável / Dropdown) */}
+                  {/* 2. Categoria (Editável / Dropdown) */}
+                  <div
+                    className={`detail-card ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
+                    onClick={
+                      isEditandoDetalhes
+                        ? (e) => {
+                          const el = e.currentTarget.querySelector('select');
+                          if (el && document.activeElement !== el) el.focus();
+                        }
+                        : undefined
+                    }
+                  >
+                    <div className="detail-card__header">
+                      <span className="detail-label">Categoria</span>
+                      {isEditandoDetalhes && (
+                        <span className="detail-card__pencil" aria-hidden="true">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                          </svg>
+                        </span>
+                      )}
+                    </div>
+                    <div className="detail-card__value-wrap">
+                      {isEditandoDetalhes ? (
+                        <select
+                          className="card-btn-select"
+                          value={detalhesForm.categoria}
+                          onChange={e => setDetalhesForm({ ...detalhesForm, categoria: e.target.value })}
+                          aria-label="Categoria"
+                        >
+                          <option value="Escritório">Escritório</option>
+                          <option value="Material Didático">Material Didático</option>
+                          <option value="Limpeza e Higiene">Limpeza e Higiene</option>
+                          <option value="Informática / TI">Informática / TI</option>
+                          <option value="Manutenção / Reparos">Manutenção / Reparos</option>
+                          <option value="Outros">Outros</option>
+                        </select>
+                      ) : (
+                        <span className="detail-value">{materialModal.categoria}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3. Complexo (Editável / Dropdown) */}
                   <div
                     className={`detail-card ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
                     onClick={
@@ -1744,107 +1763,51 @@ const AlmoxarifeEstoque = ({
                     </div>
                   </div>
 
-                  {/* 3. Localização & Locação (Largura Total, Dividida 50% / 50%) */}
+                  {/* 4. Localização (Editável / Texto) */}
                   <div
-                    className={`detail-card detail-card--full detail-card--split ${isEditandoDetalhes ? 'detail-card--editing-split' : ''}`}
+                    className={`detail-card ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
+                    onClick={
+                      isEditandoDetalhes
+                        ? (e) => {
+                          if (e.target.tagName !== 'INPUT') {
+                            const el = e.currentTarget.querySelector('input');
+                            if (el && document.activeElement !== el) el.focus();
+                          }
+                        }
+                        : undefined
+                    }
                   >
-                    {/* Metade Esquerda (50%): Localização */}
-                    <div
-                      className={`detail-split__col ${isEditandoDetalhes ? 'detail-split__col--clickable' : ''}`}
-                      onClick={
-                        isEditandoDetalhes
-                          ? (e) => {
-                            if (e.target.tagName !== 'INPUT') {
-                              const el = e.currentTarget.querySelector('input');
-                              if (el && document.activeElement !== el) el.focus();
-                            }
-                          }
-                          : undefined
-                      }
-                    >
-                      <div className="detail-card__header">
-                        <span className="detail-label">Localização</span>
-                        {isEditandoDetalhes && (
-                          <span className="detail-card__pencil" aria-hidden="true">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M12 20h9" />
-                              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                            </svg>
-                          </span>
-                        )}
-                      </div>
-                      <div className="detail-card__value-wrap">
-                        {isEditandoDetalhes ? (
-                          <input
-                            type="text"
-                            className="card-btn-input"
-                            placeholder="Ex: Prat. 02, Gaveta 04..."
-                            value={detalhesForm.localizacao}
-                            onChange={e => setDetalhesForm({ ...detalhesForm, localizacao: e.target.value })}
-                            enterKeyHint="done"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.target.blur();
-                              }
-                            }}
-                            aria-label="Localização"
-                          />
-                        ) : (
-                          <span className="detail-value">{materialModal.localizacao || 'Não especificada'}</span>
-                        )}
-                      </div>
+                    <div className="detail-card__header">
+                      <span className="detail-label">Localização</span>
+                      {isEditandoDetalhes && (
+                        <span className="detail-card__pencil" aria-hidden="true">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                          </svg>
+                        </span>
+                      )}
                     </div>
-
-                    {/* Divisória Vertical Central */}
-                    <div className="detail-split__divider" aria-hidden="true" />
-
-                    {/* Metade Direita (50%): Locação */}
-                    <div
-                      className={`detail-split__col ${isEditandoDetalhes ? 'detail-split__col--clickable' : ''}`}
-                      onClick={
-                        isEditandoDetalhes
-                          ? (e) => {
-                            if (e.target.tagName !== 'INPUT') {
-                              const el = e.currentTarget.querySelector('input');
-                              if (el && document.activeElement !== el) el.focus();
+                    <div className="detail-card__value-wrap">
+                      {isEditandoDetalhes ? (
+                        <input
+                          type="text"
+                          className="card-btn-input"
+                          placeholder="Ex: Prat. 02, Gaveta 04..."
+                          value={detalhesForm.localizacao}
+                          onChange={e => setDetalhesForm({ ...detalhesForm, localizacao: e.target.value })}
+                          enterKeyHint="done"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.target.blur();
                             }
-                          }
-                          : undefined
-                      }
-                    >
-                      <div className="detail-card__header">
-                        <span className="detail-label">Locação</span>
-                        {isEditandoDetalhes && (
-                          <span className="detail-card__pencil" aria-hidden="true">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M12 20h9" />
-                              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                            </svg>
-                          </span>
-                        )}
-                      </div>
-                      <div className="detail-card__value-wrap">
-                        {isEditandoDetalhes ? (
-                          <input
-                            type="text"
-                            className="card-btn-input"
-                            placeholder="Ex: Box 14, Palete 03..."
-                            value={detalhesForm.locacao}
-                            onChange={e => setDetalhesForm({ ...detalhesForm, locacao: e.target.value })}
-                            enterKeyHint="done"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.target.blur();
-                              }
-                            }}
-                            aria-label="Locação"
-                          />
-                        ) : (
-                          <span className="detail-value">{materialModal.locacao || 'Não especificada'}</span>
-                        )}
-                      </div>
+                          }}
+                          aria-label="Localização"
+                        />
+                      ) : (
+                        <span className="detail-value">{materialModal.localizacao || 'Não especificada'}</span>
+                      )}
                     </div>
                   </div>
 
@@ -2007,50 +1970,6 @@ const AlmoxarifeEstoque = ({
                     </div>
                   </div>
 
-                  {/* 4. Categoria (Editável / Dropdown) */}
-                  <div
-                    className={`detail-card ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
-                    onClick={
-                      isEditandoDetalhes
-                        ? (e) => {
-                          const el = e.currentTarget.querySelector('select');
-                          if (el && document.activeElement !== el) el.focus();
-                        }
-                        : undefined
-                    }
-                  >
-                    <div className="detail-card__header">
-                      <span className="detail-label">Categoria</span>
-                      {isEditandoDetalhes && (
-                        <span className="detail-card__pencil" aria-hidden="true">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 20h9" />
-                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                          </svg>
-                        </span>
-                      )}
-                    </div>
-                    <div className="detail-card__value-wrap">
-                      {isEditandoDetalhes ? (
-                        <select
-                          className="card-btn-select"
-                          value={detalhesForm.categoria}
-                          onChange={e => setDetalhesForm({ ...detalhesForm, categoria: e.target.value })}
-                          aria-label="Categoria"
-                        >
-                          <option value="Escritório">Escritório</option>
-                          <option value="Material Didático">Material Didático</option>
-                          <option value="Limpeza e Higiene">Limpeza e Higiene</option>
-                          <option value="Informática / TI">Informática / TI</option>
-                          <option value="Manutenção / Reparos">Manutenção / Reparos</option>
-                          <option value="Outros">Outros</option>
-                        </select>
-                      ) : (
-                        <span className="detail-value">{materialModal.categoria}</span>
-                      )}
-                    </div>
-                  </div>
-
                   {/* Classificação: Bem Durável vs Material de Consumo */}
                   <div
                     className={`detail-card ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
@@ -2101,7 +2020,7 @@ const AlmoxarifeEstoque = ({
 
                   {/* Validade (Opcional, Editável / Data) */}
                   <div
-                    className={`detail-card detail-card--full ${isEditandoDetalhes && !(isEditandoDetalhes ? detalhesForm.bemDuravel : materialModal.bemDuravel) ? 'detail-card--button detail-card--editing' : ''}`}
+                    className={`detail-card ${isEditandoDetalhes && !(isEditandoDetalhes ? detalhesForm.bemDuravel : materialModal.bemDuravel) ? 'detail-card--button detail-card--editing' : ''}`}
                     onClick={
                       isEditandoDetalhes && !detalhesForm.bemDuravel
                         ? (e) => {
@@ -2608,47 +2527,29 @@ const AlmoxarifeEstoque = ({
               </div>
             </div>
 
-            {/* Endereçamento dividido: Complexo (Lista) + Localização (Texto) + Locação (Texto) */}
-            <div className="modal-form-group">
-              <label className="modal-label">Complexo *</label>
-              <select
-                className="modal-input"
-                value={novoItemForm.complexo}
-                onChange={e => setNovoItemForm({ ...novoItemForm, complexo: e.target.value })}
-              >
-                {LISTA_COMPLEXOS.map(comp => (
-                  <option key={comp} value={comp}>{comp}</option>
-                ))}
-              </select>
-            </div>
-
+            {/* Endereçamento: Complexo (Lista) + Localização (Texto) */}
             <div className="modal-form-row">
               <div className="modal-form-group flex-1">
-                <label className="modal-label">Localização</label>
+                <label className="modal-label">Complexo *</label>
+                <select
+                  className="modal-input"
+                  value={novoItemForm.complexo}
+                  onChange={e => setNovoItemForm({ ...novoItemForm, complexo: e.target.value })}
+                >
+                  {LISTA_COMPLEXOS.map(comp => (
+                    <option key={comp} value={comp}>{comp}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="modal-form-group flex-1">
+                <label className="modal-label">Localização (Armário / Prateleira)</label>
                 <input
                   type="text"
                   className="modal-input"
                   placeholder="Ex: Prat. 02, Gaveta 04..."
                   value={novoItemForm.localizacao}
                   onChange={e => setNovoItemForm({ ...novoItemForm, localizacao: e.target.value })}
-                  enterKeyHint="done"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      e.target.blur();
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="modal-form-group flex-1">
-                <label className="modal-label">Locação</label>
-                <input
-                  type="text"
-                  className="modal-input"
-                  placeholder="Ex: Box 14, Palete 03..."
-                  value={novoItemForm.locacao}
-                  onChange={e => setNovoItemForm({ ...novoItemForm, locacao: e.target.value })}
                   enterKeyHint="done"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {

@@ -7,10 +7,10 @@ public sealed class MaterialRepository(DbConnectionFactory db) : RepositorioBase
 {
     public sealed record DadosMaterial(
         string Codigo, string Nome, string? Categoria, string Unidade, decimal EstoqueMinimo,
-        string? Localizacao, string? Descricao, bool BemDuravel, bool PermiteFracao);
+        string Complexo, string? Localizacao, string? Descricao, bool BemDuravel, bool PermiteFracao);
 
     private const string SelectMateriais = """
-        SELECT produto_id AS id, codigo, nome, categoria, unidade_medida AS unidade, permite_fracao, bem_duravel,
+        SELECT produto_id AS id, codigo, nome, categoria, unidade_medida AS unidade, complexo, permite_fracao, bem_duravel,
                quantidade, quantidade_minima AS estoque_minimo, localizacao, descricao, ativo
           FROM produtos
         """;
@@ -33,9 +33,9 @@ public sealed class MaterialRepository(DbConnectionFactory db) : RepositorioBase
     /// <summary>Insere o material com saldo zero; o saldo inicial entra pelo histórico de estoque.</summary>
     public async Task<int> InserirAsync(Transacao t, DadosMaterial m) =>
         await t.Conexao.ExecuteScalarAsync<int>("""
-            INSERT INTO produtos (codigo, nome, categoria, unidade_medida, localizacao, descricao,
+            INSERT INTO produtos (codigo, nome, categoria, unidade_medida, complexo, localizacao, descricao,
                                   permite_fracao, bem_duravel, quantidade, quantidade_minima)
-            VALUES (@Codigo, @Nome, @Categoria, @Unidade, @Localizacao, @Descricao,
+            VALUES (@Codigo, @Nome, @Categoria, @Unidade, @Complexo, @Localizacao, @Descricao,
                     @PermiteFracao, @BemDuravel, 0, @EstoqueMinimo);
             SELECT LAST_INSERT_ID();
             """, m, t.Tx);
@@ -49,10 +49,10 @@ public sealed class MaterialRepository(DbConnectionFactory db) : RepositorioBase
         await t.Conexao.ExecuteAsync("""
             UPDATE produtos
                SET codigo = @Codigo, nome = @Nome, categoria = @Categoria, unidade_medida = @Unidade,
-                   localizacao = @Localizacao, descricao = @Descricao, permite_fracao = @PermiteFracao,
+                   complexo = @Complexo, localizacao = @Localizacao, descricao = @Descricao, permite_fracao = @PermiteFracao,
                    bem_duravel = @BemDuravel, quantidade_minima = @EstoqueMinimo
              WHERE produto_id = @produtoId
-            """, new { produtoId, m.Codigo, m.Nome, m.Categoria, m.Unidade, m.Localizacao, m.Descricao,
+            """, new { produtoId, m.Codigo, m.Nome, m.Categoria, m.Unidade, m.Complexo, m.Localizacao, m.Descricao,
                        m.PermiteFracao, m.BemDuravel, m.EstoqueMinimo }, t.Tx) > 0;
 
     /// <summary>Retira o material do catálogo sem apagar o histórico. Devolve se o material existe.</summary>

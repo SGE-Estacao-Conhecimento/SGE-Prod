@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './NovoMaterialModal.css';
 import { useDialogAccessibility } from '../common';
+import { LISTA_COMPLEXOS } from '../AlmoxarifeEstoque/AlmoxarifeEstoque';
 
 const CATEGORIAS = [
   'Escritório',
@@ -30,6 +31,7 @@ const NovoMaterialModal = ({ isOpen, onClose, onSave, initialData = null }) => {
     unidade: 'UN',
     quantidade: 0,
     estoqueMinimo: 5,
+    complexo: 'Almoxarifado Central',
     localizacao: '',
     descricao: '',
     bemDuravel: false
@@ -46,6 +48,7 @@ const NovoMaterialModal = ({ isOpen, onClose, onSave, initialData = null }) => {
         unidade: initialData.unidade || 'UN',
         quantidade: initialData.quantidade ?? 0,
         estoqueMinimo: initialData.estoqueMinimo ?? 5,
+        complexo: initialData.complexo || 'Almoxarifado Central',
         localizacao: initialData.localizacao || '',
         descricao: initialData.descricao || '',
         bemDuravel: Boolean(initialData.bemDuravel)
@@ -58,6 +61,7 @@ const NovoMaterialModal = ({ isOpen, onClose, onSave, initialData = null }) => {
         unidade: 'UN',
         quantidade: 0,
         estoqueMinimo: 5,
+        complexo: 'Almoxarifado Central',
         localizacao: '',
         descricao: '',
         bemDuravel: false
@@ -227,18 +231,35 @@ const NovoMaterialModal = ({ isOpen, onClose, onSave, initialData = null }) => {
             </div>
           </div>
 
-          {/* Localização */}
-          <div className="form-group margin-top-sm">
-            <label className="form-label" htmlFor="material-localizacao">Localização (Armário / Prateleira)</label>
-            <input
-              id="material-localizacao"
-              type="text"
-              name="localizacao"
-              className="form-input"
-              placeholder="Ex: Depósito A — Armário 3, Prateleira 2"
-              value={formData.localizacao}
-              onChange={handleChange}
-            />
+          {/* Complexo e Localização */}
+          <div className="form-row margin-top-sm">
+            <div className="form-group flex-1">
+              <label className="form-label" htmlFor="material-complexo">Complexo</label>
+              <select
+                id="material-complexo"
+                name="complexo"
+                className="form-select"
+                value={formData.complexo}
+                onChange={handleChange}
+              >
+                {LISTA_COMPLEXOS.map(comp => (
+                  <option key={comp} value={comp}>{comp}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group flex-1">
+              <label className="form-label" htmlFor="material-localizacao">Localização (Armário / Prateleira)</label>
+              <input
+                id="material-localizacao"
+                type="text"
+                name="localizacao"
+                className="form-input"
+                placeholder="Ex: Armário 3, Prateleira 2"
+                value={formData.localizacao}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
           {/* Descrição */}

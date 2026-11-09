@@ -486,17 +486,6 @@
   flex-shrink: 0;
 }
 
-/* Badge de Locação (Corredor / Nicho / Pallet) */
-.wms-badge--locacao {
-  background: #F1F5F9;
-  color: #334155;
-  border: 1px solid #CBD5E1;
-}
-
-.wms-badge--locacao svg {
-  color: #0284C7;
-}
-
 /* Badge de Localização (Prateleira / Gaveteiro / Caixa) */
 .wms-badge--localizacao {
   background: #F0FDFA;

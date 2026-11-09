@@ -256,7 +256,6 @@ const RecebimentoLoteModal = ({
         unidade: material.unidade || 'UN',
         categoria: material.categoria || 'Geral',
         complexo: material.complexo || 'Almoxarifado Central',
-        locacao: material.locacao || '',
         localizacao: material.localizacao || '',
         saldoAtual,
         qtdReceber: 1,
@@ -434,7 +433,6 @@ const RecebimentoLoteModal = ({
           qtdRecebida,
           novoSaldo,
           complexo: item.complexo || 'Almoxarifado Central',
-          locacao: item.locacao || '',
           localizacao: item.localizacao || '',
           dataValidade: item.dataValidade || ''
         };

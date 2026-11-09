@@ -960,16 +960,6 @@ const PedidosView = ({
                                   </div>
 
                                   <div className="atendimento-item-wms__micro">
-                                    {mat.locacao && (
-                                      <span className="wms-badge wms-badge--locacao" title={`Locação: ${mat.locacao}`}>
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                                          <path d="m7.5 4.27 9 5.15" />
-                                          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                                        </svg>
-                                        <span>{mat.locacao}</span>
-                                      </span>
-                                    )}
-
                                     {mat.localizacao && (
                                       <span className="wms-badge wms-badge--localizacao" title={`Localização: ${mat.localizacao}`}>
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">

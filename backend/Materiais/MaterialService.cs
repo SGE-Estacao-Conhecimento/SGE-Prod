@@ -15,7 +15,7 @@ public sealed class MaterialService(DbConnectionFactory db, MaterialRepository m
     public async Task<MaterialDto> CriarAsync(SalvarMaterialRequest req, ClaimsPrincipal usuario)
     {
         var permiteFracao = req.PermiteFracao ?? false;
-        var dados = Validar(req, codigoAtual: null, bemDuravelAtual: false, permiteFracaoAtual: permiteFracao);
+        var dados = Validar(req, codigoAtual: null, complexoAtual: null, bemDuravelAtual: false, permiteFracaoAtual: permiteFracao);
         var saldoInicial = req.QuantidadeInicial ?? 0;
         if (saldoInicial < 0)
             throw ApiException.BadRequest("A quantidade inicial não pode ser negativa.");
@@ -48,7 +48,7 @@ public sealed class MaterialService(DbConnectionFactory db, MaterialRepository m
         await using var t = await Transacao.IniciarAsync(db);
         var atual = await materiais.ObterAsync(t, produtoId) ?? throw ApiException.NotFound("Material não encontrado.");
 
-        var dados = Validar(req, atual.Codigo, atual.BemDuravel, atual.PermiteFracao);
+        var dados = Validar(req, atual.Codigo, atual.Complexo, atual.BemDuravel, atual.PermiteFracao);
         await materiais.AtualizarAsync(t, produtoId, dados);
 
         var editado = await materiais.ObterAsync(t, produtoId);
@@ -71,7 +71,7 @@ public sealed class MaterialService(DbConnectionFactory db, MaterialRepository m
     }
 
     private static MaterialRepository.DadosMaterial Validar(
-        SalvarMaterialRequest req, string? codigoAtual, bool bemDuravelAtual, bool permiteFracaoAtual)
+        SalvarMaterialRequest req, string? codigoAtual, string? complexoAtual, bool bemDuravelAtual, bool permiteFracaoAtual)
     {
         var erros = new Dictionary<string, string[]>();
         string? Texto(string? valor, string campo, int maximo, bool obrigatorio, string rotulo)
@@ -86,6 +86,9 @@ public sealed class MaterialService(DbConnectionFactory db, MaterialRepository m
         var nome = Texto(req.Nome, "nome", 100, true, "o nome do material");
         var categoria = Texto(req.Categoria, "categoria", 100, false, "a categoria");
         var unidade = Texto(req.Unidade, "unidade", 20, true, "a unidade de medida");
+        var complexo = Texto(req.Complexo, "complexo", 100, false, "o complexo")
+                       ?? complexoAtual
+                       ?? "Almoxarifado Central";
         var localizacao = Texto(req.Localizacao, "localizacao", 150, false, "a localização");
         var descricao = Texto(req.Descricao, "descricao", 500, false, "a descrição");
         var minimo = req.EstoqueMinimo ?? 0;
@@ -99,7 +102,7 @@ public sealed class MaterialService(DbConnectionFactory db, MaterialRepository m
 
         return new MaterialRepository.DadosMaterial(
             codigo ?? codigoAtual ?? string.Empty, nome!, categoria, unidade!, minimo,
-            localizacao, descricao, req.BemDuravel ?? bemDuravelAtual, permiteFracao);
+            complexo, localizacao, descricao, req.BemDuravel ?? bemDuravelAtual, permiteFracao);
     }
 
     private static void ValidarFracao(bool permiteFracao, decimal valor, string rotulo)

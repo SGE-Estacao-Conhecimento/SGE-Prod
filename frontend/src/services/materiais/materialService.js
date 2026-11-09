@@ -10,6 +10,7 @@ const toPayload = (material) => ({
   unidade: material.unidade,
   quantidadeInicial: Number(material.quantidade ?? 0),
   estoqueMinimo: Number(material.estoqueMinimo ?? 0),
+  complexo: material.complexo || 'Almoxarifado Central',
   localizacao: material.localizacao || null,
   descricao: material.descricao || null,
   bemDuravel: material.bemDuravel === undefined ? undefined : !!material.bemDuravel,

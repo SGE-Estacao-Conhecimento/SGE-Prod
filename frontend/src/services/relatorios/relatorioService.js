@@ -156,7 +156,7 @@ export const exportarCsv = async (tipo, filtros = {}) => {
     }
 
     cabecalho =
-      'Código SKU;Material;Tipo de Bem;Categoria;Complexo;Locação;Localização;Validade;Saldo Físico;Unidade;Estoque Mínimo\n';
+      'Código SKU;Material;Tipo de Bem;Categoria;Complexo;Localização;Validade;Saldo Físico;Unidade;Estoque Mínimo\n';
     linhas = filtrados.map((m) => {
       const tipoBem = m.bemDuravel ? 'Bem Durável' : 'Consumo';
       const validade = m.dataValidade || (m.bemDuravel ? 'Não se aplica' : '—');
@@ -166,7 +166,6 @@ export const exportarCsv = async (tipo, filtros = {}) => {
         escaparCsv(tipoBem),
         escaparCsv(m.categoria || ''),
         escaparCsv(m.complexo || 'Almoxarifado Central'),
-        escaparCsv(m.locacao || '—'),
         escaparCsv(m.localizacao || '—'),
         escaparCsv(validade),
         escaparCsv(m.quantidade ?? 0),

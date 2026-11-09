@@ -58,7 +58,6 @@ const NovoPedidoModal = ({
       unidade: m.unidade || 'UN',
       quantidade: typeof m.quantidade === 'number' ? m.quantidade : 0,
       complexo: m.complexo || 'Almoxarifado Central',
-      locacao: m.locacao || '',
       localizacao: m.localizacao || ''
     }));
   }, [materiaisDisponiveis]);
@@ -70,7 +69,8 @@ const NovoPedidoModal = ({
     return listaMateriais.filter(m =>
       m.nome.toLowerCase().includes(termo) ||
       m.codigo.toLowerCase().includes(termo) ||
-      (m.locacao && m.locacao.toLowerCase().includes(termo))
+      (m.localizacao && m.localizacao.toLowerCase().includes(termo)) ||
+      (m.complexo && m.complexo.toLowerCase().includes(termo))
     ).slice(0, 10);
   }, [listaMateriais, buscaMaterial]);
 
@@ -389,7 +389,7 @@ const NovoPedidoModal = ({
                           <span className="novo-pedido-item-sku">{mat.codigo}</span>
                           <span className="novo-pedido-item-nome">{mat.nome}</span>
                           <span className="novo-pedido-item-loc">
-                            {[mat.locacao, mat.localizacao].filter(Boolean).join(' • ') || mat.complexo}
+                            {[mat.complexo, mat.localizacao].filter(Boolean).join(' • ')}
                           </span>
                         </div>
 

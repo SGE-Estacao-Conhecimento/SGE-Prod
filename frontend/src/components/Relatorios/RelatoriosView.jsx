@@ -216,9 +216,8 @@ const RelatoriosView = ({
           const matchCod = String(m.codigo || '').toLowerCase().includes(termo);
           const matchNome = String(m.nome || '').toLowerCase().includes(termo);
           const matchLoc = String(m.localizacao || '').toLowerCase().includes(termo);
-          const matchLocacao = String(m.locacao || '').toLowerCase().includes(termo);
           const matchComp = String(m.complexo || '').toLowerCase().includes(termo);
-          if (!matchCod && !matchNome && !matchLoc && !matchLocacao && !matchComp) return false;
+          if (!matchCod && !matchNome && !matchLoc && !matchComp) return false;
         }
 
         return true;
@@ -229,7 +228,7 @@ const RelatoriosView = ({
         const deficit = Math.max(0, min - saldo);
         const situacao = saldo === 0 ? 'Sem Estoque' : saldo <= min ? 'Estoque Baixo' : 'Normal';
 
-        // Normalização completa do endereçamento físico WMS (Complexo, Locação, Localização)
+        // Normalização completa do endereçamento físico WMS (Complexo, Localização)
         let comp = m.complexo || '';
         let loc = m.localizacao || '';
         if (!comp && loc.includes('•')) {
@@ -239,7 +238,6 @@ const RelatoriosView = ({
         }
         if (!comp) comp = 'Almoxarifado Central';
 
-        const locacao = m.locacao || '—';
         const validadeFormatada = m.dataValidade
           ? normalizarDataParaIso(m.dataValidade)?.split('-').reverse().join('/') || m.dataValidade
           : m.bemDuravel
@@ -253,7 +251,6 @@ const RelatoriosView = ({
           categoria: m.categoria || 'Geral',
           tipoBem: m.bemDuravel ? 'Bem Durável' : 'Consumo',
           complexo: comp,
-          locacao,
           localizacao: loc || '—',
           validade: validadeFormatada,
           itensPorEmbalagem: m.itensPorEmbalagem || 1,
@@ -505,7 +502,6 @@ const RelatoriosView = ({
           'Tipo de Bem': r.tipoBem,
           'Categoria': r.categoria,
           'Complexo': r.complexo,
-          'Locação': r.locacao,
           'Localização': r.localizacao,
           'Validade': r.validade,
           'Itens p/ Embalagem': r.itensPorEmbalagem,
@@ -907,7 +903,7 @@ const RelatoriosView = ({
                     className="relatorio-input"
                     placeholder={
                       relatorioSelecionado === 'estoque'
-                        ? 'Buscar por SKU, material, complexo, locação ou prateleira...'
+                        ? 'Buscar por SKU, material, complexo ou localização...'
                         : relatorioSelecionado === 'consumo_setor'
                         ? 'Buscar por material ou setor...'
                         : relatorioSelecionado === 'movimentacoes'
@@ -1052,7 +1048,7 @@ const RelatoriosView = ({
           ) : (
             <div className="relatorios-table-card">
               <div className="relatorios-table-scroll">
-                {/* 1. Tabela: Posição de Estoque (com Complexo, Locação, Localização e Validade) */}
+                {/* 1. Tabela: Posição de Estoque (com Complexo, Localização e Validade) */}
                 {relatorioSelecionado === 'estoque' && (
                   <table className="relatorios-data-table">
                     <thead>
@@ -1062,7 +1058,6 @@ const RelatoriosView = ({
                         <th>Tipo de Bem</th>
                         <th>Categoria</th>
                         <th>Complexo</th>
-                        <th>Locação</th>
                         <th>Localização</th>
                         <th>Validade</th>
                         <th style={{ textAlign: 'right' }}>Saldo Atual</th>
@@ -1086,7 +1081,6 @@ const RelatoriosView = ({
                             </td>
                             <td>{r.categoria}</td>
                             <td>{r.complexo}</td>
-                            <td><strong>{r.locacao}</strong></td>
                             <td>{r.localizacao}</td>
                             <td>
                               <span style={{ fontSize: '11.5px', color: r.validade.includes('/') ? '#0F172A' : '#64748B' }}>

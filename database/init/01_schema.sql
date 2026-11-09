@@ -39,6 +39,7 @@ CREATE TABLE produtos (
     nome VARCHAR(100) NOT NULL,
     categoria VARCHAR(100) NULL,
     unidade_medida VARCHAR(20) NOT NULL,
+    complexo VARCHAR(100) NOT NULL DEFAULT 'Almoxarifado Central',
     localizacao VARCHAR(150) NULL,
     descricao VARCHAR(500) NULL,
     permite_fracao BOOLEAN NOT NULL DEFAULT FALSE,

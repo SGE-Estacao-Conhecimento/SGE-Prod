@@ -28,6 +28,8 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
     {
         await using var con = await db.AbrirAsync();
         await GarantirColunaFuncionarioOpcionalAsync(con);
+        await GarantirColunaBemDuravelAsync(con);
+        await GarantirColunaComplexoAsync(con);
 
         var setorAdminId = await ObterOuCriarSetorAsync(con, "Administração");
         var setorAlmoxarifadoId = await ObterOuCriarSetorAsync(con, "Almoxarifado");
@@ -117,6 +119,8 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
         await using var con = await db.AbrirAsync();
         ValidarBancoLocal(con);
         await GarantirColunaFuncionarioOpcionalAsync(con);
+        await GarantirColunaBemDuravelAsync(con);
+        await GarantirColunaComplexoAsync(con);
 
         // Tabelas-filhas sem referências externas (TRUNCATE limpa e reinicia AUTO_INCREMENT sem disparar trigger BEFORE DELETE de pedido_logs)
         await con.ExecuteAsync("TRUNCATE TABLE pedido_logs;");
@@ -153,6 +157,42 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
         if (string.Equals(isNullable, "NO", StringComparison.OrdinalIgnoreCase))
         {
             await con.ExecuteAsync("ALTER TABLE usuarios MODIFY COLUMN funcionario_id INT NULL;");
+        }
+    }
+
+    private static async Task GarantirColunaBemDuravelAsync(MySqlConnection con)
+    {
+        var existe = await con.ExecuteScalarAsync<int>("""
+            SELECT COUNT(*)
+              FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'produtos'
+               AND COLUMN_NAME = 'bem_duravel'
+            """);
+        if (existe == 0)
+        {
+            await con.ExecuteAsync("""
+                ALTER TABLE produtos
+                    ADD COLUMN bem_duravel BOOLEAN NOT NULL DEFAULT FALSE AFTER permite_fracao;
+                """);
+        }
+    }
+
+    private static async Task GarantirColunaComplexoAsync(MySqlConnection con)
+    {
+        var existe = await con.ExecuteScalarAsync<int>("""
+            SELECT COUNT(*)
+              FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'produtos'
+               AND COLUMN_NAME = 'complexo'
+            """);
+        if (existe == 0)
+        {
+            await con.ExecuteAsync("""
+                ALTER TABLE produtos
+                    ADD COLUMN complexo VARCHAR(100) NOT NULL DEFAULT 'Almoxarifado Central' AFTER unidade_medida;
+                """);
         }
     }
 
