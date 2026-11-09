@@ -78,9 +78,16 @@ const HistoricoMovimentacoesTab = ({
     };
 
     // Popula inicialmente a partir de remessas cadastradas/confirmadas (Fonte da verdade das NFs)
+    const complementos = [];
     (remessas || []).forEach((rem) => {
       const recId = rem.id;
       if (!recId) return;
+
+      const origemId = rem.recebimentoOrigemId || rem.recebimento_origem_id;
+      if (origemId) {
+        complementos.push(rem);
+        return;
+      }
 
       const numRemessa = rem.numeroRemessa || `REM-${recId}`;
       const docFiscal = rem.documentoDoador || rem.fornecedor || numRemessa;
@@ -130,6 +137,91 @@ const HistoricoMovimentacoesTab = ({
       if (rem.documentoDoador) {
         nfMap.set(rem.documentoDoador, nfObj);
         nfMap.set(rem.documentoDoador.toLowerCase(), nfObj);
+      }
+    });
+
+    // 1.1 Processa complementos de Nota Fiscal incorporando seus itens na NF original
+    complementos.forEach((rem) => {
+      const recId = rem.id;
+      const origemId = rem.recebimentoOrigemId || rem.recebimento_origem_id;
+      const nfPai = nfMap.get(origemId) || nfMap.get(String(origemId));
+
+      if (nfPai) {
+        (rem.itens || []).forEach((it) => {
+          const mat = mapMateriais.get(it.materialId) || mapMateriais.get(String(it.materialNome || '').toLowerCase().trim());
+          const matId = it.materialId || (mat?.id ?? null);
+          const sku = mat?.codigo || (matId ? `#${matId}` : '—');
+          const cat = mat?.categoria || (mat?.bemDuravel ? 'Patrimônio' : 'Consumo');
+          const un = it.unidade || mat?.unidade || 'UN';
+          const chave = String(matId || it.materialNome);
+
+          if (nfPai.itensMap.has(chave)) {
+            const itemExistente = nfPai.itensMap.get(chave);
+            itemExistente.quantidade = (itemExistente.quantidade || 0) + it.quantidade;
+          } else {
+            nfPai.itensMap.set(chave, {
+              materialId: matId,
+              nome: it.materialNome || mat?.nome || 'Material',
+              codigo: sku,
+              categoria: cat,
+              quantidade: it.quantidade,
+              unidade: un,
+              saldoApos: null
+            });
+          }
+        });
+
+        // Vincula as chaves deste complemento ao pai para cruzamento com movimentações
+        if (recId) {
+          nfMap.set(recId, nfPai);
+          nfMap.set(String(recId), nfPai);
+        }
+        if (rem.numeroRemessa) {
+          nfMap.set(rem.numeroRemessa, nfPai);
+          nfMap.set(rem.numeroRemessa.toLowerCase(), nfPai);
+        }
+      } else {
+        // Fallback: se porventura a remessa pai não estiver no lote de remessas, exibe como avulsa
+        const numRemessa = rem.numeroRemessa || `REM-${recId}`;
+        const docFiscal = rem.documentoDoador || rem.fornecedor || numRemessa;
+        const fornecedor = rem.fornecedor || rem.documentoDoador || 'Fornecedor padrão';
+
+        const nfObj = {
+          chave: `nf_${recId}`,
+          tipoOperacao: 'nota_fiscal',
+          id: recId,
+          recebimentoId: recId,
+          numeroRemessa: numRemessa,
+          documentoFiscal: docFiscal,
+          fornecedor,
+          tipoOrigem: rem.tipoOrigem || 'compra',
+          data: rem.data || rem.dataEnvio || new Date().toISOString(),
+          responsavel: rem.recebidoPor || 'Almoxarife',
+          observacao: rem.observacao || '',
+          fotos: rem.fotos || [],
+          itensMap: new Map()
+        };
+
+        (rem.itens || []).forEach((it) => {
+          const mat = mapMateriais.get(it.materialId) || mapMateriais.get(String(it.materialNome || '').toLowerCase().trim());
+          const matId = it.materialId || (mat?.id ?? null);
+          const sku = mat?.codigo || (matId ? `#${matId}` : '—');
+          const cat = mat?.categoria || (mat?.bemDuravel ? 'Patrimônio' : 'Consumo');
+          const un = it.unidade || mat?.unidade || 'UN';
+
+          nfObj.itensMap.set(String(matId || it.materialNome), {
+            materialId: matId,
+            nome: it.materialNome || mat?.nome || 'Material',
+            codigo: sku,
+            categoria: cat,
+            quantidade: it.quantidade,
+            unidade: un,
+            saldoApos: null
+          });
+        });
+
+        nfMap.set(recId, nfObj);
+        nfMap.set(String(recId), nfObj);
       }
     });
 

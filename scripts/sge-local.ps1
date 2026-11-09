@@ -355,8 +355,22 @@ function Start-AppProcesses([bool]$DatabaseRecreated = $false) {
     $npmCmd = $npmCmdObj.Source
 
     $dllPath = Join-Path $RepoRoot "backend\bin\Debug\net10.0\Sge.Api.dll"
-    if (-not (Test-Path $dllPath)) {
-        Write-Host "[SGE] Compilando Backend ASP.NET Core (primeira execucao, aguarde)..."
+    $sourceFiles = Get-ChildItem -Path "$RepoRoot\backend" -Recurse -Include *.cs, *.csproj -ErrorAction SilentlyContinue
+    $latestSource = ($sourceFiles | Measure-Object -Property LastWriteTime -Maximum).Maximum
+    $needsBuild = (-not (Test-Path $dllPath)) -or ($latestSource -and ((Get-Item $dllPath).LastWriteTime -lt $latestSource))
+
+    if ($needsBuild) {
+        $existingApiConns = @(Get-NetTCPConnection -LocalPort 5170 -State Listen -ErrorAction SilentlyContinue)
+        foreach ($c in $existingApiConns) {
+            if ($c.OwningProcess -gt 0) {
+                Write-Host "[SGE] Encerrando versao anterior do Backend na porta 5170 (PID $($c.OwningProcess)) para aplicar alteracoes..."
+                cmd /c "taskkill /F /T /PID $($c.OwningProcess) >nul 2>&1"
+                Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
+            }
+        }
+        Start-Sleep -Seconds 1
+
+        Write-Host "[SGE] Compilando Backend ASP.NET Core..."
         $buildExit = 1
         for ($attempt = 1; $attempt -le 3; $attempt++) {
             $prevEAP = $ErrorActionPreference

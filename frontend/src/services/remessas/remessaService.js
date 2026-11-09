@@ -13,13 +13,15 @@ export const criarRemessa = async ({ fotos = [], identificadorOperacao, ...remes
     body: JSON.stringify({ ...remessa, identificadorOperacao })
   });
 
-  // Em uma nova tentativa, fotos já enviadas não são repetidas (mesmo nome e tamanho).
-  const jaEnviadas = new Set((criada?.fotos || []).map(f => `${f.nomeOriginal}|${f.tamanhoBytes}`));
-  for (const foto of fotos) {
-    if (jaEnviadas.has(`${foto.name}|${foto.size}`)) continue;
-    const formulario = new FormData();
-    formulario.append('arquivo', foto, foto.name);
-    await request(`/api/remessas/${criada.id}/fotos`, { method: 'POST', body: formulario });
+  // Se houver fotos (remessas normais), envia cada uma; em complementos sem foto, avança direto para a confirmação.
+  if (fotos && fotos.length > 0) {
+    const jaEnviadas = new Set((criada?.fotos || []).map(f => `${f.nomeOriginal}|${f.tamanhoBytes}`));
+    for (const foto of fotos) {
+      if (jaEnviadas.has(`${foto.name}|${foto.size}`)) continue;
+      const formulario = new FormData();
+      formulario.append('arquivo', foto, foto.name);
+      await request(`/api/remessas/${criada.id}/fotos`, { method: 'POST', body: formulario });
+    }
   }
 
   return request(`/api/remessas/${criada.id}/confirmar`, { method: 'POST' });

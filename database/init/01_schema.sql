@@ -58,6 +58,7 @@ CREATE TABLE produtos (
 CREATE TABLE recebimentos (
     recebimento_id INT AUTO_INCREMENT PRIMARY KEY,
     identificador_operacao CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+    recebimento_origem_id INT NULL,
     tipo_origem ENUM('compra','doacao','outro') NOT NULL,
     origem_nome VARCHAR(200) NOT NULL,
     origem_documento VARCHAR(30),
@@ -69,13 +70,15 @@ CREATE TABLE recebimentos (
     usuario_confirmacao_id INT NULL,
     data_confirmacao DATETIME(6) NULL,
     data_registro TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    FOREIGN KEY (recebimento_origem_id) REFERENCES recebimentos(recebimento_id) ON DELETE RESTRICT,
     FOREIGN KEY (funcionario_recebe_id) REFERENCES funcionarios(funcionario_id) ON DELETE RESTRICT,
     FOREIGN KEY (usuario_registro_id) REFERENCES usuarios(usuario_id) ON DELETE RESTRICT,
     FOREIGN KEY (usuario_confirmacao_id) REFERENCES usuarios(usuario_id) ON DELETE RESTRICT,
     CHECK (CHAR_LENGTH(TRIM(origem_nome)) > 0),
     CHECK ((status = 'confirmado' AND usuario_confirmacao_id IS NOT NULL AND data_confirmacao IS NOT NULL)
         OR (status <> 'confirmado' AND usuario_confirmacao_id IS NULL AND data_confirmacao IS NULL)),
-    INDEX idx_recebimento_data (data_recebimento)
+    INDEX idx_recebimento_data (data_recebimento),
+    INDEX idx_recebimento_origem (recebimento_origem_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE recebimento_itens (
@@ -247,10 +250,13 @@ BEFORE UPDATE ON recebimentos
 FOR EACH ROW
 BEGIN
     IF NEW.status = 'confirmado' AND OLD.status <> 'confirmado' THEN
-        IF NOT EXISTS (SELECT 1 FROM recebimento_anexos
-                        WHERE recebimento_id = OLD.recebimento_id
-                          AND categoria = 'foto_material'
-                          AND status = 'confirmado') THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM recebimento_anexos
+             WHERE (recebimento_id = OLD.recebimento_id
+                    OR (OLD.recebimento_origem_id IS NOT NULL AND recebimento_id = OLD.recebimento_origem_id))
+               AND categoria = 'foto_material'
+               AND status = 'confirmado'
+        ) THEN
             SIGNAL SQLSTATE '45000'
                 SET MESSAGE_TEXT = 'Recebimento exige ao menos uma foto do material confirmada.';
         END IF;

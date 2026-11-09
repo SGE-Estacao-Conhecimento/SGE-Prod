@@ -390,7 +390,7 @@ const RecebimentoLoteModal = ({
     if (!validarItensRecebimento()) {
       return;
     }
-    if (fotos.length === 0) {
+    if (!draftRemessa?.isComplementoNF && fotos.length === 0) {
       alert('Adicione ao menos uma foto do material para confirmar o recebimento.');
       return;
     }
@@ -409,6 +409,7 @@ const RecebimentoLoteModal = ({
     const payload = {
       id: `REM-${Date.now().toString().slice(-6)}`,
       identificadorOperacao: operacao,
+      recebimentoOrigemId: draftRemessa?.recebimentoIdOriginal || null,
       fotos,
       data: new Date().toISOString(),
       dataFormatada: new Intl.DateTimeFormat('pt-BR', {
@@ -508,7 +509,38 @@ const RecebimentoLoteModal = ({
           </div>
         }
         footer={
-          etapaAtual === 1 ? (
+          draftRemessa?.isComplementoNF ? (
+            <div className="recebimento-footer">
+              <button
+                type="button"
+                className="recebimento-footer-btn-descartar"
+                onClick={handlePedirDescarte}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="recebimento-footer-btn-confirmar"
+                disabled={itens.length === 0}
+                onClick={handleExecutarConfirmacao}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span>Confirmar e Adicionar à NF</span>
+              </button>
+            </div>
+          ) : etapaAtual === 1 ? (
             <div className="recebimento-footer">
               <button
                 type="button"
@@ -735,48 +767,50 @@ const RecebimentoLoteModal = ({
         }
       >
         <div className="recebimento-container">
-          {/* STEPPER HEADER (1. MATERIAIS & VOLUMES ─── 2. IDENTIFICAÇÃO & FOTOS) */}
-          <div className="recebimento-stepper-header" role="navigation" aria-label="Etapas do recebimento">
-            <button
-              type="button"
-              className={`recebimento-step-btn ${etapaAtual === 1 ? 'recebimento-step-btn--active' : 'recebimento-step-btn--completed'}`}
-              onClick={() => setEtapa(1)}
-            >
-              <div className="recebimento-step-badge">
-                {itens.length > 0 && etapaAtual === 2 ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                ) : (
-                  <span>1</span>
-                )}
-              </div>
-              <div className="recebimento-step-label-wrap">
-                <span className="recebimento-step-sub">1ª Etapa</span>
-                <span className="recebimento-step-label">Materiais ({itens.length})</span>
-              </div>
-            </button>
+          {/* STEPPER HEADER (1. MATERIAIS & VOLUMES ─── 2. IDENTIFICAÇÃO & FOTOS) - Apenas se não for complemento */}
+          {!draftRemessa?.isComplementoNF && (
+            <div className="recebimento-stepper-header" role="navigation" aria-label="Etapas do recebimento">
+              <button
+                type="button"
+                className={`recebimento-step-btn ${etapaAtual === 1 ? 'recebimento-step-btn--active' : 'recebimento-step-btn--completed'}`}
+                onClick={() => setEtapa(1)}
+              >
+                <div className="recebimento-step-badge">
+                  {itens.length > 0 && etapaAtual === 2 ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <span>1</span>
+                  )}
+                </div>
+                <div className="recebimento-step-label-wrap">
+                  <span className="recebimento-step-sub">1ª Etapa</span>
+                  <span className="recebimento-step-label">Materiais ({itens.length})</span>
+                </div>
+              </button>
 
-            <div className={`recebimento-step-connector ${etapaAtual === 2 ? 'recebimento-step-connector--active' : ''}`} />
+              <div className={`recebimento-step-connector ${etapaAtual === 2 ? 'recebimento-step-connector--active' : ''}`} />
 
-            <button
-              type="button"
-              className={`recebimento-step-btn ${etapaAtual === 2 ? 'recebimento-step-btn--active' : ''}`}
-              onClick={() => {
-                if (itens.length > 0 && validarItensRecebimento()) setEtapa(2);
-              }}
-              disabled={itens.length === 0}
-              title={itens.length === 0 ? 'Adicione ao menos um material para avançar' : 'Ir para identificação da remessa'}
-            >
-              <div className="recebimento-step-badge">
-                <span>2</span>
-              </div>
-              <div className="recebimento-step-label-wrap">
-                <span className="recebimento-step-sub">2ª Etapa</span>
-                <span className="recebimento-step-label">Identificação & Fotos</span>
-              </div>
-            </button>
-          </div>
+              <button
+                type="button"
+                className={`recebimento-step-btn ${etapaAtual === 2 ? 'recebimento-step-btn--active' : ''}`}
+                onClick={() => {
+                  if (itens.length > 0 && validarItensRecebimento()) setEtapa(2);
+                }}
+                disabled={itens.length === 0}
+                title={itens.length === 0 ? 'Adicione ao menos um material para avançar' : 'Ir para identificação da remessa'}
+              >
+                <div className="recebimento-step-badge">
+                  <span>2</span>
+                </div>
+                <div className="recebimento-step-label-wrap">
+                  <span className="recebimento-step-sub">2ª Etapa</span>
+                  <span className="recebimento-step-label">Identificação & Fotos</span>
+                </div>
+              </button>
+            </div>
+          )}
 
           {/* BANNER INFORMATIVO: MODO COMPLEMENTO DE NOTA FISCAL / REMESSA */}
           {draftRemessa?.isComplementoNF && (
@@ -800,7 +834,7 @@ const RecebimentoLoteModal = ({
           )}
 
           {/* ==================== ETAPA 1: MATERIAIS E VOLUMES ==================== */}
-          {etapaAtual === 1 && (
+          {(etapaAtual === 1 || draftRemessa?.isComplementoNF) && (
             <div className="recebimento-step-pane">
               {/* Card Placeholder Pontilhado ("+ Adicionar Material à Remessa") */}
               <div className="recebimento-add-trigger-wrap">
@@ -1035,11 +1069,28 @@ const RecebimentoLoteModal = ({
                   })}
                 </div>
               )}
+
+              {/* Se for complemento de NF, permite registrar observação opcional diretamente aqui */}
+              {draftRemessa?.isComplementoNF && (
+                <div className="recebimento-input-group" style={{ marginTop: '16px' }}>
+                  <label htmlFor="recebimento-complemento-obs" className="recebimento-label">
+                    Observação do Complemento (Opcional)
+                  </label>
+                  <input
+                    id="recebimento-complemento-obs"
+                    type="text"
+                    className="recebimento-input"
+                    placeholder="Ex: Inclusão de itens faltantes na entrega original..."
+                    value={observacao}
+                    onChange={(e) => updateDraft({ observacao: e.target.value })}
+                  />
+                </div>
+              )}
             </div>
           )}
 
-          {/* ==================== ETAPA 2: IDENTIFICAÇÃO E FOTOS ==================== */}
-          {etapaAtual === 2 && (
+          {/* ==================== ETAPA 2: IDENTIFICAÇÃO E FOTOS (Apenas fluxo normal) ==================== */}
+          {!draftRemessa?.isComplementoNF && etapaAtual === 2 && (
             <div className="recebimento-step-pane">
               {/* Seletor Categórico: Natureza da Entrada (Radio Cards) */}
               <div className="recebimento-origem-group">
@@ -1331,13 +1382,17 @@ const RecebimentoLoteModal = ({
         </div>
       </BottomSheetModal>
 
-      {/* CONFIRMAÇÃO DE DESCARTE DE REMESSA */}
+      {/* CONFIRMAÇÃO DE DESCARTE DE REMESSA OU CANCELAMENTO DE COMPLEMENTO */}
       {isConfirmandoDescarte && (
         <div className="recebimento-confirm-backdrop">
           <div className="recebimento-confirm-card">
-            <h3 className="recebimento-confirm-title">Descartar Remessa?</h3>
+            <h3 className="recebimento-confirm-title">
+              {draftRemessa?.isComplementoNF ? 'Cancelar Complemento?' : 'Descartar Remessa?'}
+            </h3>
             <p className="recebimento-confirm-text">
-              Existem {itens.length} material(is) nesta remessa. Todas as alterações serão perdidas.
+              {draftRemessa?.isComplementoNF
+                ? `Existem ${itens.length} material(is) selecionados para este complemento. Deseja cancelar a inclusão?`
+                : `Existem ${itens.length} material(is) nesta remessa. Todas as alterações serão perdidas.`}
             </p>
             <div className="recebimento-confirm-actions">
               <button
@@ -1352,7 +1407,7 @@ const RecebimentoLoteModal = ({
                 className="recebimento-confirm-btn-descartar"
                 onClick={handleConfirmarDescarteReal}
               >
-                Sim, Descartar
+                {draftRemessa?.isComplementoNF ? 'Sim, Cancelar' : 'Sim, Descartar'}
               </button>
             </div>
           </div>

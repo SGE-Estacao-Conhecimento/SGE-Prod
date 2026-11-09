@@ -30,6 +30,8 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
         await GarantirColunaFuncionarioOpcionalAsync(con);
         await GarantirColunaBemDuravelAsync(con);
         await GarantirColunaComplexoAsync(con);
+        await GarantirColunaRecebimentoOrigemAsync(con);
+        await GarantirColunaRecebimentoOrigemAsync(con);
 
         var setorAdminId = await ObterOuCriarSetorAsync(con, "Administração");
         var setorAlmoxarifadoId = await ObterOuCriarSetorAsync(con, "Almoxarifado");
@@ -121,6 +123,7 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
         await GarantirColunaFuncionarioOpcionalAsync(con);
         await GarantirColunaBemDuravelAsync(con);
         await GarantirColunaComplexoAsync(con);
+        await GarantirColunaRecebimentoOrigemAsync(con);
 
         // Tabelas-filhas sem referências externas (TRUNCATE limpa e reinicia AUTO_INCREMENT sem disparar trigger BEFORE DELETE de pedido_logs)
         await con.ExecuteAsync("TRUNCATE TABLE pedido_logs;");
@@ -192,6 +195,55 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
             await con.ExecuteAsync("""
                 ALTER TABLE produtos
                     ADD COLUMN complexo VARCHAR(100) NOT NULL DEFAULT 'Almoxarifado Central' AFTER unidade_medida;
+                """);
+        }
+    }
+
+    private static async Task GarantirColunaRecebimentoOrigemAsync(MySqlConnection con)
+    {
+        var existe = await con.ExecuteScalarAsync<int>("""
+            SELECT COUNT(*)
+              FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'recebimentos'
+               AND COLUMN_NAME = 'recebimento_origem_id'
+            """);
+        if (existe == 0)
+        {
+            await con.ExecuteAsync("""
+                ALTER TABLE recebimentos
+                    ADD COLUMN recebimento_origem_id INT NULL AFTER identificador_operacao,
+                    ADD CONSTRAINT fk_recebimentos_origem FOREIGN KEY (recebimento_origem_id) REFERENCES recebimentos(recebimento_id) ON DELETE RESTRICT,
+                    ADD INDEX idx_recebimento_origem (recebimento_origem_id);
+                """);
+        }
+
+        var existeTrigger = await con.ExecuteScalarAsync<int>("""
+            SELECT COUNT(*)
+              FROM INFORMATION_SCHEMA.TRIGGERS
+             WHERE TRIGGER_SCHEMA = DATABASE()
+               AND TRIGGER_NAME = 'trg_recebimentos_exige_foto'
+            """);
+        if (existeTrigger == 0)
+        {
+            await con.ExecuteAsync("""
+                CREATE TRIGGER trg_recebimentos_exige_foto
+                BEFORE UPDATE ON recebimentos
+                FOR EACH ROW
+                BEGIN
+                    IF NEW.status = 'confirmado' AND OLD.status <> 'confirmado' THEN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM recebimento_anexos
+                             WHERE (recebimento_id = OLD.recebimento_id
+                                    OR (OLD.recebimento_origem_id IS NOT NULL AND recebimento_id = OLD.recebimento_origem_id))
+                               AND categoria = 'foto_material'
+                               AND status = 'confirmado'
+                        ) THEN
+                            SIGNAL SQLSTATE '45000'
+                                SET MESSAGE_TEXT = 'Recebimento exige ao menos uma foto do material confirmada.';
+                        END IF;
+                    END IF;
+                END;
                 """);
         }
     }

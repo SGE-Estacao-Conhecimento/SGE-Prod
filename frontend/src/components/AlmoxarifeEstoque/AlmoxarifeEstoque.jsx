@@ -363,6 +363,7 @@ const AlmoxarifeEstoque = ({
       try {
         remessaPersistida = await onCriarRemessa({
           identificadorOperacao: novaRemessa.identificadorOperacao,
+          recebimentoOrigemId: novaRemessa.recebimentoOrigemId || draftRemessa?.recebimentoIdOriginal || null,
           fotos: novaRemessa.fotos || [],
           tipoOrigem: novaRemessa.tipoOrigem,
           documentoDoador: novaRemessa.documentoDoador,

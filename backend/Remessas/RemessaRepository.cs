@@ -8,7 +8,8 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
 {
     public sealed record NovaRemessa(
         string IdentificadorOperacao, string TipoOrigem, string OrigemNome, int FuncionarioRecebeId,
-        int UsuarioRegistroId, string? Observacao, IReadOnlyList<RemessaItemRequest> Itens);
+        int UsuarioRegistroId, string? Observacao, IReadOnlyList<RemessaItemRequest> Itens,
+        int? RecebimentoOrigemId = null);
 
     public sealed record NovoAnexo(
         int RecebimentoId, string Chave, string NomeOriginal, string TipoMime, long TamanhoBytes, string Sha256, int UsuarioEnvioId);
@@ -17,6 +18,7 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
     {
         public int RecebimentoId { get; set; }
         public string Status { get; set; } = string.Empty;
+        public int? RecebimentoOrigemId { get; set; }
     }
 
     public sealed class ItemRecebido
@@ -36,6 +38,7 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
     private sealed class RemessaLinha
     {
         public int RecebimentoId { get; set; }
+        public int? RecebimentoOrigemId { get; set; }
         public string TipoOrigem { get; set; } = string.Empty;
         public string OrigemNome { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
@@ -65,7 +68,7 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
     }
 
     private const string SelectRemessas = """
-        SELECT r.recebimento_id, r.tipo_origem, r.origem_nome, r.status, r.observacao,
+        SELECT r.recebimento_id, r.recebimento_origem_id, r.tipo_origem, r.origem_nome, r.status, r.observacao,
                r.data_recebimento, r.data_registro, f.nome AS recebido_por
           FROM recebimentos r
           JOIN funcionarios f ON f.funcionario_id = r.funcionario_recebe_id
@@ -119,9 +122,9 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
     public Task<int> CriarAsync(NovaRemessa r) => EmTransacaoAsync(async (con, tx) =>
     {
         var id = await con.ExecuteScalarAsync<int>("""
-            INSERT INTO recebimentos (identificador_operacao, tipo_origem, origem_nome, funcionario_recebe_id,
+            INSERT INTO recebimentos (identificador_operacao, recebimento_origem_id, tipo_origem, origem_nome, funcionario_recebe_id,
                                       usuario_registro_id, data_recebimento, observacao, status)
-            VALUES (@IdentificadorOperacao, @TipoOrigem, @OrigemNome, @FuncionarioRecebeId,
+            VALUES (@IdentificadorOperacao, @RecebimentoOrigemId, @TipoOrigem, @OrigemNome, @FuncionarioRecebeId,
                     @UsuarioRegistroId, UTC_TIMESTAMP(6), @Observacao, 'preparacao');
             SELECT LAST_INSERT_ID();
             """, r, tx);
@@ -182,7 +185,7 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
 
     public Task<RemessaBloqueada?> BloquearAsync(Transacao t, int recebimentoId) =>
         t.Conexao.QuerySingleOrDefaultAsync<RemessaBloqueada>(
-            "SELECT recebimento_id, status FROM recebimentos WHERE recebimento_id = @recebimentoId FOR UPDATE",
+            "SELECT recebimento_id, status, recebimento_origem_id FROM recebimentos WHERE recebimento_id = @recebimentoId FOR UPDATE",
             new { recebimentoId }, t.Tx);
 
     public Task<int> ContarFotosDisponiveisAsync(Transacao t, int recebimentoId) =>
@@ -221,12 +224,17 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
              ORDER BY ri.recebimento_item_id
             """, new { ids }, c.Tx)).ToLookup(i => i.RecebimentoId);
 
+        var idsAnexos = ids
+            .Concat(linhas.Where(l => l.RecebimentoOrigemId is not null).Select(l => l.RecebimentoOrigemId!.Value))
+            .Distinct()
+            .ToList();
+
         var anexos = (await c.Con.QueryAsync<AnexoLinha>("""
             SELECT anexo_id, recebimento_id, nome_original, tipo_mime, tamanho_bytes, status
               FROM recebimento_anexos
-             WHERE recebimento_id IN @ids AND categoria = 'foto_material' AND status <> 'removido'
+             WHERE recebimento_id IN @idsAnexos AND categoria = 'foto_material' AND status <> 'removido'
              ORDER BY anexo_id
-            """, new { ids }, c.Tx)).ToLookup(a => a.RecebimentoId);
+            """, new { idsAnexos }, c.Tx)).ToLookup(a => a.RecebimentoId);
 
         return linhas.Select(l =>
         {
@@ -234,6 +242,13 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
                 .Select(i => new RemessaItemDto(i.ProdutoId, i.Nome, Numeros.Normalizar(i.Quantidade), i.UnidadeMedida))
                 .ToList();
             var dataRegistro = AppClock.ComoUtc(l.DataRegistro);
+            var fotosLista = (anexos[l.RecebimentoId].Any()
+                ? anexos[l.RecebimentoId]
+                : (l.RecebimentoOrigemId is not null ? anexos[l.RecebimentoOrigemId.Value] : Enumerable.Empty<AnexoLinha>()))
+                .Select(a => new RemessaAnexoDto(a.AnexoId, a.NomeOriginal ?? "foto", a.TipoMime, a.TamanhoBytes,
+                    a.Status == "confirmado" ? "disponivel" : a.Status))
+                .ToList();
+
             return new RemessaDto(
                 Id: l.RecebimentoId,
                 NumeroRemessa: NumeroRemessa.Formatar(l.RecebimentoId, dataRegistro),
@@ -249,10 +264,8 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
                 Data: AppClock.ComoUtc(l.DataRecebimento),
                 Status: StatusRemessa.Rotulo(l.Status),
                 Observacao: l.Observacao,
-                Fotos: anexos[l.RecebimentoId]
-                    .Select(a => new RemessaAnexoDto(a.AnexoId, a.NomeOriginal ?? "foto", a.TipoMime, a.TamanhoBytes,
-                        a.Status == "confirmado" ? "disponivel" : a.Status))
-                    .ToList());
+                Fotos: fotosLista,
+                RecebimentoOrigemId: l.RecebimentoOrigemId);
         }).ToList();
     }
 }

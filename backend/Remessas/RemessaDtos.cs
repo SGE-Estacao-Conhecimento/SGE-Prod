@@ -53,7 +53,8 @@ public sealed record CriarRemessaRequest(
     string? TipoOrigem,
     string? DocumentoDoador,
     string? Observacao,
-    List<RemessaItemRequest>? Itens);
+    List<RemessaItemRequest>? Itens,
+    int? RecebimentoOrigemId = null);
 
 // ---------- Resposta (mesmo formato do modo simulado) ----------
 
@@ -76,4 +77,5 @@ public sealed record RemessaDto(
     DateTime Data,
     string Status,
     string? Observacao,
-    IReadOnlyList<RemessaAnexoDto> Fotos);
+    IReadOnlyList<RemessaAnexoDto> Fotos,
+    int? RecebimentoOrigemId = null);

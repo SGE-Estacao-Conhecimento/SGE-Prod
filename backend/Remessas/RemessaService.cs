@@ -67,8 +67,16 @@ public sealed class RemessaService(
                 ?? throw new ApiException(422, "Cadastre um usuário ou funcionário vinculado a um setor para registrar o recebimento.");
         }
 
+        if (req.RecebimentoOrigemId is { } origemId and > 0)
+        {
+            var remessaPai = await remessas.ObterAsync(origemId)
+                ?? throw ApiException.NotFound("Recebimento original não encontrado.");
+            if (remessaPai.Status == StatusRemessa.Cancelado)
+                throw ApiException.Conflict("Não é possível adicionar itens a um recebimento cancelado.");
+        }
+
         var id = await remessas.CriarAsync(new RemessaRepository.NovaRemessa(
-            operacao, tipoOrigem, origem, funcionarioId, usuario.UsuarioId(), observacao, itens));
+            operacao, tipoOrigem, origem, funcionarioId, usuario.UsuarioId(), observacao, itens, req.RecebimentoOrigemId));
         return ((await remessas.ObterAsync(id))!, true);
     }
 
@@ -108,7 +116,13 @@ public sealed class RemessaService(
             return (await remessas.ObterAsync(t, recebimentoId))!;
         if (remessa.Status != StatusRemessa.Preparacao)
             throw ApiException.Conflict("Este recebimento foi cancelado e não pode ser confirmado.");
-        if (await remessas.ContarFotosDisponiveisAsync(t, recebimentoId) == 0)
+
+        var fotosCount = await remessas.ContarFotosDisponiveisAsync(t, recebimentoId);
+        if (fotosCount == 0 && remessa.RecebimentoOrigemId is { } origemId and > 0)
+        {
+            fotosCount = await remessas.ContarFotosDisponiveisAsync(t, origemId);
+        }
+        if (fotosCount == 0)
             throw new ApiException(422, "Envie ao menos uma foto do material antes de confirmar o recebimento.");
 
         var itens = await remessas.ItensAsync(t, recebimentoId);
