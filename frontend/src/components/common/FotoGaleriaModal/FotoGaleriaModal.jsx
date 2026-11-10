@@ -40,6 +40,7 @@ const FotoGaleriaModal = ({
 
   const dialogRef = useRef(null);
   const closeButtonRef = useRef(null);
+  const urlsCriadasRef = useRef(new Set());
 
   useDialogAccessibility({
     dialogRef,
@@ -47,6 +48,19 @@ const FotoGaleriaModal = ({
     onClose,
     initialFocusRef: closeButtonRef
   });
+
+  // Função segura de descarte de todos os Blobs mantidos na sessão do modal
+  const revogarTodosBlobs = useCallback(() => {
+    urlsCriadasRef.current.forEach((url) => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        // ignore
+      }
+    });
+    urlsCriadasRef.current.clear();
+    setBlobCache({});
+  }, []);
 
   // Reseta índice e zoom ao abrir novo lote de fotos
   useEffect(() => {
@@ -57,18 +71,26 @@ const FotoGaleriaModal = ({
     }
   }, [isOpen]);
 
-  // Limpa URLs Blob da memória ao desmontar ou fechar
+  // Limpa os Blobs da memória somente quando o modal for fechado pelo usuário
+  useEffect(() => {
+    if (!isOpen) {
+      revogarTodosBlobs();
+    }
+  }, [isOpen, revogarTodosBlobs]);
+
+  // Garante a liberação de memória caso o componente seja desmontado
   useEffect(() => {
     return () => {
-      Object.values(blobCache).forEach((url) => {
+      urlsCriadasRef.current.forEach((url) => {
         try {
           URL.revokeObjectURL(url);
         } catch {
           // ignore
         }
       });
+      urlsCriadasRef.current.clear();
     };
-  }, [blobCache]);
+  }, []);
 
   const fotoAtual = fotos[indiceAtivo] || null;
   const anexoIdAtual = fotoAtual?.id || fotoAtual?.anexoId;
@@ -89,6 +111,7 @@ const FotoGaleriaModal = ({
 
     try {
       const url = await obterFotoBlobUrl(recIdEfetivo, anexoIdAtual);
+      urlsCriadasRef.current.add(url);
       setBlobCache((prev) => ({ ...prev, [anexoIdAtual]: url }));
     } catch (err) {
       setErro(err?.message || 'Não foi possível carregar esta foto.');
@@ -300,6 +323,14 @@ const FotoGaleriaModal = ({
                 alt={fotoAtual?.nomeOriginal || `Foto ${indiceAtivo + 1}`}
                 className={`sge-foto-galeria-img ${isZoomed ? 'sge-foto-galeria-img--zoomed' : ''}`}
                 onClick={() => setIsZoomed(!isZoomed)}
+                onError={() => {
+                  setBlobCache((prev) => {
+                    const next = { ...prev };
+                    delete next[anexoIdAtual];
+                    return next;
+                  });
+                  setErro('Não foi possível exibir a imagem. Tente novamente.');
+                }}
                 title={isZoomed ? 'Clique para ajustar à tela' : 'Clique para ampliar'}
               />
             )}
@@ -342,7 +373,18 @@ const FotoGaleriaModal = ({
                   aria-current={isSelected ? 'true' : undefined}
                 >
                   {thumbUrl ? (
-                    <img src={thumbUrl} alt="" className="sge-foto-galeria-thumb-img" />
+                    <img
+                      src={thumbUrl}
+                      alt=""
+                      className="sge-foto-galeria-thumb-img"
+                      onError={() => {
+                        setBlobCache((prev) => {
+                          const next = { ...prev };
+                          delete next[anexoId];
+                          return next;
+                        });
+                      }}
+                    />
                   ) : (
                     <div className="sge-foto-galeria-thumb-placeholder">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
