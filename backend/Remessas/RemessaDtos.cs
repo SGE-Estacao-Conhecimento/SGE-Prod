@@ -60,7 +60,7 @@ public sealed record CriarRemessaRequest(
 
 public sealed record RemessaItemDto(int MaterialId, string MaterialNome, decimal Quantidade, string Unidade);
 
-public sealed record RemessaAnexoDto(int Id, string NomeOriginal, string TipoMime, long TamanhoBytes, string Status);
+public sealed record RemessaAnexoDto(int Id, string NomeOriginal, string TipoMime, long TamanhoBytes, string Status, int? RecebimentoId = null);
 
 public sealed record RemessaDto(
     int Id,

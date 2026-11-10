@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FilterChip } from '../common';
+import { FilterChip, FotoGaleriaModal } from '../common';
 import './HistoricoMovimentacoesTab.css';
 
 /**
@@ -44,6 +44,17 @@ const HistoricoMovimentacoesTab = ({
   const [tipoFiltro, setTipoFiltro] = useState('todos'); // 'todos' | 'nota_fiscal' | 'saida' | 'ajuste'
   const [ordenacao, setOrdenacao] = useState('desc'); // 'desc' (mais recentes) | 'asc'
   const [limiteExibicao, setLimiteExibicao] = useState(25);
+  const [galeriaAberta, setGaleriaAberta] = useState(false);
+  const [dadosGaleria, setDadosGaleria] = useState({ fotos: [], recebimentoId: null, titulo: '' });
+
+  const handleAbrirGaleria = (op) => {
+    setDadosGaleria({
+      fotos: op.fotos || [],
+      recebimentoId: op.recebimentoId || op.id,
+      titulo: op.documentoFiscal || op.numeroRemessa || 'Nota Fiscal / Remessa'
+    });
+    setGaleriaAberta(true);
+  };
 
   // Mapeamento rápido de materiais para buscar código SKU, categoria e unidade
   const mapMateriais = useMemo(() => {
@@ -773,13 +784,19 @@ const HistoricoMovimentacoesTab = ({
                         </span>
 
                         {op.fotos && op.fotos.length > 0 && (
-                          <span className="sge-historico-meta-item sge-historico-meta-item--anexo">
+                          <button
+                            type="button"
+                            className="sge-historico-meta-item sge-historico-meta-item--anexo sge-historico-meta-btn-fotos"
+                            onClick={() => handleAbrirGaleria(op)}
+                            title="Clique para visualizar as fotos do comprovante"
+                            aria-label={`Ver ${op.fotos.length} fotos anexadas à remessa`}
+                          >
                             <svg className="sge-historico-meta-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                               <circle cx="12" cy="13" r="4" />
                             </svg>
                             <span>{op.fotos.length} {op.fotos.length === 1 ? 'foto' : 'fotos'}</span>
-                          </span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -874,6 +891,15 @@ const HistoricoMovimentacoesTab = ({
           )}
         </div>
       )}
+
+      {/* Visualizador Lightbox de Comprovantes Fotográficos */}
+      <FotoGaleriaModal
+        isOpen={galeriaAberta}
+        onClose={() => setGaleriaAberta(false)}
+        fotos={dadosGaleria.fotos}
+        recebimentoId={dadosGaleria.recebimentoId}
+        tituloDocumento={dadosGaleria.titulo}
+      />
     </div>
   );
 };

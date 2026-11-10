@@ -22,6 +22,7 @@ export { default as SpeedDialFAB } from './SpeedDialFAB/SpeedDialFAB';
 export { default as ConfirmDialog } from './ConfirmDialog/ConfirmDialog';
 export { default as ForgotPasswordModal } from './ForgotPasswordModal/ForgotPasswordModal';
 export { default as AlterarSenhaCard } from './AlterarSenhaCard/AlterarSenhaCard';
+export { default as FotoGaleriaModal } from './FotoGaleriaModal/FotoGaleriaModal';
 export { default as useDialogAccessibility } from './useDialogAccessibility';
 export { default as useSectionNavigation } from './useSectionNavigation';
 

@@ -1,6 +1,22 @@
-import { request } from '../api/client';
+import { request, API_BASE_URL, getStoredToken } from '../api/client';
 
 export const listarRemessas = () => request('/api/remessas');
+
+/**
+ * Carrega uma foto anexada ao recebimento via endpoint autenticado e retorna um Blob URL.
+ * O componente consumidor deve chamar URL.revokeObjectURL ao descartar a visualização.
+ */
+export const obterFotoBlobUrl = async (recebimentoId, anexoId) => {
+  const token = getStoredToken();
+  const resp = await fetch(`${API_BASE_URL}/api/remessas/${recebimentoId}/fotos/${anexoId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  if (!resp.ok) {
+    throw new Error(`Erro ${resp.status} ao carregar comprovante.`);
+  }
+  const blob = await resp.blob();
+  return URL.createObjectURL(blob);
+};
 
 /**
  * Registra um recebimento em lote/doação em três etapas, como exige o back-end:
@@ -27,4 +43,8 @@ export const criarRemessa = async ({ fotos = [], identificadorOperacao, ...remes
   return request(`/api/remessas/${criada.id}/confirmar`, { method: 'POST' });
 };
 
-export const remessaService = { listar: listarRemessas, criar: criarRemessa };
+export const remessaService = {
+  listar: listarRemessas,
+  criar: criarRemessa,
+  obterFotoBlobUrl
+};

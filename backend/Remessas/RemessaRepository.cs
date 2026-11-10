@@ -176,8 +176,12 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
     {
         await using var con = await AbrirAsync();
         return await con.QuerySingleOrDefaultAsync<AnexoArquivo>("""
-            SELECT r2_chave, nome_original, tipo_mime FROM recebimento_anexos
-             WHERE anexo_id = @anexoId AND recebimento_id = @recebimentoId AND status = 'confirmado'
+            SELECT a.r2_chave, a.nome_original, a.tipo_mime
+              FROM recebimento_anexos a
+              JOIN recebimentos r ON r.recebimento_id = @recebimentoId
+             WHERE a.anexo_id = @anexoId
+               AND (a.recebimento_id = @recebimentoId OR a.recebimento_id = r.recebimento_origem_id)
+               AND a.status = 'confirmado'
             """, new { recebimentoId, anexoId });
     }
 
@@ -246,7 +250,7 @@ public sealed class RemessaRepository(DbConnectionFactory db, AppClock relogio) 
                 ? anexos[l.RecebimentoId]
                 : (l.RecebimentoOrigemId is not null ? anexos[l.RecebimentoOrigemId.Value] : Enumerable.Empty<AnexoLinha>()))
                 .Select(a => new RemessaAnexoDto(a.AnexoId, a.NomeOriginal ?? "foto", a.TipoMime, a.TamanhoBytes,
-                    a.Status == "confirmado" ? "disponivel" : a.Status))
+                    a.Status == "confirmado" ? "disponivel" : a.Status, a.RecebimentoId))
                 .ToList();
 
             return new RemessaDto(
