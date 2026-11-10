@@ -45,13 +45,14 @@ const HistoricoMovimentacoesTab = ({
   const [ordenacao, setOrdenacao] = useState('desc'); // 'desc' (mais recentes) | 'asc'
   const [limiteExibicao, setLimiteExibicao] = useState(25);
   const [galeriaAberta, setGaleriaAberta] = useState(false);
-  const [dadosGaleria, setDadosGaleria] = useState({ fotos: [], recebimentoId: null, titulo: '' });
+  const [dadosGaleria, setDadosGaleria] = useState({ fotos: [], recebimentoId: null, titulo: '', dadosOperacao: null });
 
   const handleAbrirGaleria = (op) => {
     setDadosGaleria({
       fotos: op.fotos || [],
       recebimentoId: op.recebimentoId || op.id,
-      titulo: op.documentoFiscal || op.numeroRemessa || 'Nota Fiscal / Remessa'
+      titulo: op.documentoFiscal || op.numeroRemessa || 'Nota Fiscal / Remessa',
+      dadosOperacao: op
     });
     setGaleriaAberta(true);
   };
@@ -892,13 +893,14 @@ const HistoricoMovimentacoesTab = ({
         </div>
       )}
 
-      {/* Visualizador Lightbox de Comprovantes Fotográficos */}
+      {/* Visualizador de Inspeção Documental */}
       <FotoGaleriaModal
         isOpen={galeriaAberta}
         onClose={() => setGaleriaAberta(false)}
         fotos={dadosGaleria.fotos}
         recebimentoId={dadosGaleria.recebimentoId}
         tituloDocumento={dadosGaleria.titulo}
+        dadosOperacao={dadosGaleria.dadosOperacao}
       />
     </div>
   );

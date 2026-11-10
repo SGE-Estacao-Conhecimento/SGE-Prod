@@ -1,22 +1,22 @@
 /* ==========================================================================
-   FotoGaleriaModal.css — Visualizador Lightbox de Comprovantes Fotográficos
+   FotoGaleriaModal.css — Inspeção Documental Corporativa SGE
+   Estilo sóbrio para auditoria fiscal, conferência de docas e visualização de NFs
    ========================================================================== */
 
-.sge-foto-galeria-backdrop {
+/* Backdrop corporativo neutro */
+.sge-inspecao-backdrop {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  animation: sgeGaleriaFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: sgeInspecaoFadeIn 0.15s ease-out;
 }
 
-@keyframes sgeGaleriaFadeIn {
+@keyframes sgeInspecaoFadeIn {
   from {
     opacity: 0;
   }
@@ -25,153 +25,510 @@
   }
 }
 
-.sge-foto-galeria-modal {
+/* Janela Principal da Inspeção */
+.sge-inspecao-modal {
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 980px;
+  max-width: 1360px;
   height: 90vh;
-  max-height: 860px;
-  background: #0F172A;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  max-height: 880px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   outline: none;
-  animation: sgeGaleriaScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: sgeInspecaoSlideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes sgeGaleriaScaleIn {
+@keyframes sgeInspecaoSlideUp {
   from {
-    transform: scale(0.96);
+    transform: translateY(8px) scale(0.99);
     opacity: 0;
   }
   to {
-    transform: scale(1);
+    transform: translateY(0) scale(1);
     opacity: 1;
   }
 }
 
 /* ==========================================================================
-   Header
+   Cabeçalho Corporativo
    ========================================================================== */
 
-.sge-foto-galeria-header {
+.sge-inspecao-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 20px;
-  background: #1E293B;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 18px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
   flex-shrink: 0;
 }
 
-.sge-foto-galeria-header__info {
+.sge-inspecao-header__titulo-bloco {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
 }
 
-.sge-foto-galeria-header__icon {
+.sge-inspecao-header__icone {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: rgba(1, 127, 123, 0.2);
-  color: #2DD4BF;
+  background: #E6F4F3;
+  color: #017F7B;
   flex-shrink: 0;
+  border: 1px solid #B8E2E0;
 }
 
-.sge-foto-galeria-header__title {
+.sge-inspecao-header__titulos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sge-inspecao-header__linha-principal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sge-inspecao-header__titulo {
   margin: 0;
   font-size: 15px;
   font-weight: 700;
-  color: #F8FAFC;
+  color: #0F172A;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
-.sge-foto-galeria-header__sub {
-  display: block;
+.sge-inspecao-badge-origem {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #E2E8F0;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  text-transform: uppercase;
+}
+
+.sge-inspecao-header__subtitulo {
   font-size: 12px;
-  color: #94A3B8;
+  color: #64748B;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 1px;
 }
 
-.sge-foto-galeria-header__actions {
+/* Barra de Ferramentas Documentais */
+.sge-inspecao-toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
-.sge-foto-galeria-counter {
-  font-size: 12px;
-  font-weight: 600;
-  color: #CBD5E1;
-  background: rgba(255, 255, 255, 0.08);
-  padding: 4px 10px;
-  border-radius: 9999px;
-  margin-right: 4px;
+.sge-inspecao-toolbar-divisoria {
+  display: inline-block;
+  width: 1px;
+  height: 20px;
+  background: #CBD5E1;
+  margin: 0 4px;
 }
 
-.sge-foto-galeria-btn {
+.sge-inspecao-btn-tool {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #CBD5E1;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  min-width: 32px;
+  border-radius: 6px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease-in-out;
 }
 
-.sge-foto-galeria-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #FFFFFF;
-  border-color: rgba(255, 255, 255, 0.2);
+.sge-inspecao-btn-tool:hover:not(:disabled) {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+  color: #0F172A;
 }
 
-.sge-foto-galeria-btn--active {
-  background: rgba(1, 127, 123, 0.3);
-  color: #2DD4BF;
+.sge-inspecao-btn-tool:active:not(:disabled) {
+  background: #E2E8F0;
+}
+
+.sge-inspecao-btn-tool:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #F8FAFC;
+}
+
+.sge-inspecao-btn-tool--ativo {
+  background: #E6F4F3;
+  color: #017F7B;
   border-color: #017F7B;
 }
 
-.sge-foto-galeria-btn--close:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #F87171;
-  border-color: rgba(239, 68, 68, 0.4);
+.sge-inspecao-btn-tool--zoom-reset {
+  min-width: 48px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.sge-inspecao-btn-tool--zoom-padrao {
+  color: #017F7B;
+}
+
+.sge-inspecao-btn-tool--fechar:hover {
+  background: #FEE2E2;
+  border-color: #F87171;
+  color: #B91C1C;
+}
+
+.sge-inspecao-rotacao-tag {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #017F7B;
+  color: #FFFFFF;
+  line-height: 1;
+}
+
+.sge-inspecao-btn-label {
+  font-size: 12px;
 }
 
 /* ==========================================================================
-   Visualizador Principal (Body)
+   Corpo Dividido (Split-View)
    ========================================================================== */
 
-.sge-foto-galeria-body {
-  position: relative;
+.sge-inspecao-corpo {
   display: flex;
-  align-items: center;
-  justify-content: center;
   flex: 1;
   min-height: 0;
-  background: #020617;
+  background: #FFFFFF;
   overflow: hidden;
 }
 
-.sge-foto-galeria-viewport {
+/* ==========================================================================
+   Painel Lateral: Ficha de Auditoria e Conferência
+   ========================================================================== */
+
+.sge-inspecao-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 310px;
+  flex-shrink: 0;
+  background: #FFFFFF;
+  border-right: 1px solid #E2E8F0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+
+.sge-inspecao-sidebar-secao {
+  padding: 14px 16px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.sge-inspecao-sidebar-secao--itens {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-bottom: none;
+}
+
+.sge-inspecao-sidebar-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.sge-inspecao-sidebar-rotulo {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748B;
+  margin-bottom: 8px;
+}
+
+.sge-inspecao-sidebar-cabecalho .sge-inspecao-sidebar-rotulo {
+  margin-bottom: 0;
+}
+
+.sge-inspecao-contagem-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: #E2E8F0;
+  color: #475569;
+}
+
+/* Metadados da Operação */
+.sge-inspecao-meta-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.sge-inspecao-meta-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.sge-inspecao-meta-chave {
+  color: #64748B;
+  flex-shrink: 0;
+}
+
+.sge-inspecao-meta-valor {
+  color: #0F172A;
+  text-align: right;
+  word-break: break-word;
+}
+
+.sge-inspecao-obs-box {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+}
+
+.sge-inspecao-obs-texto {
+  margin: 3px 0 0 0;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+/* Lista de Itens Conferidos */
+.sge-inspecao-itens-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-right: 2px;
+}
+
+.sge-inspecao-item-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.sge-inspecao-item-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sge-inspecao-item-sku {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  background: #E2E8F0;
+  color: #1E293B;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.sge-inspecao-item-nome {
+  color: #0F172A;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sge-inspecao-item-delta {
+  font-size: 11px;
+  font-weight: 700;
+  color: #047857;
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Faixa Vertical de Miniaturas (Thumbnail Rail — Opção A)
+   Exibida entre a Ficha e a Imagem apenas quando houver > 1 anexo
+   ========================================================================== */
+
+.sge-inspecao-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 68px;
+  flex-shrink: 0;
+  background: #F8FAFC;
+  border-right: 1px solid #E2E8F0;
+  overflow: hidden;
+  user-select: none;
+}
+
+.sge-inspecao-rail-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px 6px;
+  width: 100%;
+  border-bottom: 1px solid #E2E8F0;
+  background: #F1F5F9;
+}
+
+.sge-inspecao-rail-rotulo {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748B;
+}
+
+.sge-inspecao-rail-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: #E2E8F0;
+  color: #334155;
+}
+
+.sge-inspecao-rail-lista {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+
+.sge-inspecao-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 52px;
+  padding: 4px;
+  border-radius: 6px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  cursor: pointer;
+  transition: all 0.12s ease-in-out;
+}
+
+.sge-inspecao-rail-item:hover {
+  border-color: #017F7B;
+  background: #F0FDFA;
+  transform: scale(1.02);
+}
+
+.sge-inspecao-rail-item--ativo {
+  border-color: #017F7B;
+  box-shadow: 0 0 0 1.5px #017F7B;
+  background: #E6F4F3;
+}
+
+.sge-inspecao-rail-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 4px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  color: #64748B;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sge-inspecao-rail-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sge-inspecao-rail-numero {
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.sge-inspecao-rail-item--ativo .sge-inspecao-rail-numero {
+  color: #017F7B;
+  font-weight: 800;
+}
+
+/* ==========================================================================
+   Área Principal do Visualizador (Prancheta Documental)
+   ========================================================================== */
+
+.sge-inspecao-viewer {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: #F1F5F9;
+  overflow: hidden;
+}
+
+.sge-inspecao-viewport {
   position: relative;
   display: flex;
   align-items: center;
@@ -180,34 +537,36 @@
   height: 100%;
   padding: 16px;
   overflow: auto;
-}
-
-.sge-foto-galeria-viewport--zoomed {
-  align-items: flex-start;
-  justify-content: flex-start;
-  cursor: grab;
-}
-
-.sge-foto-galeria-img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border-radius: 6px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  cursor: zoom-in;
   user-select: none;
 }
 
-.sge-foto-galeria-img--zoomed {
-  max-width: none;
-  max-height: none;
-  cursor: zoom-out;
+.sge-inspecao-viewport--arrastavel {
+  cursor: grab;
+}
+
+.sge-inspecao-viewport--arrastavel:active {
+  cursor: grabbing;
+}
+
+.sge-inspecao-canvas-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: auto;
 }
 
-/* Navegação Lateral Flutuante */
-.sge-foto-galeria-nav {
+.sge-inspecao-img {
+  display: block;
+  object-fit: contain;
+  background: #FFFFFF;
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(15, 23, 42, 0.08);
+  border: 1px solid #CBD5E1;
+  transition: transform 0.12s ease-out;
+}
+
+/* Navegação Lateral Discreta */
+.sge-inspecao-nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -215,180 +574,191 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #F8FAFC;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #334155;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   cursor: pointer;
-  transition: all 0.15s ease;
-  backdrop-filter: blur(4px);
+  transition: all 0.12s ease-in-out;
 }
 
-.sge-foto-galeria-nav:hover {
-  background: rgba(1, 127, 123, 0.85);
-  color: #FFFFFF;
-  border-color: #2DD4BF;
-  transform: translateY(-50%) scale(1.08);
+.sge-inspecao-nav:hover {
+  background: #F8FAFC;
+  color: #017F7B;
+  border-color: #017F7B;
+  transform: translateY(-50%) scale(1.06);
 }
 
-.sge-foto-galeria-nav--prev {
-  left: 16px;
+.sge-inspecao-nav--prev {
+  left: 14px;
 }
 
-.sge-foto-galeria-nav--next {
-  right: 16px;
+.sge-inspecao-nav--next {
+  right: 14px;
 }
 
-/* Status: Carregando e Erro */
-.sge-foto-galeria-status {
+/* Status: Carregamento e Erro */
+.sge-inspecao-status {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  color: #94A3B8;
-  font-size: 14px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.sge-foto-galeria-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #2DD4BF;
+.sge-inspecao-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #E2E8F0;
+  border-top-color: #017F7B;
   border-radius: 50%;
-  animation: sgeGaleriaSpin 0.8s linear infinite;
+  animation: sgeInspecaoSpin 0.75s linear infinite;
 }
 
-@keyframes sgeGaleriaSpin {
+@keyframes sgeInspecaoSpin {
   to {
     transform: rotate(360deg);
   }
 }
 
-.sge-foto-galeria-status--error {
-  color: #F87171;
+.sge-inspecao-status--erro {
+  color: #DC2626;
 }
 
-.sge-foto-galeria-retry-btn {
-  margin-top: 6px;
+.sge-inspecao-retry-btn {
+  margin-top: 4px;
   padding: 6px 14px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   border-radius: 6px;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #FCA5A5;
+  background: #FEE2E2;
+  border: 1px solid #FCA5A5;
+  color: #B91C1C;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
 }
 
-.sge-foto-galeria-retry-btn:hover {
-  background: rgba(239, 68, 68, 0.25);
-  color: #FFFFFF;
+.sge-inspecao-retry-btn:hover {
+  background: #FCA5A5;
+  color: #7F1D1D;
 }
 
 /* ==========================================================================
-   Rodapé: Tira de Miniaturas
+   Barra de Rodapé Técnica (Status Bar)
    ========================================================================== */
 
-.sge-foto-galeria-thumbs {
+.sge-inspecao-statusbar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 20px;
-  background: #0F172A;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  overflow-x: auto;
-  flex-shrink: 0;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-}
-
-.sge-foto-galeria-thumb {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  border-radius: 8px;
-  background: #1E293B;
-  border: 2px solid rgba(255, 255, 255, 0.12);
-  padding: 0;
-  cursor: pointer;
-  overflow: hidden;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-}
-
-.sge-foto-galeria-thumb:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateY(-2px);
-}
-
-.sge-foto-galeria-thumb--selected {
-  border-color: #2DD4BF;
-  box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.3);
-  transform: translateY(-2px);
-}
-
-.sge-foto-galeria-thumb-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.sge-foto-galeria-thumb-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  gap: 2px;
+  justify-content: space-between;
+  padding: 6px 18px;
+  background: #F8FAFC;
+  border-top: 1px solid #E2E8F0;
+  font-size: 11px;
   color: #64748B;
-  font-size: 10px;
-  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sge-inspecao-statusbar__dicas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.sge-inspecao-statusbar__indicadores {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sge-inspecao-status-pill {
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: #E2E8F0;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ==========================================================================
-   Responsividade Mobile
+   Responsividade Mobile / Telas Menores
    ========================================================================== */
 
-@media (max-width: 640px) {
-  .sge-foto-galeria-backdrop {
+@media (max-width: 900px) {
+  .sge-inspecao-sidebar {
+    width: 280px;
+  }
+  .sge-inspecao-btn-label {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .sge-inspecao-backdrop {
     padding: 0;
   }
 
-  .sge-foto-galeria-modal {
+  .sge-inspecao-modal {
     height: 100vh;
     max-height: 100vh;
     border-radius: 0;
     border: none;
   }
 
-  .sge-foto-galeria-header {
-    padding: 10px 14px;
+  .sge-inspecao-header {
+    padding: 8px 12px;
   }
 
-  .sge-foto-galeria-nav {
-    width: 36px;
-    height: 36px;
+  .sge-inspecao-corpo {
+    flex-direction: column-reverse;
   }
 
-  .sge-foto-galeria-nav--prev {
-    left: 8px;
+  .sge-inspecao-sidebar {
+    width: 100%;
+    height: 200px;
+    border-right: none;
+    border-top: 1px solid #E2E8F0;
   }
 
-  .sge-foto-galeria-nav--next {
-    right: 8px;
+  .sge-inspecao-rail {
+    width: 100%;
+    height: 60px;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid #E2E8F0;
   }
 
-  .sge-foto-galeria-thumbs {
-    padding: 10px 14px;
+  .sge-inspecao-rail-header {
+    display: none;
   }
 
-  .sge-foto-galeria-thumb {
-    width: 46px;
-    height: 46px;
+  .sge-inspecao-rail-lista {
+    flex-direction: row;
+    gap: 6px;
+    padding: 6px 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .sge-inspecao-rail-item {
+    flex-direction: row;
+    width: auto;
+    padding: 3px 6px;
+  }
+
+  .sge-inspecao-rail-thumb {
+    width: 32px;
+    height: 32px;
+  }
+
+  .sge-inspecao-statusbar__dicas {
+    display: none;
   }
 }
-
