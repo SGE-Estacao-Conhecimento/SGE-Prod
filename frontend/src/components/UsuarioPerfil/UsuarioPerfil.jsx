@@ -1,8 +1,8 @@
 import React from 'react';
-import { StatCard, AlterarSenhaCard } from '../common';
+import { StatCard, AlterarSenhaCard, AtualizarEmailCard } from '../common';
 import './UsuarioPerfil.css';
 
-const UsuarioPerfil = ({ user, pedidos = [], onLogout, onNavigate }) => {
+const UsuarioPerfil = ({ user, pedidos = [], onLogout, onNavigate, onUserUpdate }) => {
   // Estatísticas calculadas dinamicamente
   const total = pedidos.length;
   const pendentes = pedidos.filter(p => (p.status || '').toLowerCase() === 'pendente').length;
@@ -46,7 +46,8 @@ const UsuarioPerfil = ({ user, pedidos = [], onLogout, onNavigate }) => {
         />
       </div>
 
-      {/* Seção de Segurança: Alterar Senha */}
+      {/* Seção de Segurança e Credenciais */}
+      <AtualizarEmailCard user={user} onSuccess={onUserUpdate} />
       <AlterarSenhaCard user={user} />
 
       {/* Botão de Logout em Destaque */}

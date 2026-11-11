@@ -24,14 +24,16 @@ public sealed class TokenService(JwtOptions options)
             ? DateTime.UtcNow.AddDays(options.ExpiracaoLembrarDias)
             : DateTime.UtcNow.AddHours(options.ExpiracaoHoras);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, usuario.UsuarioId.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("name", usuario.Nome),
-            new Claim("role", usuario.Perfil),
-            new Claim(UsuarioAtual.ClaimFuncionario, usuario.FuncionarioId.ToString())
+            new(JwtRegisteredClaimNames.Sub, usuario.UsuarioId.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("name", usuario.Nome),
+            new("role", usuario.Perfil),
+            new(UsuarioAtual.ClaimFuncionario, usuario.FuncionarioId.ToString())
         };
+        if (usuario.TrocaSenhaObrigatoria)
+            claims.Add(new Claim(UsuarioAtual.ClaimTrocaSenhaObrigatoria, "1"));
 
         var token = new JwtSecurityToken(
             issuer: options.Issuer,

@@ -10,9 +10,21 @@ namespace Sge.Api.Auth;
 public sealed record LoginRequest(string? Email, string? Senha, bool Lembrar = false);
 
 public sealed record LoginResponse(
-    int Id, string Nome, string? Email, string Identifier, string Role, string Setor, string Token, DateTime ExpiraEm);
+    int Id,
+    string Nome,
+    string? Email,
+    string Identifier,
+    string Role,
+    string Setor,
+    string Token,
+    DateTime ExpiraEm,
+    bool PrecisaTrocarSenha = false);
 
-public sealed record AlterarSenhaRequest(string? SenhaAtual, string? NovaSenha);
+public sealed record AlterarSenhaRequest(string? SenhaAtual, string? NovaSenha, bool Lembrar = false);
+
+public sealed record AtualizarEmailRequest(string? Email, string? SenhaAtual);
+
+public sealed record AtualizarEmailResponse(string Email, string Identifier);
 
 [ApiController]
 [Route("api/auth")]
@@ -49,14 +61,14 @@ public sealed class AuthController(AuthRepository repo, PasswordService senhas, 
             throw ApiException.Forbidden("Conta inativa. Procure a administração.");
 
         if (resultado == PasswordVerificationResult.SuccessRehashNeeded)
-            await repo.AtualizarSenhaAsync(usuario.UsuarioId, senhas.Hash(senha));
+            await repo.RehashSenhaAsync(usuario.UsuarioId, senhas.Hash(senha));
 
         await repo.RegistrarLoginAsync(usuario.UsuarioId);
         var (token, expiraEm) = tokens.Gerar(usuario, req.Lembrar);
 
         // Sem e-mail (opcional), a tela identifica o usuário pelo nome.
         return new LoginResponse(usuario.UsuarioId, usuario.Nome, usuario.Email, usuario.Email ?? usuario.Nome,
-            Perfis.ParaFront(usuario.Perfil), usuario.Setor, token, expiraEm);
+            Perfis.ParaFront(usuario.Perfil), usuario.Setor, token, expiraEm, usuario.TrocaSenhaObrigatoria);
     }
 
     /// <summary>O token é sem estado: o encerramento da sessão é feito no front, apagando o token.</summary>
@@ -65,7 +77,7 @@ public sealed class AuthController(AuthRepository repo, PasswordService senhas, 
     public NoContentResult Logout() => NoContent();
 
     [HttpPost("alterar-senha")]
-    public async Task<NoContentResult> AlterarSenha(AlterarSenhaRequest req)
+    public async Task<ActionResult<LoginResponse>> AlterarSenha(AlterarSenhaRequest req)
     {
         var atual = req.SenhaAtual ?? string.Empty;
         var nova = req.NovaSenha ?? string.Empty;
@@ -75,13 +87,66 @@ public sealed class AuthController(AuthRepository repo, PasswordService senhas, 
             throw ApiException.BadRequest("Informe a nova senha desejada.");
         if (nova.Length < PasswordService.TamanhoMinimo || nova.Length > PasswordService.TamanhoMaximo)
             throw ApiException.BadRequest($"A nova senha deve possuir entre {PasswordService.TamanhoMinimo} e {PasswordService.TamanhoMaximo} caracteres.");
+        if (string.Equals(nova, atual, StringComparison.Ordinal))
+            throw ApiException.BadRequest("A nova senha deve ser diferente da senha atual.");
 
         var usuario = await repo.BuscarPorIdAsync(User.UsuarioId()) ?? throw new ApiException(401, "Sessão inválida.");
         if (senhas.Verificar(usuario.SenhaHash, atual) == PasswordVerificationResult.Failed)
             throw ApiException.BadRequest("A senha atual não confere.");
 
         await repo.AtualizarSenhaAsync(usuario.UsuarioId, senhas.Hash(nova));
-        return NoContent();
+        usuario.TrocaSenhaObrigatoria = false;
+        var (token, expiraEm) = tokens.Gerar(usuario, req.Lembrar);
+
+        return Ok(new LoginResponse(
+            usuario.UsuarioId,
+            usuario.Nome,
+            usuario.Email,
+            usuario.Email ?? usuario.Nome,
+            Perfis.ParaFront(usuario.Perfil),
+            usuario.Setor,
+            token,
+            expiraEm,
+            PrecisaTrocarSenha: false));
+    }
+
+    [HttpPatch("email")]
+    public async Task<ActionResult<AtualizarEmailResponse>> AtualizarEmail(AtualizarEmailRequest req)
+    {
+        var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+        var senhaAtual = req.SenhaAtual ?? string.Empty;
+
+        if (email.Length == 0)
+        {
+            throw ApiException.BadRequest("Informe o e-mail desejado.",
+                new Dictionary<string, string[]> { ["email"] = ["Informe o e-mail desejado."] });
+        }
+        if (email.Length > 150 || !Validadores.EmailValido(email))
+        {
+            throw ApiException.BadRequest("Informe um e-mail válido.",
+                new Dictionary<string, string[]> { ["email"] = ["Informe um e-mail válido."] });
+        }
+        if (senhaAtual.Length == 0)
+        {
+            throw ApiException.BadRequest("Informe sua senha atual para confirmar a alteração.",
+                new Dictionary<string, string[]> { ["senhaAtual"] = ["Informe sua senha atual para confirmar a alteração."] });
+        }
+
+        var usuario = await repo.BuscarPorIdAsync(User.UsuarioId()) ?? throw new ApiException(401, "Sessão inválida.");
+        if (senhas.Verificar(usuario.SenhaHash, senhaAtual) == PasswordVerificationResult.Failed)
+        {
+            throw ApiException.BadRequest("A senha atual não confere.",
+                new Dictionary<string, string[]> { ["senhaAtual"] = ["A senha atual não confere."] });
+        }
+
+        if (await repo.EmailEmUsoAsync(email, usuario.UsuarioId))
+        {
+            throw new ApiException(409, "Já existe um usuário com este e-mail.",
+                new Dictionary<string, string[]> { ["email"] = ["E-mail já cadastrado."] });
+        }
+
+        await repo.AtualizarEmailAsync(usuario.UsuarioId, email);
+        return Ok(new AtualizarEmailResponse(email, email));
     }
 }
 

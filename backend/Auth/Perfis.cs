@@ -38,6 +38,7 @@ public static class Perfis
 public static class UsuarioAtual
 {
     public const string ClaimFuncionario = "fid";
+    public const string ClaimTrocaSenhaObrigatoria = "pwd_reset";
 
     public static int UsuarioId(this ClaimsPrincipal user) =>
         int.TryParse(user.FindFirstValue("sub"), out var id) ? id : throw new ApiException(401, "Sessão inválida.");

@@ -14,6 +14,7 @@ public sealed class UsuarioRepository(DbConnectionFactory db, AppClock relogio) 
     {
         public int UsuarioId { get; set; }
         public int FuncionarioId { get; set; }
+        public string? Cpf { get; set; }
         public string Perfil { get; set; } = string.Empty;
         public bool Ativo { get; set; }
     }
@@ -65,6 +66,7 @@ public sealed class UsuarioRepository(DbConnectionFactory db, AppClock relogio) 
         t.Conexao.QuerySingleOrDefaultAsync<UsuarioAtual>("""
             SELECT u.usuario_id,
                    COALESCE(u.funcionario_id, 0) AS funcionario_id,
+                   f.cpf,
                    u.perfil,
                    (u.ativo AND COALESCE(f.ativo, TRUE)) AS ativo
               FROM usuarios u
@@ -110,8 +112,8 @@ public sealed class UsuarioRepository(DbConnectionFactory db, AppClock relogio) 
             SELECT LAST_INSERT_ID();
             """, d, t.Tx);
         return await t.Conexao.ExecuteScalarAsync<int>("""
-            INSERT INTO usuarios (funcionario_id, email, senha_hash, perfil, ativo)
-            VALUES (@funcionarioId, @Email, @senhaHash, @Perfil, @Ativo);
+            INSERT INTO usuarios (funcionario_id, email, senha_hash, perfil, ativo, troca_senha_obrigatoria)
+            VALUES (@funcionarioId, @Email, @senhaHash, @Perfil, @Ativo, TRUE);
             SELECT LAST_INSERT_ID();
             """, new { funcionarioId, d.Email, senhaHash, d.Perfil, d.Ativo }, t.Tx);
     }
@@ -121,7 +123,7 @@ public sealed class UsuarioRepository(DbConnectionFactory db, AppClock relogio) 
         if (atual.FuncionarioId > 0)
         {
             await t.Conexao.ExecuteAsync("""
-                UPDATE funcionarios SET nome = @Nome, setor_id = @SetorId, cpf = @Cpf, celular = @Celular, ativo = @Ativo
+                UPDATE funcionarios SET nome = @Nome, setor_id = @SetorId, cpf = COALESCE(cpf, @Cpf), celular = @Celular, ativo = @Ativo
                  WHERE funcionario_id = @funcionarioId
                 """, new { d.Nome, d.SetorId, d.Cpf, d.Celular, d.Ativo, funcionarioId = atual.FuncionarioId }, t.Tx);
             await t.Conexao.ExecuteAsync(
@@ -141,9 +143,10 @@ public sealed class UsuarioRepository(DbConnectionFactory db, AppClock relogio) 
         }
     }
 
-    public Task DefinirSenhaAsync(Transacao t, int usuarioId, string senhaHash) =>
-        t.Conexao.ExecuteAsync("UPDATE usuarios SET senha_hash = @senhaHash WHERE usuario_id = @usuarioId",
-            new { usuarioId, senhaHash }, t.Tx);
+    public Task DefinirSenhaAsync(Transacao t, int usuarioId, string senhaHash, bool trocaSenhaObrigatoria = true) =>
+        t.Conexao.ExecuteAsync(
+            "UPDATE usuarios SET senha_hash = @senhaHash, troca_senha_obrigatoria = @trocaSenhaObrigatoria WHERE usuario_id = @usuarioId",
+            new { usuarioId, senhaHash, trocaSenhaObrigatoria }, t.Tx);
 
     /// <summary>Ativa ou desativa usuário e funcionário juntos (na tela é um único status).</summary>
     public async Task DefinirAtivoAsync(Transacao t, UsuarioAtual atual, bool ativo)

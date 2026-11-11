@@ -1,8 +1,8 @@
 import React from 'react';
-import { StatCard, AlterarSenhaCard } from '../common';
+import { StatCard, AlterarSenhaCard, AtualizarEmailCard } from '../common';
 import '../UsuarioPerfil/UsuarioPerfil.css';
 
-const AlmoxarifePerfil = ({ user, onLogout, onNavigate }) => {
+const AlmoxarifePerfil = ({ user, onLogout, onNavigate, onUserUpdate }) => {
   const nomeUsuario = user?.nome || user?.identifier || 'Almoxarife';
   const inicial = nomeUsuario.charAt(0).toUpperCase();
 
@@ -45,7 +45,8 @@ const AlmoxarifePerfil = ({ user, onLogout, onNavigate }) => {
         />
       </div>
 
-      {/* Seção de Segurança: Alterar Senha */}
+      {/* Seção de Segurança e Credenciais */}
+      <AtualizarEmailCard user={user} onSuccess={onUserUpdate} />
       <AlterarSenhaCard user={user} />
 
       {/* Botão de Logout Padronizado com o Perfil do Usuário */}

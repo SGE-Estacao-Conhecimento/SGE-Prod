@@ -43,7 +43,7 @@ const navItemsUsuario = [
 
 const USUARIO_SECTIONS = navItemsUsuario.map((item) => item.id);
 
-const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
+const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos = [] }) => {
   const [activeNav, setActiveNav] = useSectionNavigation('usuario', USUARIO_SECTIONS, 'inicio');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -244,6 +244,7 @@ const Usuario = ({ onLogout, user, materiais = [], initialPedidos = [] }) => {
               pedidos={pedidos}
               onLogout={onLogout}
               onNavigate={handleNavClick}
+              onUserUpdate={onUserUpdate}
             />
           </PageTabTransition>
         );

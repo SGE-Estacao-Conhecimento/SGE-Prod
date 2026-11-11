@@ -12,6 +12,7 @@ public sealed class UsuarioAutenticacao
     public string SenhaHash { get; set; } = string.Empty;
     public string Perfil { get; set; } = string.Empty;
     public bool Ativo { get; set; }
+    public bool TrocaSenhaObrigatoria { get; set; }
     public bool FuncionarioAtivo { get; set; }
     public string Setor { get; set; } = string.Empty;
 }
@@ -26,6 +27,7 @@ public sealed class AuthRepository(DbConnectionFactory db)
                u.senha_hash,
                u.perfil,
                u.ativo,
+               u.troca_senha_obrigatoria,
                COALESCE(f.ativo, TRUE) AS funcionario_ativo,
                COALESCE(s.nome, 'Administração') AS setor
           FROM usuarios u
@@ -61,10 +63,33 @@ public sealed class AuthRepository(DbConnectionFactory db)
             "UPDATE usuarios SET ultimo_login = CURRENT_TIMESTAMP(6) WHERE usuario_id = @usuarioId", new { usuarioId });
     }
 
-    public async Task AtualizarSenhaAsync(int usuarioId, string senhaHash)
+    public async Task RehashSenhaAsync(int usuarioId, string senhaHash)
     {
         await using var con = await db.AbrirAsync();
         await con.ExecuteAsync(
             "UPDATE usuarios SET senha_hash = @senhaHash WHERE usuario_id = @usuarioId", new { usuarioId, senhaHash });
+    }
+
+    public async Task AtualizarSenhaAsync(int usuarioId, string senhaHash)
+    {
+        await using var con = await db.AbrirAsync();
+        await con.ExecuteAsync(
+            "UPDATE usuarios SET senha_hash = @senhaHash, troca_senha_obrigatoria = FALSE WHERE usuario_id = @usuarioId",
+            new { usuarioId, senhaHash });
+    }
+
+    public async Task<bool> EmailEmUsoAsync(string email, int excetoUsuarioId)
+    {
+        await using var con = await db.AbrirAsync();
+        return await con.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM usuarios WHERE email = @email AND usuario_id <> @excetoUsuarioId",
+            new { email, excetoUsuarioId }) > 0;
+    }
+
+    public async Task AtualizarEmailAsync(int usuarioId, string email)
+    {
+        await using var con = await db.AbrirAsync();
+        await con.ExecuteAsync(
+            "UPDATE usuarios SET email = @email WHERE usuario_id = @usuarioId", new { usuarioId, email });
     }
 }

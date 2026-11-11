@@ -31,7 +31,7 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
         await GarantirColunaBemDuravelAsync(con);
         await GarantirColunaComplexoAsync(con);
         await GarantirColunaRecebimentoOrigemAsync(con);
-        await GarantirColunaRecebimentoOrigemAsync(con);
+        await GarantirColunaTrocaSenhaObrigatoriaAsync(con);
 
         var setorAdminId = await ObterOuCriarSetorAsync(con, "Administração");
         var setorAlmoxarifadoId = await ObterOuCriarSetorAsync(con, "Almoxarifado");
@@ -124,6 +124,7 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
         await GarantirColunaBemDuravelAsync(con);
         await GarantirColunaComplexoAsync(con);
         await GarantirColunaRecebimentoOrigemAsync(con);
+        await GarantirColunaTrocaSenhaObrigatoriaAsync(con);
 
         // Tabelas-filhas sem referências externas (TRUNCATE limpa e reinicia AUTO_INCREMENT sem disparar trigger BEFORE DELETE de pedido_logs)
         await con.ExecuteAsync("TRUNCATE TABLE pedido_logs;");
@@ -177,6 +178,24 @@ public sealed class DevSeeder(DbConnectionFactory db, PasswordService senhas, IL
             await con.ExecuteAsync("""
                 ALTER TABLE produtos
                     ADD COLUMN bem_duravel BOOLEAN NOT NULL DEFAULT FALSE AFTER permite_fracao;
+                """);
+        }
+    }
+
+    private static async Task GarantirColunaTrocaSenhaObrigatoriaAsync(MySqlConnection con)
+    {
+        var existe = await con.ExecuteScalarAsync<int>("""
+            SELECT COUNT(*)
+              FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'usuarios'
+               AND COLUMN_NAME = 'troca_senha_obrigatoria'
+            """);
+        if (existe == 0)
+        {
+            await con.ExecuteAsync("""
+                ALTER TABLE usuarios
+                    ADD COLUMN troca_senha_obrigatoria BOOLEAN NOT NULL DEFAULT FALSE AFTER ativo;
                 """);
         }
     }

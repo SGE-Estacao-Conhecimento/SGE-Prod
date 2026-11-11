@@ -29,6 +29,7 @@ CREATE TABLE usuarios (
     perfil ENUM('admin','almoxarifado','funcionario') NOT NULL DEFAULT 'funcionario',
     ultimo_login TIMESTAMP(6) NULL,
     ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    troca_senha_obrigatoria BOOLEAN NOT NULL DEFAULT FALSE,
     data_criacao TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     FOREIGN KEY (funcionario_id) REFERENCES funcionarios(funcionario_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;

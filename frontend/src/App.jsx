@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useState } from 'react';
 import Login from './pages/Login';
 import PasswordReset from './pages/PasswordReset';
+import TrocaSenhaObrigatoria from './pages/TrocaSenhaObrigatoria';
 const Administrativo = lazy(() => import('./pages/Administrativo'));
 const Usuario = lazy(() => import('./pages/Usuario'));
 const Almoxarife = lazy(() => import('./pages/Almoxarife'));
@@ -41,6 +42,10 @@ function App() {
     setCurrentUser(null);
   };
 
+  const handleUserUpdate = (atualizado) => {
+    setCurrentUser((prev) => (prev ? { ...prev, ...atualizado } : atualizado));
+  };
+
   // Se o usuário não estiver autenticado, exibe a tela de login
   if (!currentUser) {
     return (
@@ -53,13 +58,27 @@ function App() {
     );
   }
 
+  if (currentUser.precisaTrocarSenha) {
+    return (
+      <TrocaSenhaObrigatoria
+        user={currentUser}
+        onSuccess={(atualizado) => setCurrentUser(atualizado)}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   // Direcionamento dinâmico conforme perfil selecionado/autenticado
   return (
     <Suspense fallback={<div className="app-loading">Carregando sistema...</div>}>
-      {currentUser.role === 'usuario' && <Usuario user={currentUser} onLogout={handleLogout} />}
-      {currentUser.role === 'almoxarife' && <Almoxarife user={currentUser} onLogout={handleLogout} />}
+      {currentUser.role === 'usuario' && (
+        <Usuario user={currentUser} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
+      )}
+      {currentUser.role === 'almoxarife' && (
+        <Almoxarife user={currentUser} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
+      )}
       {(currentUser.role === 'admin' || !['usuario', 'almoxarife'].includes(currentUser.role)) && (
-        <Administrativo user={currentUser} onLogout={handleLogout} />
+        <Administrativo user={currentUser} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
       )}
     </Suspense>
   );

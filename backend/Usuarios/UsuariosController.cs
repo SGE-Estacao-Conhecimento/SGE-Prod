@@ -29,6 +29,10 @@ public sealed class UsuariosController(UsuarioService service) : ControllerBase
     [Authorize(Roles = Perfis.Admin)]
     public Task<UsuarioDto> AlternarStatus(int id) => service.AlternarStatusAsync(id);
 
+    [HttpPost("{id:int}/resetar-senha")]
+    [Authorize(Roles = Perfis.Admin)]
+    public Task<UsuarioDto> ResetarSenha(int id) => service.ResetarSenhaAsync(id);
+
     /// <summary>"Excluir usuário": desativa a conta, preservando o histórico.</summary>
     [HttpDelete("{id:int}")]
     [Authorize(Roles = Perfis.Admin)]

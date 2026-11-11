@@ -1,5 +1,5 @@
 import React from 'react';
-import { StatCard, AlterarSenhaCard } from '../common';
+import { StatCard, AlterarSenhaCard, AtualizarEmailCard } from '../common';
 import './AdminPerfil.css';
 import '../UsuarioPerfil/UsuarioPerfil.css';
 
@@ -11,8 +11,9 @@ import '../UsuarioPerfil/UsuarioPerfil.css';
  * @param {Object} props.user - Objeto com os dados do usuário autenticado
  * @param {Function} [props.onLogout] - Manipulador de logout
  * @param {Function} [props.onNavigate] - Manipulador de navegação entre seções administrativas
+ * @param {Function} [props.onUserUpdate] - Callback disparado ao atualizar dados da conta
  */
-const AdminPerfil = ({ user, onLogout, onNavigate }) => {
+const AdminPerfil = ({ user, onLogout, onNavigate, onUserUpdate }) => {
   const nomeUsuario = user?.nome || user?.identifier || 'Administrador';
   const inicial = nomeUsuario.charAt(0).toUpperCase();
 
@@ -75,7 +76,8 @@ const AdminPerfil = ({ user, onLogout, onNavigate }) => {
         />
       </div>
 
-      {/* Módulo de Segurança: Alterar Senha com Confirmação e Esqueceu a Senha */}
+      {/* Módulos de Credenciais: E-mail de Acesso e Alterar Senha */}
+      <AtualizarEmailCard user={user} onSuccess={onUserUpdate} />
       <AlterarSenhaCard user={user} />
 
       {/* Botão de Logout */}

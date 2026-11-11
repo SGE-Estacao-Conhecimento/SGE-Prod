@@ -38,7 +38,7 @@ const TITLES = {
   perfil: 'Meu Perfil'
 };
 
-const Administrativo = ({ onLogout, user }) => {
+const Administrativo = ({ onLogout, user, onUserUpdate }) => {
   const [activeNav, setActiveNav] = useSectionNavigation('admin', ADMIN_SECTIONS, 'dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -304,10 +304,18 @@ const Administrativo = ({ onLogout, user }) => {
         ? prev.map(item => item.id === salvo.id ? salvo : item)
         : [salvo, ...prev]);
       setUsuariosError(null);
+      return true;
     } catch (error) {
-      // Não exibe um usuário que não foi gravado (ex.: CPF ou e-mail já cadastrado).
+      // Não exibe um usuário que não foi gravado (ex.: CPF inválido ou já cadastrado).
       alert(error?.message || 'Não foi possível salvar o usuário.');
+      return false;
     }
+  };
+
+  const handleResetSenhaUsuario = async (usuarioId) => {
+    const atualizado = await usuarioService.resetarSenha(usuarioId);
+    setUsuarios(prev => prev.map(u => u.id === usuarioId ? (atualizado || u) : u));
+    return atualizado;
   };
 
   // "Excluir" desativa a conta, preservando o histórico.
@@ -369,6 +377,7 @@ const Administrativo = ({ onLogout, user }) => {
                 onCriarSetor={handleCriarSetor}
                 onSave={handleSaveUsuario}
                 onToggleStatus={handleToggleUsuarioStatus}
+                onResetPassword={handleResetSenhaUsuario}
                 onDelete={handleRemoverUsuario}
                 usuarioSelecionado={usuarioSelecionado}
               />
@@ -416,7 +425,7 @@ const Administrativo = ({ onLogout, user }) => {
       case 'perfil':
         return (
           <div className="dashboard-page-scroll">
-            <AdminPerfil user={user} onLogout={onLogout} onNavigate={setActiveNav} />
+            <AdminPerfil user={user} onLogout={onLogout} onNavigate={setActiveNav} onUserUpdate={onUserUpdate} />
           </div>
         );
       case 'dashboard':
@@ -623,10 +632,7 @@ const Administrativo = ({ onLogout, user }) => {
       <NovoUsuarioModal
         isOpen={isNovoUsuarioModalOpen}
         onClose={() => setIsNovoUsuarioModalOpen(false)}
-        onSave={(usuario) => {
-          handleSaveUsuario(usuario);
-          setIsNovoUsuarioModalOpen(false);
-        }}
+        onSave={handleSaveUsuario}
         setores={setores}
         onCriarSetor={handleCriarSetor}
       />

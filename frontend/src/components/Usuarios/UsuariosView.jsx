@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import NovoUsuarioModal from './NovoUsuarioModal';
 import { ConfirmDialog } from '../common';
+import { limparCpf, validarCpf } from '../../utils/cpf';
 import './UsuariosView.css';
 
 /**
@@ -11,6 +12,7 @@ import './UsuariosView.css';
  * @param {Function} onSave - Callback chamado ao criar/editar usuário
  * @param {Function} onDelete - Callback chamado ao remover usuário
  * @param {Function} onToggleStatus - Callback chamado ao alterar status ativo/inativo
+ * @param {Function} onResetPassword - Callback chamado ao resetar a senha do usuário
  */
 const UsuariosView = ({
   usuarios: initialUsuariosProp,
@@ -19,6 +21,7 @@ const UsuariosView = ({
   onSave,
   onDelete,
   onToggleStatus,
+  onResetPassword,
   usuarioSelecionado
 }) => {
   // Estado inicial zerado, pronto para conexão com o backend
@@ -31,6 +34,9 @@ const UsuariosView = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState(null);
   const [usuarioToDelete, setUsuarioToDelete] = useState(null);
+  const [usuarioToReset, setUsuarioToReset] = useState(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState(null);
 
   // Sincronização com props do backend
   React.useEffect(() => {
@@ -106,15 +112,39 @@ const UsuariosView = ({
     }
   };
 
-  const handleSaveUsuario = (usuarioData) => {
+  const handleSaveUsuario = async (usuarioData) => {
     if (onSave) {
-      onSave(usuarioData);
+      return await onSave(usuarioData);
+    }
+    if (editingUsuario) {
+      setUsuarios(prev => prev.map(u => u.id === usuarioData.id ? usuarioData : u));
     } else {
-      if (editingUsuario) {
-        setUsuarios(prev => prev.map(u => u.id === usuarioData.id ? usuarioData : u));
-      } else {
-        setUsuarios(prev => [usuarioData, ...prev]);
+      setUsuarios(prev => [usuarioData, ...prev]);
+    }
+    return true;
+  };
+
+  const confirmResetPassword = async () => {
+    if (!usuarioToReset || isResettingPassword) return;
+    setIsResettingPassword(true);
+    setFeedbackMsg(null);
+    try {
+      if (onResetPassword) {
+        await onResetPassword(usuarioToReset.id);
       }
+      setFeedbackMsg({
+        type: 'success',
+        text: `Senha de ${usuarioToReset.nome} redefinida para os 6 primeiros dígitos do CPF. A troca será exigida no próximo acesso.`
+      });
+      setUsuarioToReset(null);
+    } catch (error) {
+      setFeedbackMsg({
+        type: 'error',
+        text: error?.message || 'Não foi possível resetar a senha do usuário.'
+      });
+      setUsuarioToReset(null);
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -273,6 +303,26 @@ const UsuariosView = ({
         </div>
       </div>
 
+      {feedbackMsg && (
+        <div
+          className={`usuarios-feedback usuarios-feedback--${feedbackMsg.type}`}
+          role={feedbackMsg.type === 'error' ? 'alert' : 'status'}
+        >
+          <span>{feedbackMsg.text}</span>
+          <button
+            type="button"
+            className="usuarios-feedback__close"
+            onClick={() => setFeedbackMsg(null)}
+            aria-label="Fechar aviso"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Tabela de Usuários */}
       <div className="usuarios-table-card">
         {filteredUsuarios.length > 0 ? (
@@ -290,7 +340,9 @@ const UsuariosView = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredUsuarios.map(user => (
+                {filteredUsuarios.map(user => {
+                  const temCpfValido = validarCpf(limparCpf(user.cpf));
+                  return (
                   <tr key={user.id} className={!user.ativo ? 'tr-inativo' : ''}>
                     <td>
                       <div className="user-cell-info">
@@ -336,6 +388,21 @@ const UsuariosView = ({
                           </svg>
                         </button>
                         <button
+                          type="button"
+                          className="btn-action btn-action--reset"
+                          title={temCpfValido
+                            ? 'Resetar senha para os 6 primeiros dígitos do CPF'
+                            : 'Cadastre um CPF válido neste usuário para habilitar o reset'}
+                          aria-label={`Resetar senha de ${user.nome}`}
+                          disabled={!temCpfValido}
+                          onClick={() => setUsuarioToReset(user)}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5M3 21l9-9m3-3l3 3-1.5 1.5" />
+                            <circle cx="7.5" cy="16.5" r="4.5" />
+                          </svg>
+                        </button>
+                        <button
                           className="btn-action btn-action--delete"
                           title="Excluir usuário"
                           onClick={() => handleDeleteUsuario(user.id, user.nome)}
@@ -348,7 +415,8 @@ const UsuariosView = ({
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -399,10 +467,21 @@ const UsuariosView = ({
       {usuarioToDelete && (
         <ConfirmDialog
           title="Excluir usuário?"
-          description={`O acesso de “${usuarioToDelete.nome}” será removido. Para uma suspensão temporária, prefira desativar a conta.`}
+          description={`O acesso de "${usuarioToDelete.nome}" será removido. Para uma suspensão temporária, prefira desativar a conta.`}
           confirmLabel="Excluir usuário"
           onCancel={() => setUsuarioToDelete(null)}
           onConfirm={confirmDeleteUsuario}
+        />
+      )}
+      {usuarioToReset && (
+        <ConfirmDialog
+          title="Resetar senha do usuário?"
+          description={`A senha de "${usuarioToReset.nome}" será redefinida para os 6 primeiros dígitos do CPF e uma nova senha pessoal será exigida no próximo acesso.`}
+          confirmLabel="Resetar senha"
+          tone="accent"
+          isBusy={isResettingPassword}
+          onCancel={() => setUsuarioToReset(null)}
+          onConfirm={confirmResetPassword}
         />
       )}
     </div>

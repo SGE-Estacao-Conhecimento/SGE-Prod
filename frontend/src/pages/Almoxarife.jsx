@@ -70,7 +70,7 @@ const navItemsAlmoxarife = [
 
 const ALMOXARIFE_SECTIONS = navItemsAlmoxarife.map((item) => item.id);
 
-const Almoxarife = ({ onLogout, user }) => {
+const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
   const [materiais, setMateriais] = useState([]);
   const [materiaisLoading, setMateriaisLoading] = useState(true);
   const [materiaisError, setMateriaisError] = useState(null);
@@ -309,6 +309,7 @@ const Almoxarife = ({ onLogout, user }) => {
               user={user}
               onLogout={onLogout}
               onNavigate={handleNavClick}
+              onUserUpdate={onUserUpdate}
             />
           </PageTabTransition>
         );

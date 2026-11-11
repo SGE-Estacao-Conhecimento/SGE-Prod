@@ -1,4 +1,3 @@
-using System.Net.Mail;
 using System.Security.Claims;
 using Sge.Api.Auth;
 using Sge.Api.Infrastructure;
@@ -7,8 +6,9 @@ namespace Sge.Api.Usuarios;
 
 /// <summary>
 /// Gerenciamento de usuários pela administração (tela "Gerenciamento de Usuários").
-/// Decisões de 07/11/2026: e-mail opcional; excluir = desativar (o histórico é preservado);
-/// o sistema não pode ficar sem nenhum administrador ativo; senha com no mínimo 8 caracteres.
+/// Decisões: e-mail opcional e autogerenciável no perfil; excluir = desativar (o histórico é preservado);
+/// o sistema não pode ficar sem administrador ativo; CPF validado matematicamente e imutável após cadastrado;
+/// senha inicial/reset = 6 primeiros dígitos do CPF com troca obrigatória no próximo acesso (mínimo de 8 caracteres para senhas escolhidas pelo usuário).
 /// </summary>
 public sealed class UsuarioService(DbConnectionFactory db, UsuarioRepository usuarios, PasswordService senhas)
 {
@@ -21,16 +21,11 @@ public sealed class UsuarioService(DbConnectionFactory db, UsuarioRepository usu
 
     public async Task<UsuarioDto> CriarAsync(SalvarUsuarioRequest req)
     {
-        var senha = req.Senha ?? string.Empty;
-        if (senha.Length == 0)
-            throw ApiException.BadRequest("A senha de acesso é obrigatória no cadastro.",
-                new Dictionary<string, string[]> { ["senha"] = ["A senha de acesso é obrigatória no cadastro."] });
-        ValidarSenha(senha);
-
         await using var t = await Transacao.IniciarAsync(db);
         var dados = await ValidarAsync(t, req, usuarioId: null, ativoAtual: true);
 
-        var id = await usuarios.InserirAsync(t, dados, senhas.Hash(senha));
+        var senhaInicial = dados.Cpf[..6];
+        var id = await usuarios.InserirAsync(t, dados, senhas.Hash(senhaInicial));
         var criado = await usuarios.ObterAsync(t, id);
         await t.ConfirmarAsync();
         return criado!;
@@ -38,21 +33,43 @@ public sealed class UsuarioService(DbConnectionFactory db, UsuarioRepository usu
 
     public async Task<UsuarioDto> EditarAsync(int usuarioId, SalvarUsuarioRequest req)
     {
-        var novaSenha = string.IsNullOrEmpty(req.Senha) ? null : req.Senha;
-        if (novaSenha is not null) ValidarSenha(novaSenha);
-
         await using var t = await Transacao.IniciarAsync(db);
         var (atual, administradores) = await BloquearAsync(t, usuarioId);
+
+        var cpfAtual = Validadores.SomenteDigitos(atual.Cpf);
+        var cpfEnviado = Validadores.SomenteDigitos(req.Cpf);
+        if (cpfAtual.Length > 0)
+        {
+            if (cpfEnviado.Length > 0 && !string.Equals(cpfAtual, cpfEnviado, StringComparison.Ordinal))
+            {
+                throw new ApiException(422, "Não é permitido alterar o CPF após o cadastro.",
+                    new Dictionary<string, string[]> { ["cpf"] = ["O CPF não pode ser alterado após o cadastro."] });
+            }
+            req = req with { Cpf = cpfAtual };
+        }
+
         var dados = await ValidarAsync(t, req, usuarioId, atual.Ativo);
 
         GarantirAdministradorAtivo(atual, administradores, dados.Perfil, dados.Ativo);
         await usuarios.AtualizarAsync(t, atual, dados);
-        if (novaSenha is not null)
-            await usuarios.DefinirSenhaAsync(t, usuarioId, senhas.Hash(novaSenha));
 
         var editado = await usuarios.ObterAsync(t, usuarioId);
         await t.ConfirmarAsync();
         return editado!;
+    }
+
+    public async Task<UsuarioDto> ResetarSenhaAsync(int usuarioId)
+    {
+        await using var t = await Transacao.IniciarAsync(db);
+        var atual = await usuarios.BloquearAsync(t, usuarioId) ?? throw ApiException.NotFound("Usuário não encontrado.");
+        var cpf = Validadores.SomenteDigitos(atual.Cpf);
+        if (!Validadores.CpfValido(cpf))
+            throw new ApiException(422, "Este usuário não possui um CPF válido cadastrado para redefinir a senha.");
+
+        await usuarios.DefinirSenhaAsync(t, usuarioId, senhas.Hash(cpf[..6]), trocaSenhaObrigatoria: true);
+        var dto = await usuarios.ObterAsync(t, usuarioId);
+        await t.ConfirmarAsync();
+        return dto!;
     }
 
     /// <summary>Alterna entre ativo e inativo (botão de status da tabela).</summary>
@@ -112,12 +129,13 @@ public sealed class UsuarioService(DbConnectionFactory db, UsuarioRepository usu
         if (nome is null) erros["nome"] = ["Nome completo é obrigatório."];
         else if (nome.Length > 100) erros["nome"] = ["O nome pode ter no máximo 100 caracteres."];
 
-        var cpf = new string((req.Cpf ?? string.Empty).Where(char.IsDigit).ToArray());
+        var cpf = Validadores.SomenteDigitos(req.Cpf);
         if (cpf.Length == 0) erros["cpf"] = ["CPF é obrigatório."];
         else if (cpf.Length != 11) erros["cpf"] = ["CPF deve conter 11 dígitos."];
+        else if (!Validadores.CpfValido(cpf)) erros["cpf"] = ["CPF inválido."];
 
         var email = string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim().ToLowerInvariant();
-        if (email is not null && (email.Length > 150 || !EmailValido(email)))
+        if (email is not null && (email.Length > 150 || !Validadores.EmailValido(email, aceitarLoginAdmin: usuarioId is not null)))
             erros["email"] = ["Informe um e-mail válido."];
 
         var perfil = Perfis.DoFront(req.Perfil);
@@ -142,18 +160,7 @@ public sealed class UsuarioService(DbConnectionFactory db, UsuarioRepository usu
             throw new ApiException(409, "Já existe um usuário com este e-mail.",
                 new Dictionary<string, string[]> { ["email"] = ["E-mail já cadastrado."] });
 
-        return new UsuarioRepository.DadosUsuario(nome!, cpf, email, perfil!, setorId, celular, req.Ativo ?? ativoAtual);
+        var ativo = usuarioId is null ? true : (req.Ativo ?? ativoAtual);
+        return new UsuarioRepository.DadosUsuario(nome!, cpf, email, perfil!, setorId, celular, ativo);
     }
-
-    private static void ValidarSenha(string senha)
-    {
-        if (senha.Length < PasswordService.TamanhoMinimo || senha.Length > PasswordService.TamanhoMaximo)
-            throw ApiException.BadRequest(
-                $"A senha deve possuir entre {PasswordService.TamanhoMinimo} e {PasswordService.TamanhoMaximo} caracteres.",
-                new Dictionary<string, string[]> { ["senha"] = [$"Mínimo de {PasswordService.TamanhoMinimo} caracteres."] });
-    }
-
-    private static bool EmailValido(string email) =>
-        string.Equals(email, "admin", StringComparison.OrdinalIgnoreCase) ||
-        (MailAddress.TryCreate(email, out var endereco) && endereco.Address == email && email.Contains('.'));
 }

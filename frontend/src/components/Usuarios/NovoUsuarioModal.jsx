@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import './NovoUsuarioModal.css';
 import { useDialogAccessibility } from '../common';
 import { setorService } from '../../services/setores/setorService';
+import { formatarCpf, limparCpf, validarCpf } from '../../utils/cpf';
 
 const PERFIS = [
   { value: 'Administrativo', label: 'Administrativo (Acesso Total)' },
@@ -9,17 +10,9 @@ const PERFIS = [
   { value: 'Usuário', label: 'Usuário (Consultas e Pedidos)' },
 ];
 
-const formatCPF = (val) => {
-  if (!val) return '';
-  const digits = String(val).replace(/\D/g, '').slice(0, 11);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-};
-
 const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores = [], onCriarSetor }) => {
-  const dialogRef = useDialogAccessibility({ isOpen, onClose });
+  const [submitting, setSubmitting] = useState(false);
+  const dialogRef = useDialogAccessibility({ isOpen, onClose: submitting ? undefined : onClose });
   const [setoresLocais, setSetoresLocais] = useState([]);
   const [novoSetorNome, setNovoSetorNome] = useState('');
   const [criandoSetor, setCriandoSetor] = useState(false);
@@ -42,7 +35,6 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
     email: '',
     perfil: 'Usuário',
     setor: '',
-    senha: '',
     ativo: true
   });
 
@@ -52,11 +44,10 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
     if (initialData) {
       setFormData({
         nome: initialData.nome || '',
-        cpf: initialData.cpf ? formatCPF(initialData.cpf) : '',
+        cpf: initialData.cpf ? formatarCpf(initialData.cpf) : '',
         email: initialData.email || '',
         perfil: initialData.perfil || 'Usuário',
         setor: initialData.setor || listaSetores[0] || '',
-        senha: '',
         ativo: initialData.ativo ?? true
       });
     } else {
@@ -66,7 +57,6 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
         email: '',
         perfil: 'Usuário',
         setor: listaSetores[0] || '',
-        senha: '',
         ativo: true
       });
     }
@@ -82,9 +72,12 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
 
   if (!isOpen) return null;
 
+  const cpfBloqueado = Boolean(initialData && limparCpf(initialData.cpf).length > 0);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const finalValue = name === 'cpf' ? formatCPF(value) : (type === 'checkbox' ? checked : value);
+    if (name === 'cpf' && cpfBloqueado) return;
+    const finalValue = name === 'cpf' ? formatarCpf(value) : (type === 'checkbox' ? checked : value);
 
     setFormData(prev => ({
       ...prev,
@@ -121,33 +114,35 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     const newErrors = {};
 
     if (!formData.nome.trim()) {
       newErrors.nome = 'Nome completo é obrigatório';
     }
 
-    const cleanCpf = (formData.cpf || '').replace(/\D/g, '');
-    if (!cleanCpf) {
-      newErrors.cpf = 'CPF é obrigatório';
-    } else if (cleanCpf.length !== 11) {
-      newErrors.cpf = 'CPF deve conter 11 dígitos';
+    const cleanCpf = cpfBloqueado ? limparCpf(initialData.cpf) : limparCpf(formData.cpf);
+    if (!cpfBloqueado) {
+      if (!cleanCpf) {
+        newErrors.cpf = 'CPF é obrigatório';
+      } else if (cleanCpf.length !== 11) {
+        newErrors.cpf = 'CPF deve conter 11 dígitos';
+      } else if (!validarCpf(cleanCpf)) {
+        newErrors.cpf = 'CPF inválido. Verifique os dígitos informados.';
+      }
     }
 
-    // E-mail opcional (ou identificador 'admin' do administrador inicial)
+    // E-mail opcional (ou identificador 'admin' do administrador inicial em edição)
     const emailTrim = formData.email.trim();
-    if (emailTrim && emailTrim.toLowerCase() !== 'admin' && !/\S+@\S+\.\S+/.test(emailTrim)) {
+    const ehLoginAdminEdicao = Boolean(initialData && emailTrim.toLowerCase() === 'admin');
+    if (emailTrim && !ehLoginAdminEdicao && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) {
       newErrors.email = 'Informe um e-mail válido';
     }
 
     if (!formData.setor || !formData.setor.trim()) {
       newErrors.setor = 'Cadastre e selecione um setor vinculado';
-    }
-
-    if (!initialData && !formData.senha) {
-      newErrors.senha = 'Senha de acesso é obrigatória no cadastro';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -160,20 +155,27 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
       ? `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase()
       : names[0].substring(0, 2).toUpperCase();
 
-    onSave({
-      ...formData,
-      cpf: formatCPF(formData.cpf),
-      email: formData.email.trim(),
-      id: initialData ? initialData.id : Date.now(),
-      inicial,
-      dataCadastro: initialData ? initialData.dataCadastro : new Date().toLocaleDateString('pt-BR')
-    });
-
-    onClose();
+    setSubmitting(true);
+    try {
+      const resultado = await onSave({
+        ...formData,
+        cpf: formatarCpf(cleanCpf),
+        email: emailTrim,
+        ativo: initialData ? formData.ativo : true,
+        id: initialData ? initialData.id : Date.now(),
+        inicial,
+        dataCadastro: initialData ? initialData.dataCadastro : new Date().toLocaleDateString('pt-BR')
+      });
+      if (resultado !== false) {
+        onClose();
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !submitting) onClose(); }}>
       <section ref={dialogRef} className="modal-container user-modal-container" role="dialog" aria-modal="true" aria-labelledby="user-modal-title" tabIndex={-1}>
         <div className="modal-header">
           <div className="modal-header__title-wrap">
@@ -213,22 +215,31 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
               {errors.nome && <span id="user-name-error" className="form-error-msg" role="alert">{errors.nome}</span>}
             </div>
 
-            {/* CPF (Obrigatório) */}
+            {/* CPF (Obrigatório no cadastro; imutável após cadastrado) */}
             <div className="form-group">
-              <label className="form-label" htmlFor="user-cpf">CPF *</label>
+              <label className="form-label" htmlFor="user-cpf">
+                {cpfBloqueado ? 'CPF' : 'CPF *'}
+              </label>
               <input
                 id="user-cpf"
                 type="text"
                 name="cpf"
-                className={`form-input ${errors.cpf ? 'form-input--error' : ''}`}
+                className={`form-input ${cpfBloqueado ? 'form-input--locked' : ''} ${errors.cpf ? 'form-input--error' : ''}`}
                 placeholder="000.000.000-00"
                 value={formData.cpf}
                 onChange={handleChange}
                 maxLength={14}
-                required
+                required={!cpfBloqueado}
+                disabled={cpfBloqueado || submitting}
+                title={cpfBloqueado ? 'O CPF não pode ser alterado após o cadastro.' : undefined}
                 aria-invalid={Boolean(errors.cpf)}
-                aria-describedby={errors.cpf ? 'user-cpf-error' : undefined}
+                aria-describedby={errors.cpf ? 'user-cpf-error' : (cpfBloqueado ? 'user-cpf-lock-hint' : undefined)}
               />
+              {cpfBloqueado && !errors.cpf && (
+                <span id="user-cpf-lock-hint" className="form-help-text">
+                  O CPF não pode ser alterado após o cadastro.
+                </span>
+              )}
               {errors.cpf && <span id="user-cpf-error" className="form-error-msg" role="alert">{errors.cpf}</span>}
             </div>
 
@@ -305,56 +316,51 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
               {errors.setor && <span className="form-error-msg" role="alert">{errors.setor}</span>}
             </div>
 
-            {/* Senha */}
-            <div className="form-group span-2">
-              <label className="form-label" htmlFor="user-password">
-                {initialData ? 'Nova Senha (Deixe em branco para manter a atual)' : 'Senha de Acesso *'}
-              </label>
-              <input
-                id="user-password"
-                type="password"
-                name="senha"
-                className={`form-input ${errors.senha ? 'form-input--error' : ''}`}
-                placeholder={initialData ? '••••••••' : 'Digite a senha inicial'}
-                value={formData.senha}
-                onChange={handleChange}
-                minLength={8}
-                required={!initialData}
-                aria-invalid={Boolean(errors.senha)}
-                aria-describedby={errors.senha ? 'user-password-error' : undefined}
-              />
-              {errors.senha && <span id="user-password-error" className="form-error-msg" role="alert">{errors.senha}</span>}
-            </div>
-
-            {/* Status (Ativo/Inativo) */}
-            <div className="form-group span-2 form-group--inline user-status-toggle">
-              <div>
-                <label className="form-label">Status da Conta</label>
-                <p className="form-help-text">Usuários inativos não conseguem realizar login no sistema.</p>
+            {!initialData && (
+              <div className="span-2 user-password-info">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <div>
+                  <strong>Senha inicial automática:</strong> os 6 primeiros dígitos do CPF cadastrado. No primeiro acesso, o usuário deverá definir uma nova senha pessoal.
+                </div>
               </div>
-              <label className="toggle">
-                <input
-                  aria-label="Conta ativa"
-                  type="checkbox"
-                  name="ativo"
-                  checked={formData.ativo}
-                  onChange={handleChange}
-                />
-                <span className="toggle__slider" />
-                <span className="toggle__label">{formData.ativo ? 'Conta Ativa' : 'Conta Inativa'}</span>
-              </label>
-            </div>
+            )}
+
+            {/* Status (Ativo/Inativo apenas na edição; contas novas iniciam sempre ativas) */}
+            {initialData && (
+              <div className="form-group span-2 form-group--inline user-status-toggle">
+                <div>
+                  <label className="form-label">Status da Conta</label>
+                  <p className="form-help-text">Usuários inativos não conseguem realizar login no sistema.</p>
+                </div>
+                <label className="toggle">
+                  <input
+                    aria-label="Conta ativa"
+                    type="checkbox"
+                    name="ativo"
+                    checked={formData.ativo}
+                    onChange={handleChange}
+                    disabled={submitting}
+                  />
+                  <span className="toggle__slider" />
+                  <span className="toggle__label">{formData.ativo ? 'Conta Ativa' : 'Conta Inativa'}</span>
+                </label>
+              </div>
+            )}
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn-modal-cancel" onClick={onClose}>
+            <button type="button" className="btn-modal-cancel" onClick={onClose} disabled={submitting}>
               Cancelar
             </button>
-            <button type="submit" className="btn-modal-submit">
+            <button type="submit" className="btn-modal-submit" disabled={submitting}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              {initialData ? 'Salvar Alterações' : 'Cadastrar Usuário'}
+              {submitting ? 'Salvando...' : (initialData ? 'Salvar Alterações' : 'Cadastrar Usuário')}
             </button>
           </div>
         </form>

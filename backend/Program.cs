@@ -195,6 +195,24 @@ app.UseExceptionHandler();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.Use(async (ctx, next) =>
+{
+    if (ctx.User.Identity?.IsAuthenticated == true &&
+        ctx.User.FindFirst(UsuarioAtual.ClaimTrocaSenhaObrigatoria)?.Value == "1")
+    {
+        var path = ctx.Request.Path.Value ?? string.Empty;
+        var permitido = path.Equals("/api/auth/alterar-senha", StringComparison.OrdinalIgnoreCase)
+                     || path.Equals("/api/auth/logout", StringComparison.OrdinalIgnoreCase);
+        if (!permitido)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await ctx.Response.WriteAsJsonAsync(
+                new ErrorResponse("É obrigatório definir uma nova senha antes de acessar o sistema."));
+            return;
+        }
+    }
+    await next();
+});
 app.UseRateLimiter();
 
 app.MapControllers();

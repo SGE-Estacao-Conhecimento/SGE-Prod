@@ -1,4 +1,5 @@
 import { request } from '../api/client';
+import { limparCpf } from '../../utils/cpf';
 
 const roleParaPerfil = (role) => ({
   admin: 'Administrativo',
@@ -25,7 +26,7 @@ const perfilParaRole = (perfil) => ({
   Usuário: 'usuario'
 }[perfil] || perfil);
 
-const somenteDigitos = (valor) => (valor ? String(valor).replace(/\D/g, '') : null) || null;
+const somenteDigitos = (valor) => limparCpf(valor) || null;
 
 export const criarUsuario = async (usuario) => normalizarUsuario(await request('/api/usuarios', {
   method: 'POST',
@@ -33,11 +34,10 @@ export const criarUsuario = async (usuario) => normalizarUsuario(await request('
     nome: usuario.nome,
     cpf: somenteDigitos(usuario.cpf),
     email: usuario.email,
-    senha: usuario.senha,
     perfil: perfilParaRole(usuario.perfil),
     setor: usuario.setor,
     celular: usuario.celular || null,
-    ativo: usuario.ativo ?? true
+    ativo: true
   })
 }));
 
@@ -49,7 +49,6 @@ export const editarUsuario = async (usuario) => normalizarUsuario(await request(
     email: usuario.email,
     perfil: perfilParaRole(usuario.perfil),
     setor: usuario.setor,
-    senha: usuario.senha || null,
     celular: usuario.celular || null,
     ativo: usuario.ativo
   })
@@ -57,6 +56,9 @@ export const editarUsuario = async (usuario) => normalizarUsuario(await request(
 
 export const alternarStatusUsuario = async (id) =>
   normalizarUsuario(await request(`/api/usuarios/${id}/status`, { method: 'PATCH' }));
+
+export const resetarSenhaUsuario = async (id) =>
+  normalizarUsuario(await request(`/api/usuarios/${id}/resetar-senha`, { method: 'POST' }));
 
 // "Excluir" desativa a conta (o histórico de pedidos e movimentações é preservado).
 export const removerUsuario = async (id) =>
@@ -67,5 +69,6 @@ export const usuarioService = {
   criar: criarUsuario,
   editar: editarUsuario,
   alternarStatus: alternarStatusUsuario,
+  resetarSenha: resetarSenhaUsuario,
   remover: removerUsuario
 };
