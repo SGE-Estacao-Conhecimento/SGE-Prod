@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BottomSheetModal, QuantityStepper } from '../common';
+import { BottomSheetModal, QuantityStepper, SegmentedTabs } from '../common';
 import './NovoPedidoModal.css';
 
 /**
- * NovoPedidoModal — Cadastro Rápido de Pedido pelo Almoxarifado
- * 
+ * NovoPedidoModal — Cadastro Rápido de Pedido pelo Almoxarifado ou Administrativo
+ *
  * Totalmente padronizado com o Design System do SGE:
  * - Baseado no BottomSheetModal oficial (acessibilidade, física de mola, responsivo).
+ * - Escolha entre Material de Consumo e Patrimônio / Bem Durável.
+ * - Opção de entrega imediata (baixa direta no histórico) exclusiva para Consumo pelo almoxarife.
  * - Seleção inteligente de solicitante vinculado ao setor e ramal.
- * - Busca de materiais com autocomplete e exibição do saldo físico disponível.
- * - Controle de volume via QuantityStepper padronizado.
- * - Toggle de urgência tátil e justificativa operacional.
+ * - Busca de materiais filtrada pelo tipo escolhido e exibição do saldo físico disponível.
  */
 const NovoPedidoModal = ({
   isOpen,
@@ -19,14 +19,21 @@ const NovoPedidoModal = ({
   onSave,
   initialData = null,
   materiaisDisponiveis = [],
-  usuariosDisponiveis = []
+  usuariosDisponiveis = [],
+  userRole = 'almoxarife'
 }) => {
+  const isAlmoxarife = userRole === 'almoxarife' || userRole === 'almoxarifado';
+
+  const [tipoPedido, setTipoPedido] = useState('consumo');
+  const [entregaImediata, setEntregaImediata] = useState(isAlmoxarife);
+  const [avisoTrocaTipo, setAvisoTrocaTipo] = useState('');
   const [usuarioSelecionadoId, setUsuarioSelecionadoId] = useState('');
   const [usuarioNomeCustom, setUsuarioNomeCustom] = useState('');
   const [setorCustom, setSetorCustom] = useState('');
   const [urgente, setUrgente] = useState(false);
   const [justificativa, setJustificativa] = useState('');
   const [itens, setItens] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
 
   // Busca e Autocomplete de Materiais
   const [buscaMaterial, setBuscaMaterial] = useState('');
@@ -56,23 +63,32 @@ const NovoPedidoModal = ({
       codigo: m.codigo || `MAT-${String(m.id || idx + 1).padStart(3, '0')}`,
       nome: m.nome || m.materialNome || 'Material',
       unidade: m.unidade || 'UN',
-      quantidade: typeof m.quantidade === 'number' ? m.quantidade : 0,
+      quantidade: typeof m.quantidade === 'number' ? m.quantidade : Number(m.quantidade) || 0,
       complexo: m.complexo || 'Almoxarifado Central',
-      localizacao: m.localizacao || ''
+      localizacao: m.localizacao || '',
+      bemDuravel: Boolean(m.bemDuravel)
     }));
   }, [materiaisDisponiveis]);
 
+  const ehTipoPatrimonio = tipoPedido === 'patrimonio';
+  const entregaImediataAtiva = isAlmoxarife && !ehTipoPatrimonio && entregaImediata && !initialData;
+
+  // Apenas materiais compatíveis com o tipo de pedido escolhido
+  const materiaisDoTipo = useMemo(() => {
+    return listaMateriais.filter((m) => (ehTipoPatrimonio ? m.bemDuravel : !m.bemDuravel));
+  }, [listaMateriais, ehTipoPatrimonio]);
+
   // Filtro de materiais pelo termo de busca
   const materiaisFiltrados = useMemo(() => {
-    if (!buscaMaterial.trim()) return listaMateriais.slice(0, 8);
+    if (!buscaMaterial.trim()) return materiaisDoTipo.slice(0, 8);
     const termo = buscaMaterial.toLowerCase().trim();
-    return listaMateriais.filter(m =>
+    return materiaisDoTipo.filter(m =>
       m.nome.toLowerCase().includes(termo) ||
       m.codigo.toLowerCase().includes(termo) ||
       (m.localizacao && m.localizacao.toLowerCase().includes(termo)) ||
       (m.complexo && m.complexo.toLowerCase().includes(termo))
     ).slice(0, 10);
-  }, [listaMateriais, buscaMaterial]);
+  }, [materiaisDoTipo, buscaMaterial]);
 
   // Lista de usuários para seleção
   const listaUsuarios = useMemo(() => {
@@ -81,6 +97,8 @@ const NovoPedidoModal = ({
 
   // Inicializa dados ao abrir
   useEffect(() => {
+    if (!isOpen) return;
+
     if (initialData) {
       const uEncontrado = listaUsuarios.find(
         u => u.nome?.toLowerCase() === initialData.usuario?.toLowerCase()
@@ -106,38 +124,78 @@ const NovoPedidoModal = ({
         ? [{ materialNome: initialData.material, quantidade: initialData.quantidade || 1, unidade: 'UN' }]
         : [];
 
-      setItens(itensIniciais.map((it, idx) => {
+      const itensNormalizados = itensIniciais.map((it, idx) => {
         const mat = listaMateriais.find(m => m.id === it.produtoId || m.nome.toLowerCase() === (it.materialNome || it.nome)?.toLowerCase());
         return {
           produtoId: it.produtoId || mat?.id || idx + 1,
           materialNome: it.materialNome || it.nome || mat?.nome || 'Material',
           quantidade: Number(it.quantidade) || 1,
           unidade: it.unidade || mat?.unidade || 'UN',
-          saldo: mat ? mat.quantidade : 999
+          saldo: mat ? mat.quantidade : 999,
+          bemDuravel: Boolean(it.bemDuravel || mat?.bemDuravel)
         };
-      }));
+      });
+
+      const possuiPatrimonio =
+        initialData.tipoPedido === 'patrimonio' || itensNormalizados.some((it) => it.bemDuravel);
+      setTipoPedido(possuiPatrimonio ? 'patrimonio' : 'consumo');
+      setEntregaImediata(false);
+      setItens(itensNormalizados);
     } else {
       setUsuarioSelecionadoId(listaUsuarios.length > 0 ? String(listaUsuarios[0].id) : 'custom');
       setUsuarioNomeCustom('');
       setSetorCustom('');
       setUrgente(false);
       setJustificativa('');
+      setTipoPedido('consumo');
+      setEntregaImediata(isAlmoxarife);
       setItens([]);
+    }
+    setAvisoTrocaTipo('');
+    setBuscaMaterial('');
+    setIsDropdownAberto(false);
+    setErro('');
+    setSubmitting(false);
+  }, [isOpen, initialData, listaUsuarios, listaMateriais, isAlmoxarife]);
+
+  if (!isOpen) return null;
+
+  const handleTrocarTipoPedido = (novoTipo) => {
+    if (novoTipo === tipoPedido) return;
+    setTipoPedido(novoTipo);
+    if (novoTipo === 'patrimonio') {
+      setEntregaImediata(false);
+    } else {
+      setEntregaImediata(isAlmoxarife && !initialData);
+    }
+    if (itens.length > 0) {
+      setItens([]);
+      setAvisoTrocaTipo(
+        `Lista limpa ao alternar para ${novoTipo === 'patrimonio' ? 'Patrimônio' : 'Material de Consumo'}, pois os dois tipos não podem ser misturados no mesmo pedido.`
+      );
+    } else {
+      setAvisoTrocaTipo('');
     }
     setBuscaMaterial('');
     setIsDropdownAberto(false);
     setErro('');
-  }, [isOpen, initialData, listaUsuarios, listaMateriais]);
-
-  if (!isOpen) return null;
+  };
 
   // Adiciona material selecionado à lista do pedido
   const handleAdicionarMaterial = (mat) => {
+    if (entregaImediataAtiva && mat.quantidade <= 0) {
+      setErro(`O material "${mat.nome}" não possui saldo disponível para entrega imediata.`);
+      return;
+    }
+
     setItens(prev => {
       const indexExistente = prev.findIndex(it => it.produtoId === mat.id);
       if (indexExistente >= 0) {
         const atual = prev[indexExistente];
-        const novaQtd = Math.min(mat.quantidade || 999, atual.quantidade + 1);
+        const teto = entregaImediataAtiva
+          ? mat.quantidade
+          : (mat.quantidade > 0 ? mat.quantidade : 9999);
+        const novaQtd = Math.min(teto, atual.quantidade + 1);
         const atualizados = [...prev];
         atualizados[indexExistente] = { ...atual, quantidade: novaQtd };
         return atualizados;
@@ -149,13 +207,15 @@ const NovoPedidoModal = ({
           materialNome: mat.nome,
           quantidade: 1,
           unidade: mat.unidade || 'UN',
-          saldo: mat.quantidade
+          saldo: mat.quantidade,
+          bemDuravel: Boolean(mat.bemDuravel)
         }
       ];
     });
 
     setBuscaMaterial('');
     setIsDropdownAberto(false);
+    setAvisoTrocaTipo('');
     setErro('');
   };
 
@@ -165,20 +225,27 @@ const NovoPedidoModal = ({
       atualizados[index] = { ...atualizados[index], quantidade: Math.max(1, novaQtd) };
       return atualizados;
     });
+    setErro('');
   };
 
   const handleRemoverItem = (index) => {
     setItens(prev => prev.filter((_, i) => i !== index));
+    setErro('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
 
     let solicitanteId = null;
     let solicitanteNome = '';
     let solicitanteSetor = '';
 
     if (usuarioSelecionadoId === 'custom') {
+      if (listaUsuarios.length > 0 && !initialData) {
+        setErro('Selecione um colaborador cadastrado como solicitante.');
+        return;
+      }
       if (!usuarioNomeCustom.trim()) {
         setErro('Informe o nome do solicitante.');
         return;
@@ -201,6 +268,16 @@ const NovoPedidoModal = ({
       return;
     }
 
+    if (entregaImediataAtiva) {
+      const insuficiente = itens.find((it) => Number(it.quantidade) > Number(it.saldo ?? 0));
+      if (insuficiente) {
+        setErro(
+          `Saldo insuficiente para entrega imediata de ${insuficiente.materialNome} (disponível: ${insuficiente.saldo ?? 0} ${insuficiente.unidade}). Reduza a quantidade ou desmarque a baixa imediata.`
+        );
+        return;
+      }
+    }
+
     if (!justificativa.trim()) {
       setErro('Informe a finalidade ou justificativa do pedido.');
       return;
@@ -215,27 +292,47 @@ const NovoPedidoModal = ({
       prioridade: urgente ? 'Urgente' : 'Normal',
       urgente,
       justificativa: justificativa.trim(),
+      tipoPedido,
+      entregaImediata: entregaImediataAtiva,
       status: initialData?.status || 'Pendente',
       itens: itens.map(it => ({
         produtoId: it.produtoId,
         materialNome: it.materialNome,
         quantidade: it.quantidade,
-        unidade: it.unidade
+        unidade: it.unidade,
+        bemDuravel: Boolean(it.bemDuravel)
       }))
     };
 
-    onSave(payload);
-    onClose();
+    try {
+      setSubmitting(true);
+      const resultado = await onSave(payload);
+      if (resultado !== false) {
+        onClose();
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const usuarioAtual = listaUsuarios.find(u => String(u.id) === String(usuarioSelecionadoId));
+
+  const textoBotaoSubmit = submitting
+    ? 'Registrando...'
+    : initialData
+    ? 'Salvar Alterações'
+    : entregaImediataAtiva
+    ? 'Registrar e Dar Baixa'
+    : ehTipoPatrimonio
+    ? 'Enviar p/ Administrativo'
+    : 'Criar Pedido';
 
   return (
     <BottomSheetModal
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? `Editar Pedido #${initialData.id}` : 'Novo Pedido de Material'}
-      subtitle="Balcão de Atendimento"
+      subtitle={isAlmoxarife ? 'Balcão de Atendimento' : 'Solicitação Interna'}
       maxWidth="580px"
       badge={
         urgente ? (
@@ -253,18 +350,20 @@ const NovoPedidoModal = ({
             type="button"
             className="novo-pedido-btn-cancel"
             onClick={onClose}
+            disabled={submitting}
           >
             Cancelar
           </button>
           <button
             type="submit"
             form="form-novo-pedido-almoxarife"
+            disabled={submitting}
             className={`novo-pedido-btn-submit ${urgente ? 'novo-pedido-btn-submit--urgente' : ''}`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            {initialData ? 'Salvar Alterações' : 'Criar Pedido'}
+            {textoBotaoSubmit}
           </button>
         </div>
       }
@@ -281,6 +380,65 @@ const NovoPedidoModal = ({
           </div>
         )}
 
+        {/* 0. TIPO DE PEDIDO E REGRA DE BAIXA / APROVAÇÃO */}
+        <div className="novo-pedido-section">
+          <label className="novo-pedido-label">Tipo de Pedido</label>
+          <SegmentedTabs
+            tabs={[
+              { id: 'consumo', label: 'Material de Consumo' },
+              { id: 'patrimonio', label: 'Patrimônio' }
+            ]}
+            activeTab={tipoPedido}
+            onChange={handleTrocarTipoPedido}
+            layoutId="novoPedidoTipoTabs"
+            size="sm"
+            ariaLabel="Tipo de pedido"
+          />
+
+          {ehTipoPatrimonio && (
+            <div className="novo-pedido-info-banner novo-pedido-info-banner--patrimonio">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <span>
+                Pedidos de patrimônio vão primeiro para autorização do Administrativo antes da separação e não realizam baixa automática no estoque.
+              </span>
+            </div>
+          )}
+
+          {isAlmoxarife && !ehTipoPatrimonio && !initialData && (
+            <label className="novo-pedido-baixa-card">
+              <input
+                type="checkbox"
+                className="novo-pedido-baixa-checkbox"
+                checked={entregaImediata}
+                onChange={(e) => {
+                  setEntregaImediata(e.target.checked);
+                  setErro('');
+                }}
+              />
+              <div className="novo-pedido-baixa-copy">
+                <span className="novo-pedido-baixa-title">
+                  Entregar agora (ir para o histórico e baixar estoque)
+                </span>
+                <span className="novo-pedido-baixa-desc">
+                  {entregaImediata
+                    ? 'Conclui o pedido diretamente como Atendido no histórico com débito imediato de saldo.'
+                    : 'Registra como Pendente na fila para seguir o fluxo de separação.'}
+                </span>
+              </div>
+            </label>
+          )}
+
+          {avisoTrocaTipo && (
+            <div className="novo-pedido-info-banner novo-pedido-info-banner--aviso" role="status">
+              <span>{avisoTrocaTipo}</span>
+            </div>
+          )}
+        </div>
+
         {/* 1. SELEÇÃO DE SOLICITANTE */}
         <div className="novo-pedido-section">
           <label className="novo-pedido-label" htmlFor="select-solicitante-almox">
@@ -295,10 +453,12 @@ const NovoPedidoModal = ({
             >
               {listaUsuarios.map(u => (
                 <option key={u.id} value={u.id}>
-                  {u.nome} — {u.setor || 'Geral'}{u.ramal ? ` (Ramal ${u.ramal})` : ''}
+                  {u.nome} - {u.setor || 'Geral'}{u.ramal ? ` (Ramal ${u.ramal})` : ''}
                 </option>
               ))}
-              <option value="custom">Outro colaborador (digitar)...</option>
+              {(listaUsuarios.length === 0 || usuarioSelecionadoId === 'custom') && (
+                <option value="custom">Outro colaborador (digitar)...</option>
+              )}
             </select>
           </div>
 
@@ -335,7 +495,7 @@ const NovoPedidoModal = ({
               <div className="novo-pedido-user-meta">
                 <span className="novo-pedido-user-name">{usuarioAtual.nome}</span>
                 <span className="novo-pedido-user-sub">
-                  {usuarioAtual.setor || 'Geral'}{usuarioAtual.ramal ? ` • Ramal ${usuarioAtual.ramal}` : ''}
+                  {usuarioAtual.setor || 'Geral'}{usuarioAtual.ramal ? ` | Ramal ${usuarioAtual.ramal}` : ''}
                 </span>
               </div>
             </div>
@@ -345,7 +505,8 @@ const NovoPedidoModal = ({
         {/* 2. ADIÇÃO DE MATERIAIS COM SALDO REAL */}
         <div className="novo-pedido-section">
           <label className="novo-pedido-label">
-            Materiais Solicitados <span className="campo-obrigatorio">*</span>
+            {ehTipoPatrimonio ? 'Itens de Patrimônio Solicitados' : 'Materiais Solicitados'}{' '}
+            <span className="campo-obrigatorio">*</span>
           </label>
 
           {/* Campo de Busca / Autocomplete */}
@@ -358,7 +519,11 @@ const NovoPedidoModal = ({
               <input
                 type="text"
                 className="novo-pedido-search-input"
-                placeholder="Buscar material por nome, código ou prateleira..."
+                placeholder={
+                  ehTipoPatrimonio
+                    ? 'Buscar bem durável por nome, código ou localização...'
+                    : 'Buscar material por nome, código ou prateleira...'
+                }
                 value={buscaMaterial}
                 onFocus={() => setIsDropdownAberto(true)}
                 onChange={(e) => {
@@ -373,29 +538,37 @@ const NovoPedidoModal = ({
               <div className="novo-pedido-dropdown">
                 {materiaisFiltrados.length === 0 ? (
                   <div className="novo-pedido-dropdown-empty">
-                    Nenhum material encontrado no estoque.
+                    {ehTipoPatrimonio
+                      ? 'Nenhum item de patrimônio encontrado no estoque.'
+                      : 'Nenhum material de consumo encontrado no estoque.'}
                   </div>
                 ) : (
                   materiaisFiltrados.map(mat => {
                     const temSaldo = mat.quantidade > 0;
+                    const bloqueadoPorSaldo = entregaImediataAtiva && !temSaldo;
                     return (
                       <button
                         key={mat.id}
                         type="button"
-                        className="novo-pedido-dropdown-item"
+                        disabled={bloqueadoPorSaldo}
+                        className={`novo-pedido-dropdown-item ${bloqueadoPorSaldo ? 'novo-pedido-dropdown-item--disabled' : ''}`}
                         onClick={() => handleAdicionarMaterial(mat)}
                       >
                         <div className="novo-pedido-item-main">
                           <span className="novo-pedido-item-sku">{mat.codigo}</span>
                           <span className="novo-pedido-item-nome">{mat.nome}</span>
                           <span className="novo-pedido-item-loc">
-                            {[mat.complexo, mat.localizacao].filter(Boolean).join(' • ')}
+                            {[mat.complexo, mat.localizacao].filter(Boolean).join(' - ')}
                           </span>
                         </div>
 
                         <div className="novo-pedido-item-stock">
                           <span className={`novo-pedido-saldo-badge ${temSaldo ? 'saldo--ok' : 'saldo--zero'}`}>
-                            {temSaldo ? `Saldo: ${mat.quantidade} ${mat.unidade}` : 'Sem estoque'}
+                            {temSaldo
+                              ? `Saldo: ${mat.quantidade} ${mat.unidade}`
+                              : bloqueadoPorSaldo
+                              ? 'Sem saldo p/ baixa'
+                              : 'Sem estoque'}
                           </span>
                           <span className="novo-pedido-add-icon">+</span>
                         </div>
@@ -410,60 +583,71 @@ const NovoPedidoModal = ({
           {/* Lista de Itens Adicionados (Layout Padronizado com a Caderneta do Usuário) */}
           {itens.length === 0 ? (
             <div className="novo-pedido-itens-vazio">
-              <span>Nenhum material adicionado ainda. Utilize a busca acima.</span>
+              <span>
+                {ehTipoPatrimonio
+                  ? 'Nenhum item de patrimônio adicionado ainda. Utilize a busca acima.'
+                  : 'Nenhum material adicionado ainda. Utilize a busca acima.'}
+              </span>
             </div>
           ) : (
             <div className="caderneta-itens-scroll novo-pedido-itens-lista">
               <AnimatePresence initial={false}>
-                {itens.map((it, idx) => (
-                  <motion.div
-                    key={it.produtoId || idx}
-                    layout
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                    transition={{ duration: 0.18 }}
-                    className="caderneta-item-row"
-                  >
-                    <div className="caderneta-item-info">
-                      <div className="caderneta-item-nome-wrap">
-                        <span className="caderneta-item-nome" title={it.materialNome}>
-                          {it.materialNome}
-                        </span>
-                        <span className="caderneta-item-unidade">
-                          {it.unidade || 'UN'}
+                {itens.map((it, idx) => {
+                  const excedeSaldoDireto = entregaImediataAtiva && Number(it.quantidade) > Number(it.saldo ?? 0);
+                  const maxStepper = entregaImediataAtiva
+                    ? Math.max(1, Number(it.saldo) || 1)
+                    : (it.saldo > 0 ? it.saldo : 9999);
+                  return (
+                    <motion.div
+                      key={it.produtoId || idx}
+                      layout
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                      transition={{ duration: 0.18 }}
+                      className="caderneta-item-row"
+                    >
+                      <div className="caderneta-item-info">
+                        <div className="caderneta-item-nome-wrap">
+                          <span className="caderneta-item-nome" title={it.materialNome}>
+                            {it.materialNome}
+                          </span>
+                          <span className="caderneta-item-unidade">
+                            {it.unidade || 'UN'}
+                          </span>
+                        </div>
+                        <span className={`caderneta-item-conversao ${excedeSaldoDireto ? 'novo-pedido-saldo-alerta' : ''}`}>
+                          Saldo em estoque: <strong>{it.saldo} {it.unidade}</strong>
+                          {excedeSaldoDireto ? ' (excede saldo para baixa direta)' : ''}
                         </span>
                       </div>
-                      <span className="caderneta-item-conversao">
-                        Saldo em estoque: <strong>{it.saldo} {it.unidade}</strong>
-                      </span>
-                    </div>
 
-                    {/* Stepper Padronizado de Quantidade */}
-                    <QuantityStepper
-                      value={it.quantidade}
-                      onChange={(novaQtd) => handleUpdateQtd(idx, novaQtd)}
-                      min={1}
-                      max={it.saldo || 9999}
-                      ariaLabel={`Quantidade de ${it.materialNome}`}
-                      className="caderneta-quantity-stepper"
-                    />
+                      {/* Stepper Padronizado de Quantidade */}
+                      <QuantityStepper
+                        value={it.quantidade}
+                        onChange={(novaQtd) => handleUpdateQtd(idx, novaQtd)}
+                        min={1}
+                        max={maxStepper}
+                        ariaLabel={`Quantidade de ${it.materialNome}`}
+                        className="caderneta-quantity-stepper"
+                      />
 
-                    {/* Botão Remover */}
-                    <button
-                      type="button"
-                      className="caderneta-item-remove"
-                      onClick={() => handleRemoverItem(idx)}
-                      title={`Remover ${it.materialNome}`}
-                      aria-label={`Remover ${it.materialNome}`}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                    </button>
-                  </motion.div>
-                ))}
+                      {/* Botão Remover */}
+                      <button
+                        type="button"
+                        className="caderneta-item-remove"
+                        onClick={() => handleRemoverItem(idx)}
+                        title={`Remover ${it.materialNome}`}
+                        aria-label={`Remover ${it.materialNome}`}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
             </div>
           )}

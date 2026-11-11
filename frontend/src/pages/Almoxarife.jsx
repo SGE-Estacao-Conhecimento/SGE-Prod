@@ -263,10 +263,23 @@ const Almoxarife = ({ onLogout, user }) => {
       const criado = await pedidoService.criar(novoPedido);
       const pedidoSalvo = criado?.id ? criado : { ...novoPedido, id: novoPedido.id || Date.now(), data: new Date().toISOString(), status: 'Pendente' };
       setPedidos(prev => [pedidoSalvo, ...prev]);
+
+      // Consumo criado pelo almoxarife com baixa direta já sai como Atendido e debita saldo.
+      if (String(pedidoSalvo.status || '').toLowerCase().startsWith('atendido') || novoPedido?.entregaImediata) {
+        const [materiaisAtualizados, movsAtualizadas] = await Promise.all([
+          materialService.listar(),
+          movimentacaoService.listar()
+        ]);
+        if (materiaisAtualizados) setMateriais(materiaisAtualizados);
+        if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
+      }
+
       setIsNovoPedidoModalOpen(false);
+      return true;
     } catch (error) {
       // Não exibe um pedido que não foi gravado; o modal continua aberto para nova tentativa.
       alert(error?.message || 'Não foi possível registrar o pedido.');
+      return false;
     }
   };
 
@@ -318,6 +331,7 @@ const Almoxarife = ({ onLogout, user }) => {
                 pedidos={pedidos}
                 materiais={materiais}
                 usuariosDisponiveis={usuarios}
+                userRole="almoxarife"
                 onConfirmarEntrega={handleConfirmarEntregaPedido}
                 onSave={(novo) => {
                   setPedidos(prev => [novo, ...prev]);
@@ -548,6 +562,7 @@ const Almoxarife = ({ onLogout, user }) => {
         onClose={() => setIsNovoPedidoModalOpen(false)}
         materiaisDisponiveis={materiais}
         usuariosDisponiveis={usuarios}
+        userRole="almoxarife"
         onSave={handleCriarNovoPedido}
       />
     </div>

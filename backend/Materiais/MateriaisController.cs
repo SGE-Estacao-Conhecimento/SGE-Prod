@@ -14,7 +14,7 @@ public sealed class MateriaisController(MaterialRepository repo, MaterialService
     /// </summary>
     [HttpGet]
     public Task<IReadOnlyList<MaterialDto>> Listar([FromQuery] bool apenasAtivos = true) =>
-        repo.ListarAsync(apenasAtivos || !User.EhEquipe());
+        repo.ListarAsync(apenasAtivos || !User.EhEquipe(), incluirPatrimonio: User.EhEquipe());
 
     [HttpPost]
     [Authorize(Roles = Perfis.Equipe)]

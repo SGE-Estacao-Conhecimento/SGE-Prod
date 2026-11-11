@@ -155,17 +155,16 @@ serão ajustados somente com autorização, de preferência antes do Módulo 2. 
 
 | Ponto | Desvio | Ajuste previsto |
 |---|---|---|
-| `Pedidos/PedidoService.cs` | Contém SQL (consulta do solicitante e dos materiais, gravação do pedido, itens e histórico) | Mover o SQL para `PedidoRepository`; service fica só com as regras |
 | `Favoritos/FavoritosController.cs` | Junta repository e controller; o repository decide "material não encontrado" | Separar os arquivos; a verificação vira regra num service ou no controller |
 | `Notificacoes/NotificacoesController.cs` | Junta DTO, service e controller | Separar os arquivos |
 | `Auth/AuthController.cs` | Junta DTOs, `AuthController` e `PasswordResetController` | Separar os arquivos |
 | Repositórios do Módulo 1 (`AuthRepository`, `FavoritoRepository`, `PedidoRepository`) | Abrem conexão diretamente, sem `RepositorioBase` | Passar a herdar de `RepositorioBase` |
-| `PedidoService.RegistrarLogAsync` | Repete o SQL do histórico que agora existe em `PedidoRepository.RegistrarLogAsync` | Usar o método do repository ao mover o SQL do service |
 
-Resolvidos no Módulo 2 (por necessidade do próprio módulo):
+Resolvidos em evoluções posteriores:
 - `Materiais/MateriaisController.cs` separado em `MaterialDtos.cs`, `MaterialRepository.cs`, `MaterialService.cs` e `MateriaisController.cs` (o cadastro e a edição precisavam ser acrescentados).
 - `RepositorioBase` criada em `Infrastructure/` e usada pelos repositórios novos e pelo `MaterialRepository`.
 - `Transacao` criada em `Infrastructure/` para a passagem explícita da transação entre repositórios (seção 5).
+- `Pedidos/PedidoService.cs` convertido para `Transacao`, usando `PedidoRepository` e `EstoqueRepository` (removido SQL direto e removido `PedidoService.RegistrarLogAsync` duplicado).
 
 ### Exceções aprovadas
 
@@ -190,3 +189,4 @@ Resolvidos no Módulo 2 (por necessidade do próprio módulo):
 | 07/11/2026 | O sistema não pode ficar sem administrador ativo: desativar, excluir ou trocar o perfil do último administrador é recusado. |
 | 07/11/2026 | Senha com no mínimo 8 caracteres no cadastro, na edição e na troca de senha. |
 | 07/11/2026 | Operações que bloqueiam vários registros o fazem sempre na mesma ordem (ex.: administradores ativos antes do usuário alterado), para evitar travamento entre operações simultâneas. |
+| 11/11/2026 | Pedidos separados em Consumo x Patrimônio (`produtos.bem_duravel` não pode ser misturado no mesmo pedido). Funcionário comum (`funcionario`) não visualiza nem solicita bens duráveis. Consumo criado por `almoxarifado` faz baixa direta imediata por padrão (`entregaImediata = true`, concluindo direto em `atendido` e debitando estoque na criação), com opção de enviar para fila normal (`pendente`). Patrimônio sempre nasce em `pendente` e exige autorização exclusiva do `admin` para avançar para `em_separacao` ou recusar. |

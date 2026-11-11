@@ -45,7 +45,8 @@ public sealed record CriarPedidoRequest(
     string? Justificativa,
     int? SolicitanteId,
     string? Usuario,
-    List<CriarPedidoItemRequest>? Itens);
+    List<CriarPedidoItemRequest>? Itens,
+    bool? EntregaImediata = null);
 
 // ---------- Resposta (mesmo formato que o front já consome) ----------
 
@@ -54,7 +55,8 @@ public sealed record PedidoItemDto(
     string MaterialNome,
     decimal Quantidade,
     string Unidade,
-    decimal? QuantidadeAtendida);
+    decimal? QuantidadeAtendida,
+    bool BemDuravel = false);
 
 public sealed record PedidoDto(
     int Id,
@@ -74,7 +76,9 @@ public sealed record PedidoDto(
     string? Justificativa,
     string? MensagemAlmoxarife = null,
     string? MotivoCancelamento = null,
-    string? DataEntrega = null);
+    string? DataEntrega = null,
+    string TipoPedido = "consumo",
+    bool AguardandoAprovacaoAdmin = false);
 
 // ---------- Atendimento pelo almoxarifado (contrato de pedidoService.atualizarStatus) ----------
 

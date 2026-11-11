@@ -40,6 +40,13 @@ public sealed class PedidoRepository(DbConnectionFactory db, AppClock relogio)
         public int FuncionarioSolicitanteId { get; set; }
     }
 
+    public sealed class SolicitanteInfo
+    {
+        public int FuncionarioId { get; set; }
+        public int SetorId { get; set; }
+        public bool Ativo { get; set; }
+    }
+
     private sealed class ItemLinha
     {
         public int PedidoId { get; set; }
@@ -48,6 +55,7 @@ public sealed class PedidoRepository(DbConnectionFactory db, AppClock relogio)
         public string UnidadeMedida { get; set; } = string.Empty;
         public decimal QuantidadeSolicitada { get; set; }
         public decimal? QuantidadeEntregue { get; set; }
+        public bool BemDuravel { get; set; }
     }
 
     private const string SelectPedidos = """
@@ -80,12 +88,85 @@ public sealed class PedidoRepository(DbConnectionFactory db, AppClock relogio)
 
     public Task<PedidoDto?> ObterAsync(Transacao t, int pedidoId) => ObterAsync(pedidoId, t.Conexao, t.Tx);
 
-    // ---------- Gravações do atendimento (transação aberta pelo service) ----------
+    // ---------- Gravações do atendimento e criação (transação aberta pelo service) ----------
 
     public Task<PedidoBloqueado?> BloquearAsync(Transacao t, int pedidoId) =>
         t.Conexao.QuerySingleOrDefaultAsync<PedidoBloqueado>(
             "SELECT status, funcionario_solicitante_id FROM pedidos WHERE pedido_id = @pedidoId FOR UPDATE",
             new { pedidoId }, t.Tx);
+
+    public Task<SolicitanteInfo?> ObterSolicitantePorUsuarioAsync(Transacao t, int usuarioId) =>
+        t.Conexao.QuerySingleOrDefaultAsync<SolicitanteInfo>("""
+            SELECT f.funcionario_id, f.setor_id, (u.ativo AND f.ativo) AS ativo
+              FROM usuarios u JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
+             WHERE u.usuario_id = @usuarioId
+            """, new { usuarioId }, t.Tx);
+
+    public Task<SolicitanteInfo?> ObterPrimeiroFuncionarioAtivoAsync(Transacao t) =>
+        t.Conexao.QuerySingleOrDefaultAsync<SolicitanteInfo>("""
+            SELECT f.funcionario_id, f.setor_id, f.ativo AS ativo
+              FROM funcionarios f
+             WHERE f.ativo = TRUE
+             ORDER BY f.funcionario_id
+             LIMIT 1
+            """, transaction: t.Tx);
+
+    public Task<bool> PedidoEhPatrimonioAsync(Transacao t, int pedidoId) =>
+        t.Conexao.ExecuteScalarAsync<bool>("""
+            SELECT EXISTS(
+                SELECT 1
+                  FROM pedido_itens pi
+                  JOIN produtos pr ON pr.produto_id = pi.produto_id
+                 WHERE pi.pedido_id = @pedidoId AND pr.bem_duravel = TRUE
+            )
+            """, new { pedidoId }, t.Tx);
+
+    public Task<int> InserirPedidoAsync(
+        Transacao t,
+        int funcionarioId,
+        int setorId,
+        int usuarioSolicitacaoId,
+        string status,
+        string urgencia,
+        string? justificativa,
+        int? usuarioAtendimentoId = null,
+        int? funcionarioRecebeId = null) =>
+        t.Conexao.ExecuteScalarAsync<int>("""
+            INSERT INTO pedidos (
+                identificador_operacao, funcionario_solicitante_id, setor_id,
+                usuario_solicitacao_id, status, urgencia, observacao,
+                usuario_atendimento_id, funcionario_recebe_id, data_atendimento)
+            VALUES (
+                @operacao, @funcionarioId, @setorId,
+                @usuarioSolicitacaoId, @status, @urgencia, @justificativa,
+                @usuarioAtendimentoId, @funcionarioRecebeId,
+                IF(@atendido, UTC_TIMESTAMP(6), NULL));
+            SELECT LAST_INSERT_ID();
+            """, new
+        {
+            operacao = Guid.NewGuid().ToString(),
+            funcionarioId,
+            setorId,
+            usuarioSolicitacaoId,
+            status,
+            urgencia,
+            justificativa,
+            usuarioAtendimentoId,
+            funcionarioRecebeId,
+            atendido = status == StatusPedido.Atendido
+        }, t.Tx);
+
+    public Task<int> InserirPedidoItemAsync(
+        Transacao t,
+        int pedidoId,
+        int produtoId,
+        decimal quantidadeSolicitada,
+        decimal? quantidadeEntregue = null) =>
+        t.Conexao.ExecuteScalarAsync<int>("""
+            INSERT INTO pedido_itens (pedido_id, produto_id, quantidade_solicitada, quantidade_entregue)
+            VALUES (@pedidoId, @produtoId, @quantidadeSolicitada, @quantidadeEntregue);
+            SELECT LAST_INSERT_ID();
+            """, new { pedidoId, produtoId, quantidadeSolicitada, quantidadeEntregue }, t.Tx);
 
     /// <summary>Muda a situação somente se ainda estiver na situação esperada. Devolve se alterou.</summary>
     public async Task<bool> MudarStatusAsync(Transacao t, int pedidoId, string de, string para) =>
@@ -136,7 +217,7 @@ public sealed class PedidoRepository(DbConnectionFactory db, AppClock relogio)
         if (pedidoIds.Count == 0) return [];
         var itens = await con.QueryAsync<ItemLinha>("""
             SELECT pi.pedido_id, pi.produto_id, pr.nome, pr.unidade_medida,
-                   pi.quantidade_solicitada, pi.quantidade_entregue
+                   pi.quantidade_solicitada, pi.quantidade_entregue, pr.bem_duravel
               FROM pedido_itens pi
               JOIN produtos pr ON pr.produto_id = pi.produto_id
              WHERE pi.pedido_id IN @pedidoIds
@@ -147,7 +228,7 @@ public sealed class PedidoRepository(DbConnectionFactory db, AppClock relogio)
             .GroupBy(i => i.PedidoId)
             .ToDictionary(g => g.Key, g => g.Select(i => new PedidoItemDto(
                 i.ProdutoId, i.Nome, Numeros.Normalizar(i.QuantidadeSolicitada), i.UnidadeMedida,
-                Numeros.Normalizar(i.QuantidadeEntregue))).ToList());
+                Numeros.Normalizar(i.QuantidadeEntregue), i.BemDuravel)).ToList());
     }
 
     /// <summary>Resumo textual dos materiais, igual ao montado pelo front-end.</summary>
@@ -179,6 +260,7 @@ public sealed class PedidoRepository(DbConnectionFactory db, AppClock relogio)
             var parcial = l.Status == StatusPedido.Atendido &&
                           itens.Any(i => i.QuantidadeAtendida is { } entregue && entregue < i.Quantidade);
             var urgente = l.Urgencia == "alta";
+            var ehPatrimonio = itens.Any(i => i.BemDuravel);
 
             return new PedidoDto(
                 Id: l.PedidoId,
@@ -199,7 +281,9 @@ public sealed class PedidoRepository(DbConnectionFactory db, AppClock relogio)
                 MensagemAlmoxarife: l.Status is StatusPedido.ProntoRetirada or StatusPedido.Atendido
                     ? UltimaDescricao(l.PedidoId, StatusPedido.ProntoRetirada) : null,
                 MotivoCancelamento: l.Status == StatusPedido.Cancelado ? UltimaDescricao(l.PedidoId, StatusPedido.Cancelado) : null,
-                DataEntrega: l.DataAtendimento is { } entrega ? relogio.DataCurta(entrega) : null);
+                DataEntrega: l.DataAtendimento is { } entrega ? relogio.DataCurta(entrega) : null,
+                TipoPedido: ehPatrimonio ? "patrimonio" : "consumo",
+                AguardandoAprovacaoAdmin: ehPatrimonio && l.Status == StatusPedido.Pendente);
         }).ToList();
     }
 }

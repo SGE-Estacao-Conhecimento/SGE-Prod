@@ -45,6 +45,7 @@ export const criarPedido = (pedido) => {
       solicitanteId: pedido.solicitanteId ?? undefined,
       usuario: pedido.usuario || undefined,
       setor: pedido.setor || undefined,
+      ...(typeof pedido.entregaImediata === 'boolean' ? { entregaImediata: pedido.entregaImediata } : {}),
       itens
     })
   });

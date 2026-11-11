@@ -251,9 +251,11 @@ const Administrativo = ({ onLogout, user }) => {
         itens: criado.itens || itensRecebidos
       } : criado;
       setPedidos(prev => [pedidoFormatado, ...prev]);
+      return true;
     } catch (error) {
       // Não exibe um pedido que não foi gravado.
       alert(error?.message || 'Não foi possível registrar o pedido.');
+      return false;
     }
   };
 
@@ -394,6 +396,7 @@ const Administrativo = ({ onLogout, user }) => {
                 usuariosDisponiveis={usuarios}
                 materiaisDisponiveis={materiais}
                 setoresDisponiveis={setores}
+                userRole="admin"
               />
             )}
           </div>
@@ -503,7 +506,7 @@ const Administrativo = ({ onLogout, user }) => {
                   setActiveNav('usuarios');
                 }}
               />
-              <NovoPedido materiais={materiais} onSubmit={handleNovoPedido} />
+              <NovoPedido materiais={materiais.filter((m) => !m?.bemDuravel)} onSubmit={handleNovoPedido} />
             </aside>
           </div>
         );
@@ -601,12 +604,13 @@ const Administrativo = ({ onLogout, user }) => {
       <NovoPedidoModal
         isOpen={isNovoPedidoModalOpen}
         onClose={() => setIsNovoPedidoModalOpen(false)}
-        onSave={(dados) => {
-          handleNovoPedido(dados);
-          setIsNovoPedidoModalOpen(false);
+        onSave={async (dados) => {
+          const ok = await handleNovoPedido(dados);
+          if (ok) setIsNovoPedidoModalOpen(false);
         }}
         materiaisDisponiveis={materiais}
         usuariosDisponiveis={usuarios}
+        userRole="admin"
       />
       <NovoMaterialModal
         isOpen={isNovoMaterialModalOpen}

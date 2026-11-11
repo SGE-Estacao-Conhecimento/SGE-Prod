@@ -100,7 +100,8 @@ const normalizarItensPedido = (pedido) => {
       quantidadeAtendida: it.quantidadeAtendida !== undefined ? Number(it.quantidadeAtendida) : undefined,
       statusItem: it.statusItem,
       unidade: it.unidade || 'UN',
-      itensPorEmbalagem: it.itensPorEmbalagem
+      itensPorEmbalagem: it.itensPorEmbalagem,
+      bemDuravel: Boolean(it.bemDuravel)
     }));
   }
   if (Array.isArray(pedido.materiais) && pedido.materiais.length > 0) {
@@ -111,7 +112,8 @@ const normalizarItensPedido = (pedido) => {
           produtoId: null,
           materialNome: it,
           quantidade: 1,
-          unidade: 'UN'
+          unidade: 'UN',
+          bemDuravel: false
         };
       }
       return {
@@ -121,7 +123,8 @@ const normalizarItensPedido = (pedido) => {
         quantidade: Number(it.quantidade) || 1,
         quantidadeAtendida: it.quantidadeAtendida !== undefined ? Number(it.quantidadeAtendida) : undefined,
         statusItem: it.statusItem,
-        unidade: it.unidade || 'UN'
+        unidade: it.unidade || 'UN',
+        bemDuravel: Boolean(it.bemDuravel)
       };
     });
   }
@@ -133,7 +136,8 @@ const normalizarItensPedido = (pedido) => {
       quantidade: Number(pedido.quantidade) || 1,
       quantidadeAtendida: pedido.quantidadeAtendida !== undefined ? Number(pedido.quantidadeAtendida) : undefined,
       statusItem: pedido.statusItem,
-      unidade: pedido.unidade || 'UN'
+      unidade: pedido.unidade || 'UN',
+      bemDuravel: Boolean(pedido.bemDuravel)
     }];
   }
   return [];
@@ -154,6 +158,20 @@ const encontrarMaterialCorrespondente = (itemPedido, listaMateriais = []) => {
     if (porNome) return porNome;
   }
   return null;
+};
+
+/**
+ * Verifica se o pedido pertence ao fluxo de patrimônio / bem durável
+ */
+const ehPedidoPatrimonio = (pedido, listaMateriais = []) => {
+  if (!pedido) return false;
+  if (pedido.tipoPedido === 'patrimonio') return true;
+  const itens = normalizarItensPedido(pedido);
+  return itens.some((it) => {
+    if (it.bemDuravel) return true;
+    const mat = encontrarMaterialCorrespondente(it, listaMateriais);
+    return Boolean(mat?.bemDuravel);
+  });
 };
 
 /**
@@ -200,10 +218,12 @@ const PedidosView = ({
   materiaisDisponiveis = [],
   setoresDisponiveis = [],
   usuariosDisponiveis = [],
+  userRole = 'almoxarife',
   onSave,
   onUpdateStatus,
   onConfirmarEntrega
 }) => {
+  const isAdmin = userRole === 'admin';
   const [pedidos, setPedidos] = useState(initialPedidosProp || []);
   const listaMateriais = materiais && materiais.length > 0 ? materiais : materiaisDisponiveis;
 
@@ -438,6 +458,7 @@ const PedidosView = ({
   // Confirmação de Entrega com baixa física proporcional e registro fiel de itens
   const handleConfirmarEntrega = async (pedido) => {
     const itensOriginais = normalizarItensPedido(pedido);
+    const ehPatrimonio = ehPedidoPatrimonio(pedido, listaMateriais);
 
     let temAlgumFaltando = false;
     const itensAtualizados = itensOriginais.map((it, idx) => {
@@ -446,10 +467,13 @@ const PedidosView = ({
       const sepQtd = getQtdSeparada(pedido.id, itemKey, qtdPedida);
 
       const mat = encontrarMaterialCorrespondente(it, listaMateriais);
+      const ehItemPatrimonio = ehPatrimonio || Boolean(it.bemDuravel || mat?.bemDuravel);
       const saldo = mat ? Number(mat.quantidade) || 0 : 0;
 
-      // Se houve contagem no picking, honra a separação física do almoxarife
-      const qtdEntregue = (itensSeparados[pedido.id] && itensSeparados[pedido.id][itemKey] !== undefined)
+      // Itens de patrimônio não baixam estoque físico; respeita a quantidade conferida no picking.
+      const qtdEntregue = ehItemPatrimonio
+        ? Math.min(qtdPedida, sepQtd)
+        : (itensSeparados[pedido.id] && itensSeparados[pedido.id][itemKey] !== undefined)
         ? Math.min(saldo, sepQtd)
         : Math.min(saldo, qtdPedida);
 
@@ -485,9 +509,19 @@ const PedidosView = ({
       );
 
       if (temAlgumFaltando) {
-        exibirToast(`Pedido #${pedido.id} entregue parcialmente. Itens sem estoque foram sinalizados.`, 'aviso');
+        exibirToast(
+          ehPatrimonio
+            ? `Pedido de patrimônio #${pedido.id} entregue parcialmente.`
+            : `Pedido #${pedido.id} entregue parcialmente. Itens sem estoque foram sinalizados.`,
+          'aviso'
+        );
       } else {
-        exibirToast(`Pedido #${pedido.id} entregue com sucesso! Baixa de estoque registrada.`, 'sucesso');
+        exibirToast(
+          ehPatrimonio
+            ? `Pedido de patrimônio #${pedido.id} entregue com sucesso!`
+            : `Pedido #${pedido.id} entregue com sucesso! Baixa de estoque registrada.`,
+          'sucesso'
+        );
       }
     } catch (error) {
       exibirToast(error?.message || `Erro ao confirmar a entrega do pedido #${pedido.id}.`, 'erro');
@@ -691,8 +725,9 @@ const PedidosView = ({
           <AnimatePresence initial={false}>
             {pedidosFiltrados.map((pedido) => {
               const itens = normalizarItensPedido(pedido);
+              const isPatrimonio = ehPedidoPatrimonio(pedido, listaMateriais);
               const isUrgent = pedido.urgente || String(pedido.prioridade).toLowerCase() === 'urgente';
-              const disponibilidade = calcularDisponibilidadePedido(pedido, listaMateriais);
+              const disponibilidade = isPatrimonio ? null : calcularDisponibilidadePedido(pedido, listaMateriais);
               const statusBadgeCode = getStatusBadgeCode(pedido.status);
               const isExpanded = !!expandedCards[pedido.id];
               const itensVisiveis = isExpanded ? itens : (itens.length <= 3 ? itens : itens.slice(0, 3));
@@ -738,8 +773,20 @@ const PedidosView = ({
                           </span>
                         )}
 
-                        {/* Semáforo de Estoque inteligente (Apenas em Novos e Separação para apoio de triagem) */}
-                        {(abaAtiva === 'novos' || abaAtiva === 'separacao') && (
+                        {isPatrimonio && (
+                          <span className="atendimento-badge-patrimonio">
+                            Patrimônio
+                          </span>
+                        )}
+
+                        {isPatrimonio && abaAtiva === 'novos' && (
+                          <span className="atendimento-badge-aguardando-admin">
+                            Aguardando Administrativo
+                          </span>
+                        )}
+
+                        {/* Semáforo de Estoque inteligente (Apenas em Novos e Separação para Consumo) */}
+                        {(abaAtiva === 'novos' || abaAtiva === 'separacao') && !isPatrimonio && disponibilidade && (
                           <span className={`estoque-semaforo-badge estoque-semaforo-badge--${disponibilidade.classe}`}>
                             <span className="estoque-semaforo-dot" />
                             {disponibilidade.label}
@@ -780,15 +827,16 @@ const PedidosView = ({
                     <div className="atendimento-card__itens-list">
                       {itensVisiveis.map((it, idx) => {
                         const mat = encontrarMaterialCorrespondente(it, listaMateriais);
+                        const ehItemPatrimonio = isPatrimonio || Boolean(it.bemDuravel || mat?.bemDuravel);
                         const qtdPedida = Number(it.quantidade) || 1;
                         const saldoEstoque = mat ? Number(mat.quantidade) || 0 : 0;
-                        const temSaldo = saldoEstoque >= qtdPedida;
+                        const temSaldo = ehItemPatrimonio ? true : saldoEstoque >= qtdPedida;
                         const itemKey = it.key || `item-${idx}`;
                         const qtdSeparada = getQtdSeparada(pedido.id, itemKey, qtdPedida);
                         const isTotalSeparado = qtdSeparada >= qtdPedida;
                         const isParcialSeparado = qtdSeparada > 0 && qtdSeparada < qtdPedida;
                         const isSeparado = qtdSeparada > 0;
-                        const isFalta = !temSaldo || (it.quantidadeAtendida !== undefined && it.quantidadeAtendida === 0);
+                        const isFalta = !ehItemPatrimonio && (!temSaldo || (it.quantidadeAtendida !== undefined && it.quantidadeAtendida === 0));
 
                         return (
                           <div
@@ -929,7 +977,9 @@ const PedidosView = ({
                                     /* Se já estiver no histórico, exibe a quantidade real entregue */
                                     <span className={`atendimento-item-entregue-tag ${it.quantidadeAtendida < qtdPedida ? 'entregue-tag--parcial' : 'entregue-tag--ok'}`}>
                                       {it.quantidadeAtendida === 0
-                                        ? `0 de ${qtdPedida} (Sem Estoque)`
+                                        ? (ehItemPatrimonio
+                                            ? `0 de ${qtdPedida} entregues`
+                                            : `0 de ${qtdPedida} (Sem Estoque)`)
                                         : `${it.quantidadeAtendida} de ${qtdPedida} entregues`}
                                     </span>
                                   ) : (
@@ -937,7 +987,7 @@ const PedidosView = ({
                                       <span className="atendimento-item-qtd-pedida">
                                         <strong>{qtdPedida}</strong> {it.unidade}
                                       </span>
-                                      {mat && (
+                                      {mat && !ehItemPatrimonio && (
                                         <span className={`atendimento-item-saldo-pill ${temSaldo ? 'saldo-pill--ok' : 'saldo-pill--baixo'}`}>
                                           {saldoEstoque > 0 ? `Estoque: ${saldoEstoque}` : 'Sem estoque'}
                                         </span>
@@ -1026,25 +1076,43 @@ const PedidosView = ({
                   <div className="atendimento-card__actions">
                     {/* Fase 1: Novos / Triagem */}
                     {abaAtiva === 'novos' && (
-                      <div className="atendimento-actions-row">
-                        <button
-                          type="button"
-                          className="atendimento-btn atendimento-btn--recusar"
-                          onClick={() => handleAbrirRecusaModal(pedido)}
-                        >
-                          Recusar Pedido
-                        </button>
-                        <button
-                          type="button"
-                          className="atendimento-btn atendimento-btn--primary"
-                          onClick={() => handleMudarStatus(pedido.id, 'Em Separação')}
-                        >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
-                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                      isPatrimonio && !isAdmin ? (
+                        <div className="atendimento-admin-aguardando" role="status">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
                           </svg>
-                          Iniciar Separação
-                        </button>
-                      </div>
+                          <span>Aguardando autorização do Administrativo para iniciar a separação.</span>
+                        </div>
+                      ) : (
+                        <div className="atendimento-actions-row">
+                          <button
+                            type="button"
+                            className="atendimento-btn atendimento-btn--recusar"
+                            onClick={() => handleAbrirRecusaModal(pedido)}
+                          >
+                            Recusar Pedido
+                          </button>
+                          <button
+                            type="button"
+                            className="atendimento-btn atendimento-btn--primary"
+                            onClick={() =>
+                              handleMudarStatus(
+                                pedido.id,
+                                'Em Separação',
+                                isPatrimonio
+                                  ? `Pedido de patrimônio #${pedido.id} autorizado para separação!`
+                                  : undefined
+                              )
+                            }
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+                              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                            </svg>
+                            {isPatrimonio ? 'Autorizar Separação' : 'Iniciar Separação'}
+                          </button>
+                        </div>
+                      )
                     )}
 
                     {/* Fase 2: Separação / Picking */}
@@ -1088,7 +1156,7 @@ const PedidosView = ({
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
-                          Confirmar Entrega (Baixa Estoque)
+                          {isPatrimonio ? 'Confirmar Entrega de Patrimônio' : 'Confirmar Entrega (Baixa Estoque)'}
                         </button>
                       </div>
                     )}
@@ -1113,14 +1181,14 @@ const PedidosView = ({
                                 <line x1="12" y1="9" x2="12" y2="13" />
                                 <line x1="12" y1="17" x2="12.01" y2="17" />
                               </svg>
-                              Entregue Parcialmente (Saldo Insuficiente em Itens)
+                              {isPatrimonio ? 'Entregue Parcialmente' : 'Entregue Parcialmente (Saldo Insuficiente em Itens)'}
                             </span>
                           ) : (
                             <span className="historico-tag historico-tag--entregue">
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <polyline points="20 6 9 17 4 12" />
                               </svg>
-                              Entregue e Baixado do Estoque
+                              {isPatrimonio ? 'Patrimônio Entregue' : 'Entregue e Baixado do Estoque'}
                             </span>
                           )}
                         </div>
@@ -1262,12 +1330,13 @@ const PedidosView = ({
         </BottomSheetModal>
       )}
 
-      {/* Modal de Criação de Novo Pedido pelo Almoxarife (Padronizado) */}
+      {/* Modal de Criação de Novo Pedido (Padronizado) */}
       <NovoPedidoModal
         isOpen={isNovoPedidoModalOpen}
         onClose={() => setIsNovoPedidoModalOpen(false)}
         materiaisDisponiveis={listaMateriais}
         usuariosDisponiveis={usuariosDisponiveis}
+        userRole={userRole}
         onSave={(novo) => {
           if (onSave) {
             onSave(novo);

@@ -15,11 +15,15 @@ public sealed class MaterialRepository(DbConnectionFactory db) : RepositorioBase
           FROM produtos
         """;
 
-    public async Task<IReadOnlyList<MaterialDto>> ListarAsync(bool apenasAtivos)
+    public async Task<IReadOnlyList<MaterialDto>> ListarAsync(bool apenasAtivos, bool incluirPatrimonio = true)
     {
+        var filtros = new List<string>();
+        if (apenasAtivos) filtros.Add("ativo = TRUE");
+        if (!incluirPatrimonio) filtros.Add("bem_duravel = FALSE");
+        var where = filtros.Count > 0 ? " WHERE " + string.Join(" AND ", filtros) : string.Empty;
+
         await using var con = await AbrirAsync();
-        var lista = await con.QueryAsync<MaterialDto>(
-            SelectMateriais + (apenasAtivos ? " WHERE ativo = TRUE" : string.Empty) + " ORDER BY nome");
+        var lista = await con.QueryAsync<MaterialDto>(SelectMateriais + where + " ORDER BY nome");
         return lista.Select(Normalizar).ToList();
     }
 

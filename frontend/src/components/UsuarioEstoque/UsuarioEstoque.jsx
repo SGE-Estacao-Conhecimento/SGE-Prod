@@ -94,8 +94,11 @@ const UsuarioEstoque = ({
   onNavigateToPedidos,
   autoFocusBuscaTrigger
 }) => {
-  // Se não vier dados de materiais via props, carrega os dados de demonstração
-  const dados = materiais || [];
+  // Funcionário comum visualiza apenas materiais de consumo (bens duráveis/patrimônio são restritos à equipe).
+  const dados = useMemo(
+    () => (materiais || []).filter((item) => !item?.bemDuravel),
+    [materiais]
+  );
 
   // Referência para o campo de pesquisa (para foco automático ao clicar no botão '+')
   const searchInputRef = useRef(null);

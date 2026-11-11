@@ -29,12 +29,16 @@ public sealed class AtendimentoPedidoService(DbConnectionFactory db, PedidoRepos
 
         await using var t = await Transacao.IniciarAsync(db);
         var pedido = await pedidos.BloquearAsync(t, pedidoId) ?? throw ApiException.NotFound("Pedido não encontrado.");
+        var ehPatrimonio = await pedidos.PedidoEhPatrimonioAsync(t, pedidoId);
 
         if (pedido.Status == novo)
             throw ApiException.Conflict($"O pedido já está em \"{StatusPedido.Rotulo(novo)}\".");
         if (!Transicoes.TryGetValue(pedido.Status, out var permitidas) || !permitidas.Contains(novo))
             throw ApiException.Conflict(
                 $"Não é possível mudar o pedido de \"{StatusPedido.Rotulo(pedido.Status)}\" para \"{StatusPedido.Rotulo(novo)}\".");
+
+        if (ehPatrimonio && pedido.Status == StatusPedido.Pendente && usuario.Perfil() != Perfis.Admin)
+            throw new ApiException(403, "Pedidos de patrimônio precisam ser autorizados pelo administrativo.");
 
         var usuarioId = usuario.UsuarioId();
         if (novo == StatusPedido.Atendido)
@@ -46,8 +50,11 @@ public sealed class AtendimentoPedidoService(DbConnectionFactory db, PedidoRepos
         {
             var descricao = novo switch
             {
-                StatusPedido.Cancelado => Texto(req.MotivoCancelamento, "O motivo da recusa") ?? "Recusado pelo almoxarifado.",
+                StatusPedido.Cancelado => Texto(req.MotivoCancelamento, "O motivo da recusa") ??
+                    (ehPatrimonio ? "Solicitação de patrimônio recusada." : "Recusado pelo almoxarifado."),
                 StatusPedido.ProntoRetirada => Texto(req.MensagemAlmoxarife, "A mensagem de retirada"),
+                StatusPedido.EmSeparacao when ehPatrimonio && pedido.Status == StatusPedido.Pendente =>
+                    "Autorizado pelo administrativo para separação.",
                 _ => null
             };
             if (!await pedidos.MudarStatusAsync(t, pedidoId, pedido.Status, novo))
@@ -105,8 +112,11 @@ public sealed class AtendimentoPedidoService(DbConnectionFactory db, PedidoRepos
         if (!await pedidos.RegistrarAtendimentoAsync(t, pedidoId, usuarioId, pedido.FuncionarioSolicitanteId))
             throw ApiException.Conflict("O pedido foi alterado por outra pessoa. Atualize a tela.");
 
+        var ehPatrimonio = produtos.Values.Any(p => p.BemDuravel);
         return parcial
-            ? "Pedido entregue parcialmente. Itens sem estoque foram sinalizados."
+            ? (ehPatrimonio
+                ? "Pedido de patrimônio entregue parcialmente."
+                : "Pedido entregue parcialmente. Itens sem estoque foram sinalizados.")
             : "Pedido entregue.";
     }
 
