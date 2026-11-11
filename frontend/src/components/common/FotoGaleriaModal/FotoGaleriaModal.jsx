@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { obterFotoBlobUrl } from '../../../services/remessas/remessaService';
 import useDialogAccessibility from '../useDialogAccessibility';
 import './FotoGaleriaModal.css';
@@ -38,8 +38,9 @@ const formatarDataHora = (dataIso) => {
  * 
  * Interface para auditoria e conferência de notas fiscais e comprovantes fotográficos:
  * - Painel split-view de conferência: metadados da operação e conferência de itens lado a lado
- * - Rotação em passos de 90° (horário e anti-horário) para documentos em orientação inadequada
- * - Zoom escalonado (50% a 300%) com ajuste automático à área útil
+ * - Rotação em passos contínuos de 90° (horário e anti-horário) sem giro reverso em 360°
+ * - Zoom escalonado (50% a 350%) com roda do mouse, gesto de pinça e ponto focal preservado
+ * - Modo tela cheia expansivo para inspeção limpa de documentos no desktop e celular
  * - Navegação por teclado (Setas, R para rotação, +/- para zoom, Esc para fechar)
  * - Arraste para inspeção panorâmica (drag-to-pan) quando ampliado
  * - Gerenciamento de ciclo de vida de memória (revogação de Blob URLs na saída)
@@ -58,16 +59,40 @@ const FotoGaleriaModal = ({
   const [erro, setErro] = useState(null);
 
   // Estados de manipulação visual do documento
-  const [rotacao, setRotacao] = useState(0); // 0, 90, 180, 270
+  const [rotacao, setRotacao] = useState(0); // ângulo acumulado em múltiplos de 90°
   const [zoomNivel, setZoomNivel] = useState(1); // 1 = 100% (fit)
-  const [painelAberto, setPainelAberto] = useState(true);
-  const [viewportDimensoes, setViewportDimensoes] = useState({ largura: 800, altura: 600 });
+  const [telaCheia, setTelaCheia] = useState(false);
+  const [dimensoesNaturais, setDimensoesNaturais] = useState(null);
+  const [viewportDimensoes, setViewportDimensoes] = useState({
+    largura: 800,
+    altura: 600,
+    padL: 16,
+    padT: 16,
+    padH: 32,
+    padV: 32
+  });
   const [isArrastando, setIsArrastando] = useState(false);
 
   const closeButtonRef = useRef(null);
   const viewportRef = useRef(null);
   const urlsCriadasRef = useRef(new Set());
+  const blobCacheRef = useRef({});
+  const emAndamentoRef = useRef(new Map());
+  const sessaoIdRef = useRef(0);
   const posArrastoRef = useRef({ startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 });
+  const zoomNivelRef = useRef(1);
+  const layoutMetricasRef = useRef({
+    wrapW: null,
+    wrapH: null,
+    padL: 16,
+    padT: 16
+  });
+  const pendenteScrollAncoraRef = useRef(null);
+  const pinchRef = useRef({
+    ativo: false,
+    distanciaInicial: 0,
+    zoomInicial: 1
+  });
 
   const dialogRef = useDialogAccessibility({
     isOpen,
@@ -77,6 +102,9 @@ const FotoGaleriaModal = ({
 
   // Descarte seguro de todos os Blobs mantidos na sessão do modal
   const revogarTodosBlobs = useCallback(() => {
+    sessaoIdRef.current += 1;
+    emAndamentoRef.current.clear();
+    blobCacheRef.current = {};
     urlsCriadasRef.current.forEach((url) => {
       try {
         URL.revokeObjectURL(url);
@@ -88,31 +116,44 @@ const FotoGaleriaModal = ({
     setBlobCache({});
   }, []);
 
-  // Monitora dimensões do viewport com ResizeObserver
+  // Monitora dimensões e paddings reais do viewport com ResizeObserver
   useEffect(() => {
     if (!isOpen || !viewportRef.current) return undefined;
 
     const atualizarDimensoes = () => {
-      if (viewportRef.current) {
-        setViewportDimensoes({
-          largura: viewportRef.current.clientWidth,
-          altura: viewportRef.current.clientHeight
-        });
-      }
+      const vp = viewportRef.current;
+      if (!vp) return;
+      const cs = window.getComputedStyle(vp);
+      const padL = parseFloat(cs.paddingLeft) || 0;
+      const padR = parseFloat(cs.paddingRight) || 0;
+      const padT = parseFloat(cs.paddingTop) || 0;
+      const padB = parseFloat(cs.paddingBottom) || 0;
+
+      setViewportDimensoes({
+        largura: vp.clientWidth,
+        altura: vp.clientHeight,
+        padL,
+        padT,
+        padH: padL + padR,
+        padV: padT + padB
+      });
     };
 
     atualizarDimensoes();
     const ro = new ResizeObserver(atualizarDimensoes);
     ro.observe(viewportRef.current);
     return () => ro.disconnect();
-  }, [isOpen, painelAberto]);
+  }, [isOpen, telaCheia]);
 
   // Reseta visualizações ao abrir ou mudar de lote
   useEffect(() => {
     if (isOpen) {
+      pendenteScrollAncoraRef.current = null;
+      zoomNivelRef.current = 1;
       setIndiceAtivo(0);
       setRotacao(0);
       setZoomNivel(1);
+      setTelaCheia(false);
       setErro(null);
     }
   }, [isOpen]);
@@ -126,7 +167,11 @@ const FotoGaleriaModal = ({
 
   // Liberação de memória no desmonte do componente
   useEffect(() => {
+    const emAndamento = emAndamentoRef.current;
     return () => {
+      sessaoIdRef.current += 1;
+      emAndamento.clear();
+      blobCacheRef.current = {};
       urlsCriadasRef.current.forEach((url) => {
         try {
           URL.revokeObjectURL(url);
@@ -141,30 +186,68 @@ const FotoGaleriaModal = ({
   const fotoAtual = fotos[indiceAtivo] || null;
   const anexoIdAtual = fotoAtual?.id || fotoAtual?.anexoId;
   const recIdEfetivo = fotoAtual?.recebimentoId || recebimentoId;
+  const urlAtual = anexoIdAtual ? blobCache[anexoIdAtual] : undefined;
 
-  // Carregamento autenticado da foto sob demanda
+  // Compartilha download em curso por anexo e descarta com segurança se a sessão fechar antes do retorno
+  const garantirFotoNoCache = useCallback(async (recId, anexoId) => {
+    if (!recId || !anexoId) return null;
+    if (blobCacheRef.current[anexoId]) return blobCacheRef.current[anexoId];
+
+    const emCurso = emAndamentoRef.current.get(anexoId);
+    if (emCurso) return emCurso;
+
+    const sessaoLocal = sessaoIdRef.current;
+    const promessa = obterFotoBlobUrl(recId, anexoId)
+      .then((url) => {
+        if (sessaoLocal !== sessaoIdRef.current) {
+          try {
+            URL.revokeObjectURL(url);
+          } catch {
+            // ignore
+          }
+          return null;
+        }
+        urlsCriadasRef.current.add(url);
+        blobCacheRef.current = { ...blobCacheRef.current, [anexoId]: url };
+        setBlobCache((prev) => (prev[anexoId] === url ? prev : { ...prev, [anexoId]: url }));
+        return url;
+      })
+      .finally(() => {
+        if (emAndamentoRef.current.get(anexoId) === promessa) {
+          emAndamentoRef.current.delete(anexoId);
+        }
+      });
+
+    emAndamentoRef.current.set(anexoId, promessa);
+    return promessa;
+  }, []);
+
+  // Carregamento autenticado da foto ativa sob demanda
   const carregarFotoAtual = useCallback(async () => {
     if (!fotoAtual || !anexoIdAtual || !recIdEfetivo) return;
 
-    if (blobCache[anexoIdAtual]) {
+    if (blobCacheRef.current[anexoIdAtual]) {
       setCarregando(false);
       setErro(null);
       return;
     }
 
+    const sessaoLocal = sessaoIdRef.current;
     setCarregando(true);
     setErro(null);
 
     try {
-      const url = await obterFotoBlobUrl(recIdEfetivo, anexoIdAtual);
-      urlsCriadasRef.current.add(url);
-      setBlobCache((prev) => ({ ...prev, [anexoIdAtual]: url }));
+      await garantirFotoNoCache(recIdEfetivo, anexoIdAtual);
     } catch (err) {
-      setErro(err?.message || 'Não foi possível carregar este documento.');
+      if (sessaoLocal === sessaoIdRef.current) {
+        setErro(err?.message || 'Não foi possível carregar este documento.');
+      }
     } finally {
-      setCarregando(false);
+      if (sessaoLocal === sessaoIdRef.current) {
+        setCarregando(false);
+      }
     }
-  }, [fotoAtual, anexoIdAtual, recIdEfetivo, blobCache]);
+  }, [fotoAtual, anexoIdAtual, recIdEfetivo, garantirFotoNoCache]);
 
   useEffect(() => {
     if (isOpen && fotoAtual) {
@@ -172,36 +255,107 @@ const FotoGaleriaModal = ({
     }
   }, [isOpen, indiceAtivo, carregarFotoAtual, fotoAtual]);
 
+  // Pré-carrega miniaturas em segundo plano com concorrência limitada após a primeira tentativa da foto ativa
+  useEffect(() => {
+    if (!isOpen || fotos.length <= 1 || (!urlAtual && !erro)) return undefined;
+
+    const pendentes = fotos
+      .map((f) => ({
+        recId: f?.recebimentoId || recebimentoId,
+        anexoId: f?.id || f?.anexoId
+      }))
+      .filter((item) => item.recId && item.anexoId && !blobCacheRef.current[item.anexoId]);
+
+    if (pendentes.length === 0) return undefined;
+
+    let cancelado = false;
+    const sessaoLocal = sessaoIdRef.current;
+    const fila = [...pendentes];
+
+    const executarWorker = async () => {
+      while (!cancelado && sessaoLocal === sessaoIdRef.current && fila.length > 0) {
+        const proximo = fila.shift();
+        if (!proximo) break;
+        try {
+          await garantirFotoNoCache(proximo.recId, proximo.anexoId);
+        } catch {
+          // Falha silenciosa em segundo plano; ao clicar na miniatura ocorre nova tentativa visível
+        }
+      }
+    };
+
+    const qtdWorkers = Math.min(2, fila.length);
+    for (let i = 0; i < qtdWorkers; i += 1) {
+      executarWorker();
+    }
+
+    return () => {
+      cancelado = true;
+    };
+  }, [isOpen, fotos, recebimentoId, urlAtual, erro, garantirFotoNoCache]);
+
+  // Aplica zoom preservando sob o cursor/pinça o mesmo ponto proporcional do documento
+  const aplicarZoomComAncora = useCallback((novoZoomBruto, focalVpX = null, focalVpY = null) => {
+    const novoZoom = Math.min(3.5, Math.max(0.5, +Number(novoZoomBruto).toFixed(3)));
+    if (Math.abs(novoZoom - zoomNivelRef.current) < 0.0005) return;
+
+    const vp = viewportRef.current;
+    const metricas = layoutMetricasRef.current;
+
+    if (vp && metricas.wrapW > 0 && metricas.wrapH > 0) {
+      const fx = focalVpX ?? vp.clientWidth / 2;
+      const fy = focalVpY ?? vp.clientHeight / 2;
+      const startX1 = Math.max(metricas.padL, (vp.clientWidth - metricas.wrapW) / 2);
+      const startY1 = Math.max(metricas.padT, (vp.clientHeight - metricas.wrapH) / 2);
+
+      pendenteScrollAncoraRef.current = {
+        u: (vp.scrollLeft + fx - startX1) / metricas.wrapW,
+        v: (vp.scrollTop + fy - startY1) / metricas.wrapH,
+        focalVpX: fx,
+        focalVpY: fy
+      };
+    }
+
+    zoomNivelRef.current = novoZoom;
+    setZoomNivel(novoZoom);
+  }, []);
+
   // Funções de controle de navegação e manipulação de imagem
   const handleAnterior = useCallback(() => {
+    pendenteScrollAncoraRef.current = null;
+    zoomNivelRef.current = 1;
     setIndiceAtivo((prev) => (prev > 0 ? prev - 1 : fotos.length - 1));
     setRotacao(0);
     setZoomNivel(1);
   }, [fotos.length]);
 
   const handleProxima = useCallback(() => {
+    pendenteScrollAncoraRef.current = null;
+    zoomNivelRef.current = 1;
     setIndiceAtivo((prev) => (prev < fotos.length - 1 ? prev + 1 : 0));
     setRotacao(0);
     setZoomNivel(1);
   }, [fotos.length]);
 
   const handleGirarHorario = useCallback(() => {
-    setRotacao((prev) => (prev + 90) % 360);
+    setRotacao((prev) => prev + 90);
   }, []);
 
   const handleGirarAntiHorario = useCallback(() => {
-    setRotacao((prev) => (prev - 90 + 360) % 360);
+    setRotacao((prev) => prev - 90);
   }, []);
 
   const handleZoomIn = useCallback(() => {
-    setZoomNivel((prev) => Math.min(3, +(prev + 0.25).toFixed(2)));
-  }, []);
+    aplicarZoomComAncora(zoomNivelRef.current + 0.25);
+  }, [aplicarZoomComAncora]);
 
   const handleZoomOut = useCallback(() => {
-    setZoomNivel((prev) => Math.max(0.5, +(prev - 0.25).toFixed(2)));
-  }, []);
+    aplicarZoomComAncora(zoomNivelRef.current - 0.25);
+  }, [aplicarZoomComAncora]);
 
   const handleZoomReset = useCallback(() => {
+    pendenteScrollAncoraRef.current = null;
+    zoomNivelRef.current = 1;
     setZoomNivel(1);
   }, []);
 
@@ -276,33 +430,169 @@ const FotoGaleriaModal = ({
     document.body.removeChild(a);
   };
 
+  // Cálculo real de dimensões encaixadas no viewport considerando rotação e zoom
+  const naturaisAtuais =
+    dimensoesNaturais &&
+    dimensoesNaturais.anexoId === anexoIdAtual &&
+    dimensoesNaturais.width > 0 &&
+    dimensoesNaturais.height > 0
+      ? dimensoesNaturais
+      : null;
+  const rotacaoNormalizada = ((rotacao % 360) + 360) % 360;
+  const isRotacionado90 = rotacaoNormalizada === 90 || rotacaoNormalizada === 270;
+
+  let imgW = null;
+  let imgH = null;
+  let wrapW = null;
+  let wrapH = null;
+
+  if (naturaisAtuais) {
+    const dispLarguraVp = Math.max(120, viewportDimensoes.largura - viewportDimensoes.padH);
+    const dispAlturaVp = Math.max(120, viewportDimensoes.altura - viewportDimensoes.padV);
+    const baseVisW = isRotacionado90 ? naturaisAtuais.height : naturaisAtuais.width;
+    const baseVisH = isRotacionado90 ? naturaisAtuais.width : naturaisAtuais.height;
+    const fitScale = Math.min(dispLarguraVp / baseVisW, dispAlturaVp / baseVisH);
+
+    imgW = Math.max(1, Math.round(naturaisAtuais.width * fitScale * zoomNivel));
+    imgH = Math.max(1, Math.round(naturaisAtuais.height * fitScale * zoomNivel));
+    wrapW = isRotacionado90 ? imgH : imgW;
+    wrapH = isRotacionado90 ? imgW : imgH;
+  }
+
+  // Sincroniza métricas reais do layout e reposiciona scroll na âncora antes da pintura
+  useLayoutEffect(() => {
+    zoomNivelRef.current = zoomNivel;
+    layoutMetricasRef.current = {
+      wrapW,
+      wrapH,
+      padL: viewportDimensoes.padL,
+      padT: viewportDimensoes.padT
+    };
+
+    const ancora = pendenteScrollAncoraRef.current;
+    const vp = viewportRef.current;
+    if (!ancora || !vp || !wrapW || !wrapH) return;
+
+    pendenteScrollAncoraRef.current = null;
+    const startX2 = Math.max(viewportDimensoes.padL, (vp.clientWidth - wrapW) / 2);
+    const startY2 = Math.max(viewportDimensoes.padT, (vp.clientHeight - wrapH) / 2);
+    vp.scrollLeft = Math.max(0, startX2 + ancora.u * wrapW - ancora.focalVpX);
+    vp.scrollTop = Math.max(0, startY2 + ancora.v * wrapH - ancora.focalVpY);
+  }, [zoomNivel, wrapW, wrapH, viewportDimensoes.padL, viewportDimensoes.padT]);
+
+  // Listeners nativos não-passivos para zoom via roda do mouse (PC) e pinça com 2 dedos (celular)
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!isOpen || !vp) return undefined;
+
+    const pinchState = pinchRef.current;
+    const obterDistanciaTouches = (t1, t2) =>
+      Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+
+    const handleWheel = (e) => {
+      if (!vp.querySelector('.sge-inspecao-img')) return;
+
+      const normDeltaY =
+        e.deltaMode === 1
+          ? e.deltaY * 16
+          : e.deltaMode === 2
+            ? e.deltaY * vp.clientHeight
+            : e.deltaY;
+      if (!normDeltaY) return;
+
+      e.preventDefault();
+      const intensidade = Math.min(Math.max(Math.abs(normDeltaY) / 100, 0.05), 1.5);
+      const fator = Math.pow(1.18, normDeltaY < 0 ? intensidade : -intensidade);
+      const rect = vp.getBoundingClientRect();
+      aplicarZoomComAncora(zoomNivelRef.current * fator, e.clientX - rect.left, e.clientY - rect.top);
+    };
+
+    const handleTouchStart = (e) => {
+      if (e.touches.length === 2 && vp.querySelector('.sge-inspecao-img')) {
+        if (e.cancelable) e.preventDefault();
+        const distancia = obterDistanciaTouches(e.touches[0], e.touches[1]);
+        pinchState.ativo = distancia > 0;
+        pinchState.distanciaInicial = distancia;
+        pinchState.zoomInicial = zoomNivelRef.current;
+      } else if (e.touches.length < 2 && pinchState.ativo) {
+        pinchState.ativo = false;
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      if (pinchState.ativo && e.touches.length === 2) {
+        if (e.cancelable) e.preventDefault();
+        const distanciaAtual = obterDistanciaTouches(e.touches[0], e.touches[1]);
+        if (pinchState.distanciaInicial <= 0) return;
+
+        const fator = distanciaAtual / pinchState.distanciaInicial;
+        const rect = vp.getBoundingClientRect();
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+        aplicarZoomComAncora(pinchState.zoomInicial * fator, midX, midY);
+      }
+    };
+
+    const handleTouchEnd = (e) => {
+      if (e.touches.length < 2) {
+        pinchState.ativo = false;
+      }
+    };
+
+    const handleGesturePrevent = (e) => {
+      if (vp.querySelector('.sge-inspecao-img') && e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    vp.addEventListener('wheel', handleWheel, { passive: false });
+    vp.addEventListener('touchstart', handleTouchStart, { passive: false });
+    vp.addEventListener('touchmove', handleTouchMove, { passive: false });
+    vp.addEventListener('touchend', handleTouchEnd);
+    vp.addEventListener('touchcancel', handleTouchEnd);
+    vp.addEventListener('gesturestart', handleGesturePrevent, { passive: false });
+    vp.addEventListener('gesturechange', handleGesturePrevent, { passive: false });
+
+    return () => {
+      pinchState.ativo = false;
+      vp.removeEventListener('wheel', handleWheel);
+      vp.removeEventListener('touchstart', handleTouchStart);
+      vp.removeEventListener('touchmove', handleTouchMove);
+      vp.removeEventListener('touchend', handleTouchEnd);
+      vp.removeEventListener('touchcancel', handleTouchEnd);
+      vp.removeEventListener('gesturestart', handleGesturePrevent);
+      vp.removeEventListener('gesturechange', handleGesturePrevent);
+    };
+  }, [isOpen, fotos.length, aplicarZoomComAncora]);
+
   if (!isOpen || !fotos || fotos.length === 0) {
     return null;
   }
 
-  const urlAtual = blobCache[anexoIdAtual];
-  const isRotacionado90 = rotacao === 90 || rotacao === 270;
-
-  // Dimensões dinâmicas calculadas para evitar cortes em rotações de 90°
-  const maxLarguraEfetiva = isRotacionado90
-    ? Math.max(160, viewportDimensoes.altura - 36)
-    : Math.max(160, viewportDimensoes.largura - 36);
-  const maxAlturaEfetiva = isRotacionado90
-    ? Math.max(160, viewportDimensoes.largura - 36)
-    : Math.max(160, viewportDimensoes.altura - 36);
+  // Fallback de dimensões máximas apenas até onLoad informar naturalWidth/naturalHeight
+  const maxLarguraEfetivaFallback = isRotacionado90
+    ? Math.max(160, viewportDimensoes.altura - viewportDimensoes.padV)
+    : Math.max(160, viewportDimensoes.largura - viewportDimensoes.padH);
+  const maxAlturaEfetivaFallback = isRotacionado90
+    ? Math.max(160, viewportDimensoes.largura - viewportDimensoes.padH)
+    : Math.max(160, viewportDimensoes.altura - viewportDimensoes.padV);
 
   const itensConferidos = dadosOperacao?.itens || [];
 
   return (
     <div
-      className="sge-inspecao-backdrop"
+      className={`sge-inspecao-backdrop ${telaCheia ? 'sge-inspecao-backdrop--tela-cheia' : ''}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+      onTouchCancel={(e) => e.stopPropagation()}
       role="presentation"
     >
       <div
-        className="sge-inspecao-modal"
+        className={`sge-inspecao-modal ${telaCheia ? 'sge-inspecao-modal--tela-cheia' : ''}`}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
@@ -340,19 +630,33 @@ const FotoGaleriaModal = ({
 
           {/* Barra de Ferramentas Documentais */}
           <div className="sge-inspecao-toolbar">
-            {/* Alternar Ficha de Conferência */}
+            {/* Alternar Modo Tela Cheia */}
             <button
               type="button"
-              className={`sge-inspecao-btn-tool ${painelAberto ? 'sge-inspecao-btn-tool--ativo' : ''}`}
-              onClick={() => setPainelAberto(!painelAberto)}
-              title={painelAberto ? 'Ocultar ficha de conferência' : 'Exibir ficha de conferência'}
-              aria-label={painelAberto ? 'Ocultar ficha' : 'Exibir ficha'}
+              className={`sge-inspecao-btn-tool ${telaCheia ? 'sge-inspecao-btn-tool--ativo' : ''}`}
+              onClick={() => setTelaCheia((prev) => !prev)}
+              title={telaCheia ? 'Sair da tela cheia' : 'Exibir imagem em tela cheia'}
+              aria-label={telaCheia ? 'Sair da tela cheia' : 'Tela cheia'}
+              aria-pressed={telaCheia}
             >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect width="18" height="18" x="3" y="3" rx="2" />
-                <path d="M9 3v18" />
-              </svg>
-              <span className="sge-inspecao-btn-label">Ficha</span>
+              {telaCheia ? (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="4 14 10 14 10 20" />
+                  <polyline points="20 10 14 10 14 4" />
+                  <line x1="14" y1="10" x2="21" y2="3" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              ) : (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="15 3 21 3 21 9" />
+                  <polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              )}
+              <span className="sge-inspecao-btn-label">
+                {telaCheia ? 'Sair' : 'Tela cheia'}
+              </span>
             </button>
 
             <span className="sge-inspecao-toolbar-divisoria" />
@@ -389,7 +693,7 @@ const FotoGaleriaModal = ({
               onClick={handleZoomIn}
               title="Aumentar zoom (+)"
               aria-label="Aumentar zoom"
-              disabled={zoomNivel >= 3}
+              disabled={zoomNivel >= 3.5}
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="8" />
@@ -417,7 +721,7 @@ const FotoGaleriaModal = ({
 
             <button
               type="button"
-              className={`sge-inspecao-btn-tool ${rotacao > 0 ? 'sge-inspecao-btn-tool--ativo' : ''}`}
+              className="sge-inspecao-btn-tool"
               onClick={handleGirarHorario}
               title="Girar 90° à direita (R)"
               aria-label="Girar 90° à direita"
@@ -426,7 +730,6 @@ const FotoGaleriaModal = ({
                 <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                 <path d="M21 3v5h-5" />
               </svg>
-              {rotacao > 0 && <span className="sge-inspecao-rotacao-tag">{rotacao}°</span>}
             </button>
 
             <span className="sge-inspecao-toolbar-divisoria" />
@@ -446,10 +749,11 @@ const FotoGaleriaModal = ({
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
             </button>
+          </div>
 
+          {/* Botão Fechar isolado para fixar no topo direito em telas estreitas */}
+          <div className="sge-inspecao-header__fechar-bloco">
             <span className="sge-inspecao-toolbar-divisoria" />
-
-            {/* Botão Fechar */}
             <button
               ref={closeButtonRef}
               type="button"
@@ -469,7 +773,7 @@ const FotoGaleriaModal = ({
         {/* Corpo Dividido (Split Body) */}
         <div className="sge-inspecao-corpo">
           {/* Painel Lateral: Ficha de Auditoria e Conferência */}
-          {painelAberto && (
+          {!telaCheia && (
             <aside className="sge-inspecao-sidebar" aria-label="Ficha de conferência documental">
               {/* Seção 1: Dados do Recebimento */}
               <div className="sge-inspecao-sidebar-secao">
@@ -563,6 +867,8 @@ const FotoGaleriaModal = ({
                       type="button"
                       className={`sge-inspecao-rail-item ${isSelected ? 'sge-inspecao-rail-item--ativo' : ''}`}
                       onClick={() => {
+                        pendenteScrollAncoraRef.current = null;
+                        zoomNivelRef.current = 1;
                         setIndiceAtivo(i);
                         setRotacao(0);
                         setZoomNivel(1);
@@ -642,19 +948,65 @@ const FotoGaleriaModal = ({
               )}
 
               {urlAtual && !carregando && !erro && (
-                <div className="sge-inspecao-canvas-wrap">
+                <div
+                  className="sge-inspecao-canvas-wrap"
+                  style={wrapW && wrapH ? { width: `${wrapW}px`, height: `${wrapH}px` } : undefined}
+                >
                   <img
+                    key={anexoIdAtual ?? indiceAtivo}
                     src={urlAtual}
                     alt={fotoAtual?.nomeOriginal || `Documento ${indiceAtivo + 1}`}
                     className="sge-inspecao-img"
-                    style={{
-                      maxWidth: `${maxLarguraEfetiva}px`,
-                      maxHeight: `${maxAlturaEfetiva}px`,
-                      transform: `rotate(${rotacao}deg) scale(${zoomNivel})`,
-                      transformOrigin: 'center center'
+                    draggable={false}
+                    style={
+                      imgW && imgH
+                        ? {
+                            width: `${imgW}px`,
+                            height: `${imgH}px`,
+                            maxWidth: 'none',
+                            maxHeight: 'none',
+                            flexShrink: 0,
+                            transform: `rotate(${rotacao}deg)`,
+                            transformOrigin: 'center center'
+                          }
+                        : {
+                            maxWidth: `${maxLarguraEfetivaFallback}px`,
+                            maxHeight: `${maxAlturaEfetivaFallback}px`,
+                            transform: `rotate(${rotacao}deg)`,
+                            transformOrigin: 'center center'
+                          }
+                    }
+                    onLoad={(e) => {
+                      const { naturalWidth, naturalHeight } = e.currentTarget;
+                      if (naturalWidth > 0 && naturalHeight > 0) {
+                        setDimensoesNaturais({
+                          anexoId: anexoIdAtual,
+                          width: naturalWidth,
+                          height: naturalHeight
+                        });
+                      }
                     }}
-                    onDoubleClick={() => setZoomNivel((prev) => (prev === 1 ? 1.75 : 1))}
+                    onDoubleClick={(e) => {
+                      const vp = viewportRef.current;
+                      const proximoZoom = zoomNivelRef.current <= 1.05 ? 2 : 1;
+                      if (!vp) {
+                        aplicarZoomComAncora(proximoZoom);
+                        return;
+                      }
+                      const rect = vp.getBoundingClientRect();
+                      aplicarZoomComAncora(proximoZoom, e.clientX - rect.left, e.clientY - rect.top);
+                    }}
                     onError={() => {
+                      const urlComErro = blobCacheRef.current[anexoIdAtual];
+                      if (urlComErro) {
+                        delete blobCacheRef.current[anexoIdAtual];
+                        urlsCriadasRef.current.delete(urlComErro);
+                        try {
+                          URL.revokeObjectURL(urlComErro);
+                        } catch {
+                          // ignore
+                        }
+                      }
                       setBlobCache((prev) => {
                         const next = { ...prev };
                         delete next[anexoIdAtual];
@@ -686,28 +1038,30 @@ const FotoGaleriaModal = ({
         </div>
 
         {/* Rodapé / Barra de Status Técnico */}
-        <footer className="sge-inspecao-statusbar">
-          <div className="sge-inspecao-statusbar__dicas">
-            <span>Setas: navegar</span>
-            <span>•</span>
-            <span>R: girar</span>
-            <span>•</span>
-            <span>+/-: zoom</span>
-            <span>•</span>
-            <span>0: ajustar</span>
-            <span>•</span>
-            <span>Esc: fechar</span>
-          </div>
+        {!telaCheia && (
+          <footer className="sge-inspecao-statusbar">
+            <div className="sge-inspecao-statusbar__dicas">
+              <span>Setas: navegar</span>
+              <span>•</span>
+              <span>R: girar</span>
+              <span>•</span>
+              <span>+/-: zoom</span>
+              <span>•</span>
+              <span>0: ajustar</span>
+              <span>•</span>
+              <span>Esc: fechar</span>
+            </div>
 
-          <div className="sge-inspecao-statusbar__indicadores">
-            <span className="sge-inspecao-status-pill">
-              Zoom: {Math.round(zoomNivel * 100)}%
-            </span>
-            <span className="sge-inspecao-status-pill">
-              Orientação: {rotacao}°
-            </span>
-          </div>
-        </footer>
+            <div className="sge-inspecao-statusbar__indicadores">
+              <span className="sge-inspecao-status-pill">
+                Zoom: {Math.round(zoomNivel * 100)}%
+              </span>
+              <span className="sge-inspecao-status-pill">
+                Orientação: {rotacaoNormalizada}°
+              </span>
+            </div>
+          </footer>
+        )}
       </div>
     </div>
   );

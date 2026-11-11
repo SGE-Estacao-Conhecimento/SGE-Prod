@@ -223,8 +223,18 @@ const AlmoxarifeEstoque = ({
 
   // Gestos touch / arrasto para troca fluida de abas no estoque
   const touchEstoqueStartRef = useRef({ x: 0, y: 0 });
+  const touchIgnorarSwipeRef = useRef(false);
 
   const handleEstoqueTouchStart = (e) => {
+    const origemEmModal = Boolean(
+      e.target?.closest?.('[aria-modal="true"], [role="dialog"], [role="alertdialog"]')
+    );
+    if (origemEmModal || e.touches.length !== 1) {
+      touchIgnorarSwipeRef.current = true;
+      return;
+    }
+
+    touchIgnorarSwipeRef.current = false;
     touchEstoqueStartRef.current = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY
@@ -232,6 +242,15 @@ const AlmoxarifeEstoque = ({
   };
 
   const handleEstoqueTouchEnd = (e) => {
+    const deveIgnorar = touchIgnorarSwipeRef.current;
+    if (e.touches.length === 0) {
+      touchIgnorarSwipeRef.current = false;
+    }
+    if (deveIgnorar || e.touches.length > 0) return;
+    if (e.target?.closest?.('[aria-modal="true"], [role="dialog"], [role="alertdialog"]')) {
+      return;
+    }
+
     const deltaX = e.changedTouches[0].clientX - touchEstoqueStartRef.current.x;
     const deltaY = e.changedTouches[0].clientY - touchEstoqueStartRef.current.y;
     // Bloqueio direcional para preservar o scroll vertical nativo
