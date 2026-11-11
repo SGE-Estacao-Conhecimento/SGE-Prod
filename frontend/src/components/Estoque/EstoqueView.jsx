@@ -54,18 +54,6 @@ const EstoqueView = ({
     [materiais]
   );
 
-  // Estatísticas calculadas dinamicamente para a aba ativa de catálogo
-  const stats = useMemo(() => {
-    const listaAba = materiais.filter((m) =>
-      abaEstoque === 'consumo' ? !m.bemDuravel : !!m.bemDuravel
-    );
-    const total = listaAba.length;
-    const ok = listaAba.filter((m) => m.quantidade > m.estoqueMinimo).length;
-    const baixo = listaAba.filter((m) => m.quantidade > 0 && m.quantidade <= m.estoqueMinimo).length;
-    const critico = listaAba.filter((m) => m.quantidade === 0).length;
-    return { total, ok, baixo, critico };
-  }, [materiais, abaEstoque]);
-
   // Filtragem em tempo real dos materiais da categoria ativa
   const filteredMateriais = useMemo(() => {
     return materiais
@@ -136,40 +124,8 @@ const EstoqueView = ({
     return <span className="status-badge status-badge--success">Em Estoque</span>;
   };
 
-  const getTituloHeader = () => {
-    if (abaEstoque === 'patrimonio') return 'Catálogo de Patrimônio & Bens Permanentes';
-    if (abaEstoque === 'historico') return 'Histórico & Auditoria de Estoque';
-    return 'Catálogo de Materiais de Consumo';
-  };
-
-  const getSubtituloHeader = () => {
-    if (abaEstoque === 'patrimonio') {
-      return 'Gerencie os itens patrimoniais e duráveis, controle o inventário e localização.';
-    }
-    if (abaEstoque === 'historico') {
-      return 'Acompanhe cronologicamente todas as movimentações, entradas, baixas e ajustes.';
-    }
-    return 'Gerencie o cadastro de materiais de consumo, controle saldos e acompanhe a localização.';
-  };
-
   return (
     <div className="estoque-container">
-      {/* Header & Ações Principais */}
-      <div className="estoque-header">
-        <div>
-          <h1 className="estoque-title">{getTituloHeader()}</h1>
-          <p className="estoque-subtitle">{getSubtituloHeader()}</p>
-        </div>
-        {abaEstoque !== 'historico' && (
-          <button className="btn-novo-material" onClick={handleOpenNewModal}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            {abaEstoque === 'patrimonio' ? 'Novo Patrimônio' : 'Novo Material'}
-          </button>
-        )}
-      </div>
 
       {/* Navegação por Sub-abas Minimalistas (Consumo, Patrimônio, Histórico) */}
       <div className="estoque-tabs-wrapper">
@@ -231,67 +187,6 @@ const EstoqueView = ({
         />
       ) : (
         <>
-          {/* Cards de Resumo Interativos */}
-          <div className="estoque-kpis" role="region" aria-label="Filtros rápidos por indicador de estoque">
-            <div
-              className={`estoque-kpi-card ${!selectedStatus ? 'estoque-kpi-card--active-total' : ''}`}
-              onClick={() => setSelectedStatus('')}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedStatus(''); }}
-              title="Clique para ver todos os materiais cadastrados"
-            >
-              <div className="estoque-kpi-icon estoque-kpi-icon--total">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                </svg>
-              </div>
-              <div>
-                <span className="estoque-kpi-label">Total Cadastrado</span>
-                <div className="estoque-kpi-val">{stats.total}</div>
-              </div>
-            </div>
-
-            <div
-              className={`estoque-kpi-card ${selectedStatus === 'baixo' ? 'estoque-kpi-card--active-warning' : ''}`}
-              onClick={() => setSelectedStatus(prev => prev === 'baixo' ? '' : 'baixo')}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedStatus(prev => prev === 'baixo' ? '' : 'baixo'); }}
-              title="Clique para filtrar apenas materiais com estoque baixo"
-            >
-              <div className="estoque-kpi-icon estoque-kpi-icon--warning">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                </svg>
-              </div>
-              <div>
-                <span className="estoque-kpi-label">Estoque Baixo</span>
-                <div className="estoque-kpi-val text-warning">{stats.baixo}</div>
-              </div>
-            </div>
-
-            <div
-              className={`estoque-kpi-card ${selectedStatus === 'critico' ? 'estoque-kpi-card--active-danger' : ''}`}
-              onClick={() => setSelectedStatus(prev => prev === 'critico' ? '' : 'critico')}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedStatus(prev => prev === 'critico' ? '' : 'critico'); }}
-              title="Clique para filtrar apenas materiais sem estoque (esgotados)"
-            >
-              <div className="estoque-kpi-icon estoque-kpi-icon--danger">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-                </svg>
-              </div>
-              <div>
-                <span className="estoque-kpi-label">Sem Estoque</span>
-                <div className="estoque-kpi-val text-danger">{stats.critico}</div>
-              </div>
-            </div>
-          </div>
-
           {/* Barra de Busca e Filtros */}
           <div className="estoque-filter-bar">
             <div className="estoque-search-wrap">
@@ -336,6 +231,14 @@ const EstoqueView = ({
                 <option value="baixo">Estoque Baixo</option>
                 <option value="critico">Sem Estoque</option>
               </select>
+
+              <button type="button" className="btn-novo-material" onClick={handleOpenNewModal}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                {abaEstoque === 'patrimonio' ? 'Novo Patrimônio' : 'Novo Material'}
+              </button>
             </div>
           </div>
 
