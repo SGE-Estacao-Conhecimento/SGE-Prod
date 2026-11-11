@@ -6,150 +6,15 @@
 .sge-historico-tab {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   width: 100%;
 }
 
-/* Header descritivo */
-.sge-historico-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.sge-historico-title-wrap {
+/* Seção Superior Unificada (Busca + Botão de Filtro + Sanfona) */
+.sge-historico-top-section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.sge-historico-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text-primary, #1A1D2E);
-  letter-spacing: -0.2px;
-  margin: 0;
-}
-
-.sge-historico-subtitle {
-  font-size: 13px;
-  color: var(--text-secondary, #6B7280);
-  margin: 0;
-}
-
-/* Barra de Filtros e Busca */
-.sge-historico-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: var(--card-bg, #FFFFFF);
-  border: 1px solid var(--border, #E2E8F0);
-  border-radius: var(--radius-lg, 14px);
-  padding: 14px 16px;
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
-}
-
-.sge-historico-search-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   width: 100%;
-}
-
-.sge-historico-search-wrap {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.sge-historico-search-icon {
-  position: absolute;
-  left: 12px;
-  color: var(--text-muted, #94A3B8);
-  pointer-events: none;
-}
-
-.sge-historico-search-input {
-  width: 100%;
-  height: 38px;
-  padding: 0 36px 0 36px;
-  border: 1px solid var(--border, #E2E8F0);
-  border-radius: var(--radius-sm, 8px);
-  font-size: 13.5px;
-  color: var(--text-primary, #1A1D2E);
-  background: #F8FAFC;
-  transition: all 0.15s ease;
-  outline: none;
-}
-
-.sge-historico-search-input:focus {
-  background: #FFFFFF;
-  border-color: var(--accent, #017F7B);
-  box-shadow: 0 0 0 3px rgba(1, 127, 123, 0.12);
-}
-
-.sge-historico-clear-btn {
-  position: absolute;
-  right: 8px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted, #94A3B8);
-  padding: 4px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.15s ease;
-}
-
-.sge-historico-clear-btn:hover {
-  color: var(--text-primary, #1A1D2E);
-}
-
-/* Chips de Tipo de Operação */
-.sge-historico-chips-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-/* Barra de Metadados / Ordenação */
-.sge-historico-meta-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 4px;
-}
-
-.sge-historico-count {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-secondary, #6B7280);
-}
-
-.sge-historico-sort-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #FFFFFF;
-  border: 1px solid var(--border, #E2E8F0);
-  border-radius: var(--radius-sm, 6px);
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary, #475569);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.sge-historico-sort-btn:hover {
-  border-color: var(--accent, #017F7B);
-  color: var(--accent, #017F7B);
 }
 
 /* ==========================================================================
@@ -204,35 +69,8 @@
 .sge-historico-doc-badge-group {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
   min-width: 0;
   flex: 1;
-}
-
-/* Ícone de Tipo */
-.sge-historico-type-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.sge-historico-type-icon--entrada {
-  background: #ECFDF5;
-  color: #059669;
-}
-
-.sge-historico-type-icon--saida {
-  background: #FEF2F2;
-  color: #DC2626;
-}
-
-.sge-historico-type-icon--ajuste {
-  background: #EFF6FF;
-  color: #2563EB;
 }
 
 /* Detalhes do Documento Fiscal */
@@ -260,30 +98,6 @@
 .sge-historico-doc-title strong {
   font-weight: 700;
   color: var(--text-primary, #0F172A);
-}
-
-.sge-historico-type-label {
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 10.5px;
-  letter-spacing: 0.3px;
-  padding: 2px 7px;
-  border-radius: 4px;
-}
-
-.sge-historico-type-label--entrada {
-  background: #ECFDF5;
-  color: #059669;
-}
-
-.sge-historico-type-label--saida {
-  background: #FEF2F2;
-  color: #DC2626;
-}
-
-.sge-historico-type-label--ajuste {
-  background: #EFF6FF;
-  color: #2563EB;
 }
 
 .sge-historico-remessa-tag {
@@ -497,16 +311,6 @@
   word-break: break-word;
 }
 
-.sge-historico-categoria-tag {
-  font-size: 10.5px;
-  font-weight: 500;
-  padding: 1px 6px;
-  background: #FFFFFF;
-  color: #64748B;
-  border-radius: 9999px;
-  border: 1px solid #E2E8F0;
-}
-
 .sge-historico-item-col-delta {
   display: flex;
   align-items: center;
@@ -532,14 +336,35 @@
   color: #2563EB;
 }
 
-.sge-historico-saldo-pos {
-  font-size: 11px;
-  font-weight: 500;
-  color: #64748B;
-  background: #FFFFFF;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid #E2E8F0;
+.sge-historico-items-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  background: #F1F5F9;
+  border: none;
+  border-top: 1px solid #E2E8F0;
+  color: var(--accent, #017F7B);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sge-historico-items-toggle:hover {
+  background: #E6F4F3;
+  color: #016865;
+}
+
+.sge-historico-items-toggle-icon {
+  transition: transform 0.16s ease;
+  flex-shrink: 0;
+}
+
+.sge-historico-items-toggle-icon--aberto {
+  transform: rotate(180deg);
 }
 
 /* Botão de paginação (Carregar Mais) */
@@ -646,15 +471,11 @@
   }
 
   .sge-historico-item-row {
-    flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
+    gap: 10px;
   }
 
   .sge-historico-item-col-delta {
-    width: 100%;
-    justify-content: space-between;
-    padding-top: 4px;
-    border-top: 1px dashed #EDF2F7;
+    white-space: nowrap;
   }
 }

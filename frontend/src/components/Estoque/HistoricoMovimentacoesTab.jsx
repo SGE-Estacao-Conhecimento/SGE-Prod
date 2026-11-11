@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FilterChip, FotoGaleriaModal } from '../common';
+import { SearchFilterBar, FilterDrawer, FilterGroup, FilterChip, SortLoopButton, FotoGaleriaModal } from '../common';
 import './HistoricoMovimentacoesTab.css';
 
 /**
@@ -27,6 +27,9 @@ const extrairNumeroPedido = (str) => {
   return match ? parseInt(match[1], 10) : null;
 };
 
+const ITENS_VISIVEIS_POR_DOC = 5;
+const LIMIAR_RECOLHER_ITENS_DOC = 6;
+
 /**
  * HistoricoMovimentacoesTab
  * Sub-aba de Histórico de Estoque agrupado por Nota Fiscal / Documento de Operação.
@@ -42,10 +45,19 @@ const HistoricoMovimentacoesTab = ({
 }) => {
   const [termoBusca, setTermoBusca] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('todos'); // 'todos' | 'nota_fiscal' | 'saida' | 'ajuste'
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [ordenacao, setOrdenacao] = useState('desc'); // 'desc' (mais recentes) | 'asc'
   const [limiteExibicao, setLimiteExibicao] = useState(25);
+  const [docsItensExpandidos, setDocsItensExpandidos] = useState({});
   const [galeriaAberta, setGaleriaAberta] = useState(false);
   const [dadosGaleria, setDadosGaleria] = useState({ fotos: [], recebimentoId: null, titulo: '', dadosOperacao: null });
+
+  const handleAlternarItensDocumento = (chave) => {
+    setDocsItensExpandidos((prev) => ({
+      ...prev,
+      [chave]: !prev[chave]
+    }));
+  };
 
   const handleAbrirGaleria = (op) => {
     setDadosGaleria({
@@ -103,7 +115,7 @@ const HistoricoMovimentacoesTab = ({
 
       const numRemessa = rem.numeroRemessa || `REM-${recId}`;
       const docFiscal = rem.documentoDoador || rem.fornecedor || numRemessa;
-      const fornecedor = rem.fornecedor || rem.documentoDoador || 'Fornecedor padrão';
+      const fornecedor = rem.fornecedor || rem.documentoDoador || '';
 
       const nfObj = {
         chave: `nf_${recId}`,
@@ -113,7 +125,7 @@ const HistoricoMovimentacoesTab = ({
         numeroRemessa: numRemessa,
         documentoFiscal: docFiscal,
         fornecedor,
-        tipoOrigem: rem.tipoOrigem || 'compra',
+        tipoOrigem: rem.tipoOrigem || 'compra_nf',
         data: rem.data || rem.dataEnvio || new Date().toISOString(),
         responsavel: rem.recebidoPor || 'Almoxarife',
         observacao: rem.observacao || '',
@@ -196,7 +208,7 @@ const HistoricoMovimentacoesTab = ({
         // Fallback: se porventura a remessa pai não estiver no lote de remessas, exibe como avulsa
         const numRemessa = rem.numeroRemessa || `REM-${recId}`;
         const docFiscal = rem.documentoDoador || rem.fornecedor || numRemessa;
-        const fornecedor = rem.fornecedor || rem.documentoDoador || 'Fornecedor padrão';
+        const fornecedor = rem.fornecedor || rem.documentoDoador || '';
 
         const nfObj = {
           chave: `nf_${recId}`,
@@ -206,7 +218,7 @@ const HistoricoMovimentacoesTab = ({
           numeroRemessa: numRemessa,
           documentoFiscal: docFiscal,
           fornecedor,
-          tipoOrigem: rem.tipoOrigem || 'compra',
+          tipoOrigem: rem.tipoOrigem || 'compra_nf',
           data: rem.data || rem.dataEnvio || new Date().toISOString(),
           responsavel: rem.recebidoPor || 'Almoxarife',
           observacao: rem.observacao || '',
@@ -318,8 +330,8 @@ const HistoricoMovimentacoesTab = ({
                       recebimentoId: recId || idFromObs || null,
                       numeroRemessa: numRem || (recId ? `REM-${recId}` : ''),
                       documentoFiscal: doc,
-                      fornecedor: docOrigem || 'Fornecedor padrão',
-                      tipoOrigem: mov.tipoOrigem || 'compra',
+                      fornecedor: docOrigem || '',
+                      tipoOrigem: mov.tipoOrigem || 'compra_nf',
                       data: mov.data,
                       responsavel: mov.funcionarioNome || 'Almoxarife',
                       observacao: mov.observacao || '',
@@ -480,8 +492,7 @@ const HistoricoMovimentacoesTab = ({
         const matchItem = (op.itens || []).some((item) => {
           const nome = String(item.nome || '').toLowerCase();
           const cod = String(item.codigo || '').toLowerCase();
-          const cat = String(item.categoria || '').toLowerCase();
-          return nome.includes(termo) || cod.includes(termo) || cat.includes(termo);
+          return nome.includes(termo) || cod.includes(termo);
         });
 
         if (!matchItem) return false;
@@ -504,7 +515,8 @@ const HistoricoMovimentacoesTab = ({
   }, [operacoesAgrupadas, tipoFiltro, termoBusca, ordenacao]);
 
   const itensExibidos = operacoesFiltradas.slice(0, limiteExibicao);
-  const temFiltroAtivo = tipoFiltro !== 'todos' || termoBusca.trim() !== '';
+  const temFiltroAtivo = tipoFiltro !== 'todos';
+  const temBuscaOuFiltroAtivo = temFiltroAtivo || termoBusca.trim() !== '';
 
   const handleLimparFiltros = () => {
     setTipoFiltro('todos');
@@ -514,131 +526,86 @@ const HistoricoMovimentacoesTab = ({
 
   return (
     <div className={`sge-historico-tab ${className}`}>
-      {/* Header contextual */}
-      <div className="sge-historico-header">
-        <div className="sge-historico-title-wrap">
-          <h2 className="sge-historico-title">Histórico por Nota Fiscal e Operações</h2>
-          <p className="sge-historico-subtitle">
-            Auditoria consolidada por documento fiscal, remessa e ordem de movimentação do estoque.
-          </p>
-        </div>
-      </div>
+      {/* Seção Superior Unificada: Busca + Botão de Filtro com Sanfona */}
+      <div className="sge-historico-top-section">
+        <SearchFilterBar
+          searchTerm={termoBusca}
+          onSearchChange={(val) => {
+            setTermoBusca(val);
+            setLimiteExibicao(25);
+          }}
+          onClear={() => {
+            setTermoBusca('');
+            setLimiteExibicao(25);
+          }}
+          placeholder="Buscar por nota fiscal, doador, remessa, produto SKU ou responsável..."
+          hasActiveFilter={temFiltroAtivo}
+          isFilterOpen={mostrarFiltros}
+          onToggleFilter={() => setMostrarFiltros((prev) => !prev)}
+        />
 
-      {/* Barra de Filtros e Busca */}
-      <div className="sge-historico-controls">
-        <div className="sge-historico-search-row">
-          <div className="sge-historico-search-wrap">
-            <svg
-              className="sge-historico-search-icon"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="text"
-              className="sge-historico-search-input"
-              placeholder="Buscar por Nota Fiscal, fornecedor, remessa, produto SKU ou responsável..."
-              value={termoBusca}
-              onChange={(e) => {
-                setTermoBusca(e.target.value);
+        <FilterDrawer isOpen={mostrarFiltros}>
+          <FilterGroup title="Tipo de Operação">
+            <FilterChip
+              label="Todos"
+              count={metricas.todos}
+              isActive={tipoFiltro === 'todos'}
+              onClick={() => {
+                setTipoFiltro('todos');
                 setLimiteExibicao(25);
               }}
             />
-            {termoBusca && (
-              <button
-                type="button"
-                className="sge-historico-clear-btn"
-                onClick={() => setTermoBusca('')}
-                aria-label="Limpar texto de busca"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Chips de seleção de tipo de operação */}
-        <div className="sge-historico-chips-row" role="group" aria-label="Filtrar por tipo de documento">
-          <FilterChip
-            label="Todos"
-            count={metricas.todos}
-            isActive={tipoFiltro === 'todos'}
-            onClick={() => {
-              setTipoFiltro('todos');
-              setLimiteExibicao(25);
-            }}
-          />
-          <FilterChip
-            label="Notas Fiscais"
-            count={metricas.notaFiscal}
-            dotColor="#059669"
-            isActive={tipoFiltro === 'nota_fiscal'}
-            onClick={() => {
-              setTipoFiltro('nota_fiscal');
-              setLimiteExibicao(25);
-            }}
-          />
-          <FilterChip
-            label="Saídas"
-            count={metricas.saida}
-            dotColor="#DC2626"
-            isActive={tipoFiltro === 'saida'}
-            onClick={() => {
-              setTipoFiltro('saida');
-              setLimiteExibicao(25);
-            }}
-          />
-          <FilterChip
-            label="Ajustes"
-            count={metricas.ajuste}
-            dotColor="#2563EB"
-            isActive={tipoFiltro === 'ajuste'}
-            onClick={() => {
-              setTipoFiltro('ajuste');
-              setLimiteExibicao(25);
-            }}
-          />
-        </div>
+            <FilterChip
+              label="Entradas"
+              count={metricas.notaFiscal}
+              dotColor="#059669"
+              isActive={tipoFiltro === 'nota_fiscal'}
+              onClick={() => {
+                setTipoFiltro('nota_fiscal');
+                setLimiteExibicao(25);
+              }}
+            />
+            <FilterChip
+              label="Saídas"
+              count={metricas.saida}
+              dotColor="#DC2626"
+              isActive={tipoFiltro === 'saida'}
+              onClick={() => {
+                setTipoFiltro('saida');
+                setLimiteExibicao(25);
+              }}
+            />
+            <FilterChip
+              label="Ajustes"
+              count={metricas.ajuste}
+              dotColor="#2563EB"
+              isActive={tipoFiltro === 'ajuste'}
+              onClick={() => {
+                setTipoFiltro('ajuste');
+                setLimiteExibicao(25);
+              }}
+            />
+          </FilterGroup>
+        </FilterDrawer>
       </div>
 
-      {/* Meta Bar: Quantidade de registros e ordenação */}
-      <div className="sge-historico-meta-bar">
-        <span className="sge-historico-count">
+      {/* Meta Bar: Quantidade de registros e ordenação padrão SGE */}
+      <div className="sge-meta-bar">
+        <span className="sge-meta-count">
           {operacoesFiltradas.length === 1
-            ? '1 documento / operação fiscal encontrada'
-            : `${operacoesFiltradas.length} documentos / operações fiscais encontradas`}
+            ? '1 registro encontrado'
+            : `${operacoesFiltradas.length} registros encontrados`}
         </span>
 
-        <button
-          type="button"
-          className="sge-historico-sort-btn"
-          onClick={() => setOrdenacao((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
+        <SortLoopButton
+          currentLabel={ordenacao === 'desc' ? 'Mais recentes' : 'Mais antigas'}
+          onToggleSort={() => setOrdenacao((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
           title="Alternar ordem cronológica"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <line x1="4" y1="6" x2="11" y2="6" />
-            <line x1="4" y1="12" x2="9" y2="12" />
-            <line x1="4" y1="18" x2="7" y2="18" />
-            <polyline points="15 15 18 18 21 15" />
-            <line x1="18" y1="6" x2="18" y2="18" />
-          </svg>
-          <span>{ordenacao === 'desc' ? 'Mais recentes' : 'Mais antigas'}</span>
-        </button>
+          ariaLabel={`Alternar ordenação dos registros. Atual: ${ordenacao === 'desc' ? 'Mais recentes' : 'Mais antigas'}`}
+        />
       </div>
 
-      {/* Lista de Registros de Histórico Agrupados por Nota Fiscal / Operação */}
+      {/* Lista de Registros de Histórico Agrupados por Documento / Operação */}
       {operacoesFiltradas.length === 0 ? (
         <div className="sge-historico-empty">
           <div className="sge-historico-empty-icon">
@@ -648,14 +615,14 @@ const HistoricoMovimentacoesTab = ({
             </svg>
           </div>
           <h3 className="sge-historico-empty-title">
-            {temFiltroAtivo ? 'Nenhum documento ou operação encontrada' : 'Nenhuma operação registrada'}
+            {temBuscaOuFiltroAtivo ? 'Nenhum registro encontrado' : 'Nenhuma operação registrada'}
           </h3>
           <p className="sge-historico-empty-desc">
-            {temFiltroAtivo
+            {temBuscaOuFiltroAtivo
               ? 'Tente ajustar os filtros ou o termo de busca para localizar outros documentos.'
-              : 'As Notas Fiscais e movimentações do estoque aparecerão aqui organizadas por documento.'}
+              : 'As entradas, saídas e movimentações do estoque aparecerão aqui organizadas por operação.'}
           </p>
-          {temFiltroAtivo && (
+          {temBuscaOuFiltroAtivo && (
             <button
               type="button"
               className="sge-historico-clear-filter-btn"
@@ -671,61 +638,53 @@ const HistoricoMovimentacoesTab = ({
             const isNF = op.tipoOperacao === 'nota_fiscal';
             const isSaida = op.tipoOperacao === 'saida';
             const isAjuste = op.tipoOperacao === 'ajuste';
+            const isDoacao = op.tipoOrigem === 'doacao';
+            const isCompra = op.tipoOrigem === 'compra_nf' || op.tipoOrigem === 'compra';
+            const rotuloEntrada = isDoacao
+              ? 'Doador'
+              : isCompra
+                ? 'Nota Fiscal'
+                : 'Origem';
 
             const totalUnidades = (op.itens || []).reduce(
               (acc, it) => acc + (Number(it.quantidade) || 0),
               0
             );
+            const itensOp = op.itens || [];
+            const possuiListaExtensa = itensOp.length > LIMIAR_RECOLHER_ITENS_DOC;
+            const termoLimpo = termoBusca.toLowerCase().trim();
+            const matchEmItemOculto = Boolean(
+              termoLimpo &&
+                possuiListaExtensa &&
+                itensOp.slice(ITENS_VISIVEIS_POR_DOC).some((item) => {
+                  const nome = String(item.nome || '').toLowerCase();
+                  const cod = String(item.codigo || '').toLowerCase();
+                  return nome.includes(termoLimpo) || cod.includes(termoLimpo);
+                })
+            );
+            const listaExpandida = !possuiListaExtensa || Boolean(docsItensExpandidos[op.chave]) || matchEmItemOculto;
+            const itensVisiveis = listaExpandida ? itensOp : itensOp.slice(0, ITENS_VISIVEIS_POR_DOC);
+            const qtdItensOcultos = Math.max(0, itensOp.length - itensVisiveis.length);
 
             return (
               <article key={op.chave} className={`sge-historico-card sge-historico-card--${op.tipoOperacao}`}>
                 {/* Cabeçalho do Card */}
                 <div className="sge-historico-card-top">
                   <div className="sge-historico-doc-badge-group">
-                    <div
-                      className={`sge-historico-type-icon sge-historico-type-icon--${isNF ? 'entrada' : isSaida ? 'saida' : 'ajuste'}`}
-                      title={isNF ? 'Nota Fiscal' : isSaida ? 'Saída de Estoque' : 'Ajuste de Inventário'}
-                    >
-                      {isNF && (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                          <polyline points="14 2 14 8 20 8" />
-                          <line x1="16" y1="13" x2="8" y2="13" />
-                          <line x1="16" y1="17" x2="8" y2="17" />
-                          <polyline points="10 9 9 9 8 9" />
-                        </svg>
-                      )}
-                      {isSaida && (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <line x1="12" y1="19" x2="12" y2="5" />
-                          <polyline points="5 12 12 5 19 12" />
-                        </svg>
-                      )}
-                      {isAjuste && (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <polyline points="23 4 23 10 17 10" />
-                          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                        </svg>
-                      )}
-                    </div>
-
                     <div className="sge-historico-doc-details">
                       <div className="sge-historico-doc-header-row">
                         {isNF && (
                           <>
                             <span className="sge-historico-doc-title">
-                              Nota Fiscal: <strong>{op.documentoFiscal || op.numeroRemessa || 'Entrada'}</strong>
-                            </span>
-                            <span className="sge-historico-type-label sge-historico-type-label--entrada">
-                              {op.tipoOrigem === 'doacao' ? 'Doação' : 'Nota Fiscal'}
+                              {rotuloEntrada}: <strong>{op.documentoFiscal || op.numeroRemessa || 'Entrada'}</strong>
                             </span>
                             {op.numeroRemessa && op.numeroRemessa !== op.documentoFiscal && (
                               <span className="sge-historico-remessa-tag" title="Identificador da Remessa">
                                 {op.numeroRemessa}
                               </span>
                             )}
-                            {op.fornecedor && op.fornecedor !== op.documentoFiscal && (
-                              <span className="sge-historico-fornecedor-tag" title="Fornecedor ou Doador">
+                            {isCompra && op.fornecedor && op.fornecedor !== op.documentoFiscal && (
+                              <span className="sge-historico-fornecedor-tag" title="Fornecedor">
                                 Fornecedor: {op.fornecedor}
                               </span>
                             )}
@@ -733,29 +692,19 @@ const HistoricoMovimentacoesTab = ({
                         )}
 
                         {isSaida && (
-                          <>
-                            <span className="sge-historico-doc-title">
-                              {op.pedidoId ? (
-                                <>Pedido: <strong>#{op.pedidoId}</strong></>
-                              ) : (
-                                <strong>Saída de Estoque</strong>
-                              )}
-                            </span>
-                            <span className="sge-historico-type-label sge-historico-type-label--saida">
-                              Saída
-                            </span>
-                          </>
+                          <span className="sge-historico-doc-title">
+                            {op.pedidoId ? (
+                              <>Pedido: <strong>#{op.pedidoId}</strong></>
+                            ) : (
+                              <strong>Saída de Estoque</strong>
+                            )}
+                          </span>
                         )}
 
                         {isAjuste && (
-                          <>
-                            <span className="sge-historico-doc-title">
-                              <strong>Ajuste de Inventário Físico</strong>
-                            </span>
-                            <span className="sge-historico-type-label sge-historico-type-label--ajuste">
-                              Balanço
-                            </span>
-                          </>
+                          <span className="sge-historico-doc-title">
+                            <strong>Ajuste de Inventário Físico</strong>
+                          </span>
                         )}
                       </div>
 
@@ -834,18 +783,18 @@ const HistoricoMovimentacoesTab = ({
                   <div className="sge-historico-items-header">
                     <span className="sge-historico-items-title">
                       {isNF
-                        ? `Itens recebidos nesta Nota Fiscal (${op.itens.length})`
+                        ? 'Itens recebidos'
                         : isSaida
-                          ? `Itens atendidos (${op.itens.length})`
-                          : `Itens ajustados (${op.itens.length})`}
+                          ? 'Itens atendidos'
+                          : 'Itens ajustados'}
                     </span>
                     <span className="sge-historico-items-sum">
-                      Total: {totalUnidades} {totalUnidades === 1 ? 'unidade' : 'unidades'}
+                      Volume: {totalUnidades}
                     </span>
                   </div>
 
                   <div className="sge-historico-items-table">
-                    {op.itens.map((item, idx) => (
+                    {itensVisiveis.map((item, idx) => (
                       <div
                         key={`${op.chave}_it_${item.materialId || idx}`}
                         className="sge-historico-item-row"
@@ -853,9 +802,6 @@ const HistoricoMovimentacoesTab = ({
                         <div className="sge-historico-item-col-prod">
                           <span className="sge-historico-sku-badge">{item.codigo}</span>
                           <span className="sge-historico-item-nome">{item.nome}</span>
-                          {item.categoria && (
-                            <span className="sge-historico-categoria-tag">{item.categoria}</span>
-                          )}
                         </div>
 
                         <div className="sge-historico-item-col-delta">
@@ -864,15 +810,39 @@ const HistoricoMovimentacoesTab = ({
                             {isSaida && `-${item.quantidade} ${item.unidade}`}
                             {isAjuste && `Ajuste (${item.quantidade > 0 ? `+${item.quantidade}` : item.quantidade}) ${item.unidade}`}
                           </span>
-                          {item.saldoApos !== null && item.saldoApos !== undefined && (
-                            <span className="sge-historico-saldo-pos">
-                              Saldo pós: {item.saldoApos} {item.unidade}
-                            </span>
-                          )}
                         </div>
                       </div>
                     ))}
                   </div>
+
+                  {possuiListaExtensa && !matchEmItemOculto && (
+                    <button
+                      type="button"
+                      className="sge-historico-items-toggle"
+                      onClick={() => handleAlternarItensDocumento(op.chave)}
+                      aria-expanded={listaExpandida}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={`sge-historico-items-toggle-icon ${listaExpandida ? 'sge-historico-items-toggle-icon--aberto' : ''}`}
+                        aria-hidden="true"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                      <span>
+                        {listaExpandida
+                          ? 'Recolher lista'
+                          : `Mostrar mais ${qtdItensOcultos} ${qtdItensOcultos === 1 ? 'item' : 'itens'} (${itensOp.length} no total)`}
+                      </span>
+                    </button>
+                  )}
                 </div>
               </article>
             );
