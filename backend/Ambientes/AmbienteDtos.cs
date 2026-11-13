@@ -6,7 +6,7 @@ public sealed record AmbienteDto(
     string? Setor,
     string? Descricao,
     bool Ativo,
-    int TotalPatrimonios
+    long TotalPatrimonios
 );
 
 public sealed record SalvarAmbienteRequest(

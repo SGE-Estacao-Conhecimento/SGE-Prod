@@ -8,7 +8,7 @@ public sealed record PatrimonioCatalogoDto(
     string? Modelo,
     string? Descricao,
     bool Ativo,
-    int TotalExemplares
+    long TotalExemplares
 );
 
 public sealed record SalvarPatrimonioCatalogoRequest(

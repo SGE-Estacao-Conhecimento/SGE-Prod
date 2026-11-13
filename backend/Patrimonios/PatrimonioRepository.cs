@@ -97,7 +97,7 @@ public sealed class PatrimonioRepository(DbConnectionFactory db) : RepositorioBa
                    pi.ambiente_id AS AmbienteId,
                    a.nome AS NomeAmbiente,
                    pi.responsavel_usuario_id AS ResponsavelId,
-                   u.nome AS NomeResponsavel,
+                   COALESCE(f.nome, u.email) AS NomeResponsavel,
                    pi.estado_conservacao AS EstadoConservacao,
                    pi.status AS Status,
                    DATE_FORMAT(pi.data_aquisicao, '%d/%m/%Y') AS DataAquisicao,
@@ -107,6 +107,7 @@ public sealed class PatrimonioRepository(DbConnectionFactory db) : RepositorioBa
               JOIN patrimonios p ON p.patrimonio_id = pi.patrimonio_id
               LEFT JOIN ambientes a ON a.ambiente_id = pi.ambiente_id
               LEFT JOIN usuarios u ON u.usuario_id = pi.responsavel_usuario_id
+              LEFT JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
              WHERE (@ambienteId IS NULL OR pi.ambiente_id = @ambienteId)
                AND (@semAmbiente = FALSE OR pi.ambiente_id IS NULL)
                AND (@categoria IS NULL OR p.categoria = @categoria)
@@ -115,7 +116,8 @@ public sealed class PatrimonioRepository(DbConnectionFactory db) : RepositorioBa
                     p.nome LIKE CONCAT('%', @busca, '%')
                  OR pi.numero_patrimonio LIKE CONCAT('%', @busca, '%')
                  OR pi.numero_serie LIKE CONCAT('%', @busca, '%')
-                 OR u.nome LIKE CONCAT('%', @busca, '%')
+                 OR f.nome LIKE CONCAT('%', @busca, '%')
+                 OR u.email LIKE CONCAT('%', @busca, '%')
                  OR a.nome LIKE CONCAT('%', @busca, '%')
                ))
              ORDER BY pi.data_cadastro DESC, pi.item_id DESC
@@ -145,7 +147,7 @@ public sealed class PatrimonioRepository(DbConnectionFactory db) : RepositorioBa
                    pi.ambiente_id AS AmbienteId,
                    a.nome AS NomeAmbiente,
                    pi.responsavel_usuario_id AS ResponsavelId,
-                   u.nome AS NomeResponsavel,
+                   COALESCE(f.nome, u.email) AS NomeResponsavel,
                    pi.estado_conservacao AS EstadoConservacao,
                    pi.status AS Status,
                    DATE_FORMAT(pi.data_aquisicao, '%d/%m/%Y') AS DataAquisicao,
@@ -155,6 +157,7 @@ public sealed class PatrimonioRepository(DbConnectionFactory db) : RepositorioBa
               JOIN patrimonios p ON p.patrimonio_id = pi.patrimonio_id
               LEFT JOIN ambientes a ON a.ambiente_id = pi.ambiente_id
               LEFT JOIN usuarios u ON u.usuario_id = pi.responsavel_usuario_id
+              LEFT JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
              WHERE pi.item_id = @id
             """;
         return await con.QuerySingleOrDefaultAsync<PatrimonioItemDto>(sql, new { id });
