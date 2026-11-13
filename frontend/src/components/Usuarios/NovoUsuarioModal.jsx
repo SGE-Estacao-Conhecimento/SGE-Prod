@@ -10,7 +10,15 @@ const PERFIS = [
   { value: 'Usuário', label: 'Usuário (Consultas e Pedidos)' },
 ];
 
-const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores = [], onCriarSetor }) => {
+const NovoUsuarioModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  initialData = null,
+  setores = [],
+  onCriarSetor,
+  setorPadrao = ''
+}) => {
   const [submitting, setSubmitting] = useState(false);
   const dialogRef = useDialogAccessibility({ isOpen, onClose: submitting ? undefined : onClose });
   const [setoresLocais, setSetoresLocais] = useState([]);
@@ -51,18 +59,21 @@ const NovoUsuarioModal = ({ isOpen, onClose, onSave, initialData = null, setores
         ativo: initialData.ativo ?? true
       });
     } else {
+      const setorInicial = (setorPadrao && listaSetores.includes(setorPadrao))
+        ? setorPadrao
+        : (listaSetores[0] || '');
       setFormData({
         nome: '',
         cpf: '',
         email: '',
         perfil: 'Usuário',
-        setor: listaSetores[0] || '',
+        setor: setorInicial,
         ativo: true
       });
     }
     setNovoSetorNome('');
     setErrors({});
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, setorPadrao, listaSetores]);
 
   useEffect(() => {
     if (!formData.setor && listaSetores.length > 0) {

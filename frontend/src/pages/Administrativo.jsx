@@ -8,11 +8,14 @@ import ConsultaEstoque from '../components/ConsultaEstoque/ConsultaEstoque';
 import GerenciarUsuarios from '../components/GerenciarUsuarios/GerenciarUsuarios';
 import NovoPedido from '../components/NovoPedido/NovoPedido';
 import EstoqueView from '../components/Estoque/EstoqueView';
+import AmbientesView from '../components/Ambientes/AmbientesView';
 import UsuariosView from '../components/Usuarios/UsuariosView';
 import PedidosView from '../components/Pedidos/PedidosView';
 import RelatoriosView from '../components/Relatorios/RelatoriosView';
 import './Administrativo.css';
 import { materialService } from '../services/materiais/materialService';
+import { ambienteService } from '../services/ambientes/ambienteService';
+import { patrimonioService } from '../services/patrimonios/patrimonioService';
 import { dashboardService } from '../services/dashboard/dashboardService';
 import { pedidoService } from '../services/pedidos/pedidoService';
 import { usuarioService } from '../services/usuarios/usuarioService';
@@ -27,11 +30,12 @@ import NovoPedidoModal from '../components/Pedidos/NovoPedidoModal';
 import AdminPerfil from '../components/AdminPerfil/AdminPerfil';
 import { useSectionNavigation, SpeedDialFAB } from '../components/common';
 
-const ADMIN_SECTIONS = ['dashboard', 'estoque', 'usuarios', 'pedidos', 'relatorios', 'perfil'];
+const ADMIN_SECTIONS = ['dashboard', 'estoque', 'ambientes', 'usuarios', 'pedidos', 'relatorios', 'perfil'];
 
 const TITLES = {
   dashboard: 'Início',
   estoque: 'Gestão de Estoque',
+  ambientes: 'Gestão de Ambientes e Patrimônio',
   usuarios: 'Gerenciamento de Usuários',
   pedidos: 'Gestão de Pedidos',
   relatorios: 'Relatórios do Sistema',
@@ -59,6 +63,13 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
   const [remessas, setRemessas] = useState([]);
   const [notificacoes, setNotificacoes] = useState([]);
   const [setores, setSetores] = useState([]);
+  const [ambientes, setAmbientes] = useState([]);
+  const [ambientesLoading, setAmbientesLoading] = useState(true);
+  const [ambientesError, setAmbientesError] = useState(null);
+  const [patrimoniosCatalogo, setPatrimoniosCatalogo] = useState([]);
+  const [patrimoniosItens, setPatrimoniosItens] = useState([]);
+  const [patrimoniosLoading, setPatrimoniosLoading] = useState(true);
+  const [patrimoniosError, setPatrimoniosError] = useState(null);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState(null);
   // Filtro de status pré-aplicado ao abrir o Estoque por atalho (ex: banner de itens esgotados)
   const [estoqueStatusInicial, setEstoqueStatusInicial] = useState('');
@@ -136,6 +147,90 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
       setSetores(listaAtualizada);
     }
     return listaAtualizada;
+  };
+
+  useEffect(() => {
+    let active = true;
+    ambienteService.listar()
+      .then((data) => {
+        if (active) {
+          setAmbientes(data || []);
+          setAmbientesError(null);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setAmbientes([]);
+          setAmbientesError(formatarErroApi(err, 'Não foi possível carregar os ambientes.'));
+        }
+      })
+      .finally(() => { if (active) setAmbientesLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      patrimonioService.listarCatalogo().catch(() => []),
+      patrimonioService.listarItens().catch(() => [])
+    ])
+      .then(([cats, itens]) => {
+        if (active) {
+          setPatrimoniosCatalogo(cats || []);
+          setPatrimoniosItens(itens || []);
+          setPatrimoniosError(null);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setPatrimoniosError(formatarErroApi(err, 'Não foi possível carregar os patrimônios.'));
+        }
+      })
+      .finally(() => { if (active) setPatrimoniosLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const handleCriarAmbiente = async (dados) => {
+    const criado = await ambienteService.criar(dados);
+    const lista = await ambienteService.listar().catch(() => []);
+    if (Array.isArray(lista)) setAmbientes(lista);
+    return criado;
+  };
+
+  const handleSalvarPatrimonioItem = async (dados) => {
+    const salvo = dados.id
+      ? await patrimonioService.atualizarItem(dados.id, dados)
+      : await patrimonioService.criarItem(dados);
+
+    const [cats, itens, listaAmb] = await Promise.all([
+      patrimonioService.listarCatalogo().catch(() => []),
+      patrimonioService.listarItens().catch(() => []),
+      ambienteService.listar().catch(() => [])
+    ]);
+    if (Array.isArray(cats)) setPatrimoniosCatalogo(cats);
+    if (Array.isArray(itens)) setPatrimoniosItens(itens);
+    if (Array.isArray(listaAmb)) setAmbientes(listaAmb);
+    return salvo;
+  };
+
+  const handleTransferirPatrimonioItem = async (id, dados) => {
+    await patrimonioService.transferirItem(id, dados);
+    const [itens, listaAmb] = await Promise.all([
+      patrimonioService.listarItens().catch(() => []),
+      ambienteService.listar().catch(() => [])
+    ]);
+    if (Array.isArray(itens)) setPatrimoniosItens(itens);
+    if (Array.isArray(listaAmb)) setAmbientes(listaAmb);
+  };
+
+  const handleBaixarPatrimonioItem = async (id) => {
+    await patrimonioService.baixarItem(id);
+    const [itens, listaAmb] = await Promise.all([
+      patrimonioService.listarItens().catch(() => []),
+      ambienteService.listar().catch(() => [])
+    ]);
+    if (Array.isArray(itens)) setPatrimoniosItens(itens);
+    if (Array.isArray(listaAmb)) setAmbientes(listaAmb);
   };
 
   useEffect(() => {
@@ -356,9 +451,37 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
             )}
           </div>
         );
+      case 'ambientes':
+        return (
+          <div className="dashboard-page-scroll dashboard-page-scroll--ambientes">
+            {(ambientesLoading || patrimoniosLoading) && <p>Carregando ambientes e patrimônios...</p>}
+            {(ambientesError || patrimoniosError) && (
+              <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
+                <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{ambientesError || patrimoniosError}</span>
+              </div>
+            )}
+            {!ambientesLoading && !patrimoniosLoading && (
+              <AmbientesView
+                ambientes={ambientes}
+                catalogo={patrimoniosCatalogo}
+                itens={patrimoniosItens}
+                usuarios={usuarios}
+                onCriarAmbiente={handleCriarAmbiente}
+                onSalvarItem={handleSalvarPatrimonioItem}
+                onTransferirItem={handleTransferirPatrimonioItem}
+                onBaixarItem={handleBaixarPatrimonioItem}
+              />
+            )}
+          </div>
+        );
       case 'usuarios':
         return (
-          <div className="dashboard-page-scroll">
+          <div className="dashboard-page-scroll dashboard-page-scroll--usuarios">
             {usuariosLoading && <p>Carregando usuários...</p>}
             {usuariosError && (
               <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">

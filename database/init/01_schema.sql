@@ -233,6 +233,50 @@ CREATE TABLE movimentacoes_estoque (
     INDEX idx_mov_produto_data (produto_id, data_movimentacao)
 ) ENGINE=InnoDB;
 
+-- Ambientes físicos para vinculação e rastreamento de bens duráveis / patrimônios.
+CREATE TABLE ambientes (
+    ambiente_id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL UNIQUE,
+    setor VARCHAR(100) NULL,
+    descricao VARCHAR(255) NULL,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    data_criacao TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+) ENGINE=InnoDB;
+
+-- Catálogo de bens patrimoniais (especificação de modelo, sem estoque inicial/mínimo).
+CREATE TABLE patrimonios (
+    patrimonio_id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    categoria VARCHAR(100) NOT NULL,
+    marca VARCHAR(100) NULL,
+    modelo VARCHAR(100) NULL,
+    descricao VARCHAR(500) NULL,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    data_criacao TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    INDEX idx_patrimonio_categoria (categoria)
+) ENGINE=InnoDB;
+
+-- Exemplares físicos tombados (plaqueta única, ambiente alocado e responsável).
+CREATE TABLE patrimonio_itens (
+    item_id INT AUTO_INCREMENT PRIMARY KEY,
+    patrimonio_id INT NOT NULL,
+    numero_patrimonio VARCHAR(50) NOT NULL UNIQUE,
+    numero_serie VARCHAR(100) NULL,
+    ambiente_id INT NULL,
+    responsavel_usuario_id INT NULL,
+    estado_conservacao ENUM('novo', 'bom', 'regular', 'danificado', 'em_manutencao') NOT NULL DEFAULT 'bom',
+    status ENUM('ativo', 'em_manutencao', 'baixado') NOT NULL DEFAULT 'ativo',
+    data_aquisicao DATE NULL,
+    observacoes VARCHAR(500) NULL,
+    data_cadastro TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT fk_patrimonio_itens_patrimonio FOREIGN KEY (patrimonio_id) REFERENCES patrimonios(patrimonio_id) ON DELETE CASCADE,
+    CONSTRAINT fk_patrimonio_itens_ambiente FOREIGN KEY (ambiente_id) REFERENCES ambientes(ambiente_id) ON DELETE SET NULL,
+    CONSTRAINT fk_patrimonio_itens_responsavel FOREIGN KEY (responsavel_usuario_id) REFERENCES usuarios(usuario_id) ON DELETE SET NULL,
+    INDEX idx_patrimonio_itens_ambiente (ambiente_id),
+    INDEX idx_patrimonio_itens_responsavel (responsavel_usuario_id),
+    INDEX idx_patrimonio_itens_status (status)
+) ENGINE=InnoDB;
+
 DELIMITER $$
 
 -- Recebimento só nasce em preparação e só é confirmado com pelo menos uma foto do material já enviada ao R2.
