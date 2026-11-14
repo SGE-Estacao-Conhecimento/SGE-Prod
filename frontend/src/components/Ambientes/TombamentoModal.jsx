@@ -28,6 +28,7 @@ const TombamentoModal = ({
   ambientes = [],
   usuarios = [],
   ambientePadraoId = null,
+  modeloPadraoId = null,
   initialData = null
 }) => {
   const [submitting, setSubmitting] = useState(false);
@@ -69,8 +70,8 @@ const TombamentoModal = ({
         observacoes: initialData.observacoes || ''
       });
     } else {
-      const primeiroCat = catalogo.length > 0 ? catalogo[0].id : '';
-      setIsNovoModelo(catalogo.length === 0);
+      const primeiroCat = modeloPadraoId || (catalogo.length > 0 ? catalogo[0].id : '');
+      setIsNovoModelo(catalogo.length === 0 && !modeloPadraoId);
       setFormData({
         patrimonioId: primeiroCat,
         novoPatrimonioNome: '',
@@ -87,7 +88,7 @@ const TombamentoModal = ({
       });
     }
     setErrors({});
-  }, [initialData, isOpen, ambientePadraoId, catalogo]);
+  }, [initialData, isOpen, ambientePadraoId, modeloPadraoId, catalogo]);
 
   if (!isOpen) return null;
 
@@ -150,7 +151,7 @@ const TombamentoModal = ({
         <div className="tombamento-modal__header">
           <div>
             <h3 id="tombamento-modal-title" className="tombamento-modal__title">
-              {initialData ? 'Editar Patrimônio Tombado' : 'Tombear Novo Patrimônio'}
+              {initialData?.id ? 'Editar Patrimônio Tombado' : 'Tombear Novo Patrimônio'}
             </h3>
             <p className="tombamento-modal__subtitle">
               Vincule o número da plaqueta ao modelo e destine ao ambiente físico ou responsável.

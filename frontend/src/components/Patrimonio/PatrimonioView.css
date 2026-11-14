@@ -1,0 +1,491 @@
+/* ==========================================================================
+   PatrimonioView.css - Layout Compacto Padronizado do Catálogo e Tombamentos
+   ========================================================================== */
+
+.patrimonio-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* Feedback Banner */
+.patrimonio-feedback-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  animation: fadeIn 0.15s ease-in-out;
+}
+
+.patrimonio-feedback-banner--success {
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.patrimonio-feedback-banner--error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+/* Barra de Filtros e Busca (Padronizada com Estoque e Ambientes) */
+.patrimonio-filter-bar {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.patrimonio-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+}
+
+.patrimonio-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.patrimonio-search-input {
+  width: 100%;
+  padding: 8px 36px 8px 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--content-bg);
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.patrimonio-search-input:focus {
+  border-color: var(--accent);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(1, 127, 123, 0.15);
+  outline: none;
+}
+
+.patrimonio-clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.patrimonio-filters-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.patrimonio-select-filter {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--content-bg);
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.patrimonio-select-filter:focus {
+  border-color: var(--accent);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(1, 127, 123, 0.15);
+}
+
+.btn-novo-modelo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(1, 127, 123, 0.25);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-novo-modelo:hover {
+  background: var(--accent-hover, #016663);
+  transform: translateY(-1px);
+}
+
+.btn-novo-modelo:active {
+  transform: scale(0.98);
+}
+
+/* Barra Contextual Superior do Modelo (Quando dentro de uma caixa) */
+.patrimonio-context-bar {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.patrimonio-context-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-patrimonio-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--content-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-patrimonio-voltar:hover {
+  background: #e2e8f0;
+  color: var(--accent);
+}
+
+.patrimonio-context-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.patrimonio-context-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.patrimonio-context-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.patrimonio-context-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-patrimonio-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-patrimonio-secondary:hover {
+  background: var(--content-bg);
+  border-color: var(--text-muted);
+}
+
+/* Card e Tabela Padronizados (Compactos) */
+.patrimonio-table-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.patrimonio-table-wrapper {
+  overflow-x: auto;
+}
+
+.patrimonio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.patrimonio-table th {
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+  white-space: nowrap;
+}
+
+.patrimonio-table td {
+  padding: 10px 14px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.patrimonio-table tbody tr:hover {
+  background: var(--content-bg);
+}
+
+.patrimonio-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Elementos nas Células da Tabela */
+.patrimonio-nome-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.patrimonio-nome-link:hover {
+  color: var(--accent);
+}
+
+.patrimonio-espec-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.patrimonio-desc-cell {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.patrimonio-muted-cell {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.patrimonio-qtd-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.patrimonio-unidades-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: #f1f5f9;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.patrimonio-unidades-badge strong {
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.patrimonio-avaria-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #fde68a;
+}
+
+.patrimonio-serie-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.patrimonio-responsavel-text {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.patrimonio-actions-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.btn-patrimonio-abrir {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--content-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-patrimonio-abrir:hover {
+  background: #e2e8f0;
+  border-color: var(--text-muted);
+  color: var(--accent);
+}
+
+.btn-patrimonio-quick-tombar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f0fdfa;
+  border: 1px solid rgba(1, 127, 123, 0.4);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-patrimonio-quick-tombar:hover {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.btn-patrimonio-icon-action {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-patrimonio-icon-action:hover {
+  color: var(--accent);
+  background: var(--content-bg);
+  border-color: var(--accent);
+}
+
+/* Empty State (Mesmo padrão do Estoque) */
+.patrimonio-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.patrimonio-empty-state .empty-icon {
+  margin-bottom: 12px;
+  color: var(--border);
+}
+
+.patrimonio-empty-state h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+}
+
+.patrimonio-empty-state p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 440px;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .patrimonio-filter-bar,
+  .patrimonio-context-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .patrimonio-filters-right,
+  .patrimonio-context-right {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .patrimonio-select-filter,
+  .btn-novo-modelo,
+  .btn-patrimonio-secondary {
+    flex: 1;
+    justify-content: center;
+  }
+}

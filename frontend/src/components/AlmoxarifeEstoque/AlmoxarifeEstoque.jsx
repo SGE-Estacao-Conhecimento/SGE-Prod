@@ -218,8 +218,8 @@ const AlmoxarifeEstoque = ({
   const [statusFiltro, setStatusFiltro] = useState('todos');
   const [indiceOrdenacao, setIndiceOrdenacao] = useState(0);
 
-  // Divisão de Estoque: Consumo, Patrimônio ou Histórico
-  const [abaEstoque, setAbaEstoque] = useState('consumo'); // 'consumo' | 'patrimonio' | 'historico'
+  // Divisão de Estoque: Consumo ou Histórico
+  const [abaEstoque, setAbaEstoque] = useState('consumo'); // 'consumo' | 'historico'
 
   // Gestos touch / arrasto para troca fluida de abas no estoque
   const touchEstoqueStartRef = useRef({ x: 0, y: 0 });
@@ -256,11 +256,9 @@ const AlmoxarifeEstoque = ({
     // Bloqueio direcional para preservar o scroll vertical nativo
     if (Math.abs(deltaX) > 48 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
       if (deltaX < 0) {
-        if (abaEstoque === 'consumo') setAbaEstoque('patrimonio');
-        else if (abaEstoque === 'patrimonio') setAbaEstoque('historico');
+        if (abaEstoque === 'consumo') setAbaEstoque('historico');
       } else if (deltaX > 0) {
-        if (abaEstoque === 'historico') setAbaEstoque('patrimonio');
-        else if (abaEstoque === 'patrimonio') setAbaEstoque('consumo');
+        if (abaEstoque === 'historico') setAbaEstoque('consumo');
       }
     }
   };
@@ -493,22 +491,7 @@ const AlmoxarifeEstoque = ({
 
   // Contagem geral para as abas de topo
   const totalConsumo = useMemo(() => materiais.filter(m => !m.bemDuravel).length, [materiais]);
-  const totalPatrimonio = useMemo(() => materiais.filter(m => !!m.bemDuravel).length, [materiais]);
-
-  // Contagem de resultados na OUTRA aba para o cross-search banner
-  const crossSearchResults = useMemo(() => {
-    if (!busca.trim() || abaEstoque === 'historico') return 0;
-    const termo = busca.toLowerCase().trim();
-    const outraAba = abaEstoque === 'consumo' ? 'patrimonio' : 'consumo';
-    return materiais
-      .filter(item => outraAba === 'consumo' ? !item.bemDuravel : !!item.bemDuravel)
-      .filter(item =>
-        item.nome.toLowerCase().includes(termo) ||
-        (item.codigo && item.codigo.toLowerCase().includes(termo)) ||
-        (item.categoria && item.categoria.toLowerCase().includes(termo)) ||
-        (item.descricao && item.descricao.toLowerCase().includes(termo))
-      ).length;
-  }, [materiais, busca, abaEstoque]);
+  const crossSearchResults = 0;
 
   // Contadores para os chips de filtro operacional da aba ativa
   const metricasStatus = useMemo(() => {
@@ -551,9 +534,7 @@ const AlmoxarifeEstoque = ({
 
   // Filtragem e ordenação dos materiais da aba ativa
   const materiaisFiltrados = useMemo(() => {
-    let lista = materiais.filter(item =>
-      abaEstoque === 'consumo' ? !item.bemDuravel : !!item.bemDuravel
-    );
+    let lista = materiais.filter(item => !item.bemDuravel);
 
     // Busca textual multi-critério (nome, código/SKU, complexo, localização física, categoria)
     if (busca.trim()) {
@@ -609,7 +590,7 @@ const AlmoxarifeEstoque = ({
     }
 
     return lista;
-  }, [materiais, busca, statusFiltro, ordenacaoAtual, abaEstoque]);
+  }, [materiais, busca, statusFiltro, ordenacaoAtual]);
 
   // Paginação e Rolagem Infinita (Lotes de 20 materiais)
   const ITEMS_POR_PAGINA = 20;
@@ -1026,7 +1007,7 @@ const AlmoxarifeEstoque = ({
       localizacao: '',
       dataValidade: '',
       descricao: '',
-      bemDuravel: abaEstoque === 'patrimonio'
+      bemDuravel: false
     });
   };
 
@@ -1093,17 +1074,6 @@ const AlmoxarifeEstoque = ({
               icon: (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                </svg>
-              )
-            },
-            {
-              id: 'patrimonio',
-              label: 'Patrimônio',
-              badge: totalPatrimonio,
-              icon: (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                 </svg>
               )
             },

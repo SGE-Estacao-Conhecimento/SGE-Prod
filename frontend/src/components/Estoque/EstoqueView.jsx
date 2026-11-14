@@ -49,15 +49,11 @@ const EstoqueView = ({
     () => materiais.filter((m) => !m.bemDuravel).length,
     [materiais]
   );
-  const totalPatrimonio = useMemo(
-    () => materiais.filter((m) => !!m.bemDuravel).length,
-    [materiais]
-  );
 
-  // Filtragem em tempo real dos materiais da categoria ativa
+  // Filtragem em tempo real dos materiais de consumo
   const filteredMateriais = useMemo(() => {
     return materiais
-      .filter((item) => (abaEstoque === 'consumo' ? !item.bemDuravel : !!item.bemDuravel))
+      .filter((item) => !item.bemDuravel)
       .filter((item) => {
         const matchSearch =
           item.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -76,10 +72,10 @@ const EstoqueView = ({
 
         return matchSearch && matchCategoria && matchStatus;
       });
-  }, [materiais, searchTerm, selectedCategoria, selectedStatus, abaEstoque]);
+  }, [materiais, searchTerm, selectedCategoria, selectedStatus]);
 
   const handleOpenNewModal = () => {
-    setEditingMaterial(abaEstoque === 'patrimonio' ? { bemDuravel: true } : { bemDuravel: false });
+    setEditingMaterial({ bemDuravel: false });
     setIsModalOpen(true);
   };
 
@@ -127,7 +123,7 @@ const EstoqueView = ({
   return (
     <div className="estoque-container">
 
-      {/* Navegação por Sub-abas Minimalistas (Consumo, Patrimônio, Histórico) */}
+      {/* Navegação por Sub-abas Minimalistas (Consumo, Histórico) */}
       <div className="estoque-tabs-wrapper">
         <UnderlineTabs
           tabs={[
@@ -138,17 +134,6 @@ const EstoqueView = ({
               icon: (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                </svg>
-              )
-            },
-            {
-              id: 'patrimonio',
-              label: 'Patrimônio',
-              badge: totalPatrimonio,
-              icon: (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                 </svg>
               )
             },
@@ -237,7 +222,7 @@ const EstoqueView = ({
                   <line x1="12" y1="5" x2="12" y2="19"/>
                   <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
-                {abaEstoque === 'patrimonio' ? 'Novo Patrimônio' : 'Novo Material'}
+                Novo Material
               </button>
             </div>
           </div>
@@ -333,7 +318,7 @@ const EstoqueView = ({
                 <p>
                   {searchTerm || selectedCategoria || selectedStatus
                     ? 'Nenhum item encontrado para os filtros selecionados.'
-                    : `O catálogo de ${abaEstoque === 'patrimonio' ? 'patrimônio' : 'consumo'} está vazio. Clique no botão acima para cadastrar o primeiro item.`}
+                    : 'O catálogo de consumo está vazio. Clique no botão acima para cadastrar o primeiro item.'}
                 </p>
                 {(searchTerm || selectedCategoria || selectedStatus) ? (
                   <button
@@ -348,7 +333,7 @@ const EstoqueView = ({
                   </button>
                 ) : (
                   <button className="btn-novo-material" onClick={handleOpenNewModal}>
-                    + Cadastrar Primeiro {abaEstoque === 'patrimonio' ? 'Patrimônio' : 'Material'}
+                    + Cadastrar Primeiro Material
                   </button>
                 )}
               </div>

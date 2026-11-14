@@ -15,7 +15,7 @@ public sealed class PatrimoniosController(PatrimonioService service) : Controlle
         => service.ListarCatalogoAsync(categoria);
 
     [HttpPost("catalogo")]
-    [Authorize(Roles = Perfis.Admin)]
+    [Authorize(Roles = Perfis.Equipe)]
     public async Task<ActionResult<PatrimonioCatalogoDto>> CriarCatalogo(SalvarPatrimonioCatalogoRequest req)
     {
         var criado = await service.SalvarCatalogoAsync(null, req);
@@ -23,7 +23,7 @@ public sealed class PatrimoniosController(PatrimonioService service) : Controlle
     }
 
     [HttpPut("catalogo/{id:int}")]
-    [Authorize(Roles = Perfis.Admin)]
+    [Authorize(Roles = Perfis.Equipe)]
     public Task<PatrimonioCatalogoDto> AtualizarCatalogo(int id, SalvarPatrimonioCatalogoRequest req)
         => service.SalvarCatalogoAsync(id, req);
 
@@ -43,7 +43,7 @@ public sealed class PatrimoniosController(PatrimonioService service) : Controlle
         => service.ObterItemPorIdAsync(id);
 
     [HttpPost("itens")]
-    [Authorize(Roles = Perfis.Admin)]
+    [Authorize(Roles = Perfis.Equipe)]
     public async Task<ActionResult<PatrimonioItemDto>> CriarItem(SalvarPatrimonioItemRequest req)
     {
         var criado = await service.SalvarItemAsync(null, req);
@@ -51,12 +51,12 @@ public sealed class PatrimoniosController(PatrimonioService service) : Controlle
     }
 
     [HttpPut("itens/{id:int}")]
-    [Authorize(Roles = Perfis.Admin)]
+    [Authorize(Roles = Perfis.Equipe)]
     public Task<PatrimonioItemDto> AtualizarItem(int id, SalvarPatrimonioItemRequest req)
         => service.SalvarItemAsync(id, req);
 
     [HttpPatch("itens/{id:int}/transferir")]
-    [Authorize(Roles = Perfis.Admin)]
+    [Authorize(Roles = Perfis.Equipe)]
     public async Task<IActionResult> TransferirItem(int id, TransferirItemRequest req)
     {
         await service.TransferirAsync(id, req);
@@ -64,7 +64,7 @@ public sealed class PatrimoniosController(PatrimonioService service) : Controlle
     }
 
     [HttpDelete("itens/{id:int}")]
-    [Authorize(Roles = Perfis.Admin)]
+    [Authorize(Roles = Perfis.Equipe)]
     public async Task<IActionResult> BaixarItem(int id)
     {
         await service.BaixarItemAsync(id);

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Topbar from '../components/Topbar/Topbar';
 import AlmoxarifeEstoque from '../components/AlmoxarifeEstoque/AlmoxarifeEstoque';
+import PatrimonioView from '../components/Patrimonio/PatrimonioView';
 import PedidosView from '../components/Pedidos/PedidosView';
 import RelatoriosView from '../components/Relatorios/RelatoriosView';
 import AlmoxarifePerfil from '../components/AlmoxarifePerfil/AlmoxarifePerfil';
@@ -9,8 +10,9 @@ import NovoPedidoModal from '../components/Pedidos/NovoPedidoModal';
 import { BottomNav, PageTabTransition, useSectionNavigation, SpeedDialFAB } from '../components/common';
 import './Almoxarife.css';
 import '../components/Sidebar/Sidebar.css';
-import { useEffect } from 'react';
 import { materialService } from '../services/materiais/materialService';
+import { patrimonioService } from '../services/patrimonios/patrimonioService';
+import { ambienteService } from '../services/ambientes/ambienteService';
 import { movimentacaoService } from '../services/movimentacoes/movimentacaoService';
 import { notificacaoService } from '../services/notificacoes/notificacaoService';
 import { remessaService } from '../services/remessas/remessaService';
@@ -19,7 +21,9 @@ import { usuarioService } from '../services/usuarios/usuarioService';
 import { formatarErroApi } from '../services/api/client';
 
 const TITLES = {
-  estoque: 'Controle de Estoque & Movimentações',
+  consumo: 'Controle de Consumo & Movimentações',
+  patrimonio: 'Gestão de Patrimônio & Bens Duráveis',
+  estoque: 'Controle de Consumo & Movimentações',
   pedidos: 'Separação e Pedidos',
   relatorios: 'Relatórios de Estoque',
   perfil: 'Meu Perfil'
@@ -27,11 +31,23 @@ const TITLES = {
 
 const navItemsAlmoxarife = [
   {
-    id: 'estoque',
-    label: 'Estoque',
+    id: 'consumo',
+    label: 'Consumo',
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+        <line x1="12" y1="22.08" x2="12" y2="12" />
+      </svg>
+    )
+  },
+  {
+    id: 'patrimonio',
+    label: 'Patrimônio',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
       </svg>
     )
   },
@@ -68,7 +84,7 @@ const navItemsAlmoxarife = [
   }
 ];
 
-const ALMOXARIFE_SECTIONS = navItemsAlmoxarife.map((item) => item.id);
+const ALMOXARIFE_SECTIONS = ['consumo', 'patrimonio', 'estoque', 'pedidos', 'relatorios', 'perfil'];
 
 const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
   const [materiais, setMateriais] = useState([]);
@@ -82,8 +98,37 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
   const [pedidosError, setPedidosError] = useState(null);
   const [notificacoes, setNotificacoes] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
-  const [usuariosLoading, setUsuariosLoading] = useState(true);
-  const [usuariosError, setUsuariosError] = useState(null);
+  const [, setUsuariosLoading] = useState(true);
+  const [, setUsuariosError] = useState(null);
+  const [patrimoniosCatalogo, setPatrimoniosCatalogo] = useState([]);
+  const [patrimoniosItens, setPatrimoniosItens] = useState([]);
+  const [ambientes, setAmbientes] = useState([]);
+  const [patrimoniosLoading, setPatrimoniosLoading] = useState(true);
+  const [patrimoniosError, setPatrimoniosError] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      patrimonioService.listarCatalogo().catch(() => []),
+      patrimonioService.listarItens().catch(() => []),
+      ambienteService.listar().catch(() => [])
+    ])
+      .then(([cats, itens, ambs]) => {
+        if (active) {
+          setPatrimoniosCatalogo(cats || []);
+          setPatrimoniosItens(itens || []);
+          setAmbientes(ambs || []);
+          setPatrimoniosError(null);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setPatrimoniosError(formatarErroApi(err, 'Não foi possível carregar os patrimônios.'));
+        }
+      })
+      .finally(() => { if (active) setPatrimoniosLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -243,7 +288,7 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
       .catch(() => {});
     return () => { active = false; };
   }, []);
-  const [activeNav, setActiveNav] = useSectionNavigation('almoxarife', ALMOXARIFE_SECTIONS, 'estoque');
+  const [activeNav, setActiveNav] = useSectionNavigation('almoxarife', ALMOXARIFE_SECTIONS, 'consumo');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Estados Globais acionados pelo SpeedDialFAB flutuante (Oculto apenas no Perfil)
@@ -298,6 +343,41 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
   const handleNavClick = (id) => {
     setActiveNav(id);
     setIsSidebarOpen(false);
+  };
+
+  const handleCriarModeloPatrimonio = async (dados) => {
+    const salvo = dados.id
+      ? await patrimonioService.atualizarCatalogo(dados.id, dados)
+      : await patrimonioService.criarCatalogo(dados);
+    const cats = await patrimonioService.listarCatalogo().catch(() => []);
+    if (Array.isArray(cats)) setPatrimoniosCatalogo(cats);
+    return salvo;
+  };
+
+  const handleSalvarPatrimonioItem = async (dados) => {
+    const salvo = dados.id
+      ? await patrimonioService.atualizarItem(dados.id, dados)
+      : await patrimonioService.criarItem(dados);
+
+    const [cats, itens] = await Promise.all([
+      patrimonioService.listarCatalogo().catch(() => []),
+      patrimonioService.listarItens().catch(() => [])
+    ]);
+    if (Array.isArray(cats)) setPatrimoniosCatalogo(cats);
+    if (Array.isArray(itens)) setPatrimoniosItens(itens);
+    return salvo;
+  };
+
+  const handleTransferirPatrimonioItem = async (id, dados) => {
+    await patrimonioService.transferirItem(id, dados);
+    const itens = await patrimonioService.listarItens().catch(() => []);
+    if (Array.isArray(itens)) setPatrimoniosItens(itens);
+  };
+
+  const handleBaixarPatrimonioItem = async (id) => {
+    await patrimonioService.baixarItem(id);
+    const itens = await patrimonioService.listarItens().catch(() => []);
+    if (Array.isArray(itens)) setPatrimoniosItens(itens);
   };
 
   const renderContent = () => {
@@ -357,11 +437,40 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
             />
           </PageTabTransition>
         );
+      case 'patrimonio':
+        return (
+          <PageTabTransition tabKey="patrimonio">
+            {patrimoniosLoading && <p>Carregando patrimônios...</p>}
+            {patrimoniosError && (
+              <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
+                <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{patrimoniosError}</span>
+              </div>
+            )}
+            {!patrimoniosLoading && (
+              <PatrimonioView
+                catalogo={patrimoniosCatalogo}
+                itens={patrimoniosItens}
+                ambientes={ambientes}
+                usuarios={usuarios}
+                onCriarModelo={handleCriarModeloPatrimonio}
+                onSalvarItem={handleSalvarPatrimonioItem}
+                onTransferirItem={handleTransferirPatrimonioItem}
+                onBaixarItem={handleBaixarPatrimonioItem}
+              />
+            )}
+          </PageTabTransition>
+        );
+      case 'consumo':
       case 'estoque':
       default:
         return (
-          <PageTabTransition tabKey="estoque">
-            {materiaisLoading && <p>Carregando estoque...</p>}
+          <PageTabTransition tabKey={activeNav === 'patrimonio' ? 'patrimonio' : 'consumo'}>
+            {materiaisLoading && <p>Carregando consumo...</p>}
             {materiaisError && (
               <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
                 <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -374,7 +483,7 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
             )}
             {!materiaisLoading && (!materiaisError || materiais.length > 0) && (
               <AlmoxarifeEstoque
-                materiais={materiais}
+                materiais={materiais.filter((m) => !m?.bemDuravel)}
                 remessasExternas={remessas}
                 onCriarRemessa={handleCriarRemessa}
                 onNovoMaterial={handleNovoMaterial}
@@ -427,7 +536,7 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
         <nav className="sidebar__nav">
           <ul>
             {navItemsAlmoxarife.map(item => {
-              const isActive = activeNav === item.id;
+              const isActive = activeNav === item.id || (item.id === 'consumo' && activeNav === 'estoque');
               return (
                 <li key={item.id}>
                   <motion.button

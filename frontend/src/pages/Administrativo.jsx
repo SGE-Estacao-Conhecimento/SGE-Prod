@@ -8,6 +8,7 @@ import ConsultaEstoque from '../components/ConsultaEstoque/ConsultaEstoque';
 import GerenciarUsuarios from '../components/GerenciarUsuarios/GerenciarUsuarios';
 import NovoPedido from '../components/NovoPedido/NovoPedido';
 import EstoqueView from '../components/Estoque/EstoqueView';
+import PatrimonioView from '../components/Patrimonio/PatrimonioView';
 import AmbientesView from '../components/Ambientes/AmbientesView';
 import UsuariosView from '../components/Usuarios/UsuariosView';
 import PedidosView from '../components/Pedidos/PedidosView';
@@ -30,11 +31,13 @@ import NovoPedidoModal from '../components/Pedidos/NovoPedidoModal';
 import AdminPerfil from '../components/AdminPerfil/AdminPerfil';
 import { useSectionNavigation, SpeedDialFAB } from '../components/common';
 
-const ADMIN_SECTIONS = ['dashboard', 'estoque', 'ambientes', 'usuarios', 'pedidos', 'relatorios', 'perfil'];
+const ADMIN_SECTIONS = ['dashboard', 'consumo', 'patrimonio', 'estoque', 'ambientes', 'usuarios', 'pedidos', 'relatorios', 'perfil'];
 
 const TITLES = {
   dashboard: 'Início',
-  estoque: 'Gestão de Estoque',
+  consumo: 'Gestão de Consumo & Estoque',
+  patrimonio: 'Gestão de Patrimônio & Bens Duráveis',
+  estoque: 'Gestão de Consumo & Estoque',
   ambientes: 'Gestão de Ambientes e Patrimônio',
   usuarios: 'Gerenciamento de Usuários',
   pedidos: 'Gestão de Pedidos',
@@ -195,6 +198,15 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     const lista = await ambienteService.listar().catch(() => []);
     if (Array.isArray(lista)) setAmbientes(lista);
     return criado;
+  };
+
+  const handleCriarModeloPatrimonio = async (dados) => {
+    const salvo = dados.id
+      ? await patrimonioService.atualizarCatalogo(dados.id, dados)
+      : await patrimonioService.criarCatalogo(dados);
+    const cats = await patrimonioService.listarCatalogo().catch(() => []);
+    if (Array.isArray(cats)) setPatrimoniosCatalogo(cats);
+    return salvo;
   };
 
   const handleSalvarPatrimonioItem = async (dados) => {
@@ -425,6 +437,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
 
   const renderContent = () => {
     switch (activeNav) {
+      case 'consumo':
       case 'estoque':
         return (
           <div className="dashboard-page-scroll">
@@ -441,12 +454,40 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
             )}
             {!materiaisLoading && (!materiaisError || materiais.length > 0) && (
               <EstoqueView
-                materiais={materiais}
+                materiais={materiais.filter((m) => !m?.bemDuravel)}
                 movimentacoes={movimentacoes}
                 remessas={remessas}
                 onSave={handleSaveMaterial}
                 onDelete={handleDeleteMaterial}
                 initialStatus={estoqueStatusInicial}
+              />
+            )}
+          </div>
+        );
+      case 'patrimonio':
+        return (
+          <div className="dashboard-page-scroll dashboard-page-scroll--patrimonio">
+            {patrimoniosLoading && <p>Carregando patrimônios...</p>}
+            {patrimoniosError && (
+              <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
+                <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{patrimoniosError}</span>
+              </div>
+            )}
+            {!patrimoniosLoading && (
+              <PatrimonioView
+                catalogo={patrimoniosCatalogo}
+                itens={patrimoniosItens}
+                ambientes={ambientes}
+                usuarios={usuarios}
+                onCriarModelo={handleCriarModeloPatrimonio}
+                onSalvarItem={handleSalvarPatrimonioItem}
+                onTransferirItem={handleTransferirPatrimonioItem}
+                onBaixarItem={handleBaixarPatrimonioItem}
               />
             )}
           </div>
@@ -581,7 +622,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
                     className="alerta-estoque-critico__btn"
                     onClick={() => {
                       setEstoqueStatusInicial('critico');
-                      setActiveNav('estoque');
+                      setActiveNav('consumo');
                     }}
                   >
                     Ver no Estoque &rarr;
@@ -624,7 +665,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
             {/* Painel Lateral Direito */}
             <aside className="dashboard-panel">
               <ConsultaEstoque
-                itens={materiais.map((material) => ({
+                itens={materiais.filter((m) => !m?.bemDuravel).map((material) => ({
                   id: material.id,
                   nome: material.nome,
                   qtd: material.quantidade,
