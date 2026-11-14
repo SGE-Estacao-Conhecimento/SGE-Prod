@@ -80,6 +80,7 @@ public sealed class PatrimonioRepository(DbConnectionFactory db) : RepositorioBa
     public async Task<IReadOnlyList<PatrimonioItemDto>> ListarItensAsync(
         int? ambienteId = null,
         bool semAmbiente = false,
+        int? responsavelUsuarioId = null,
         string? busca = null,
         string? categoria = null,
         string? status = null)
@@ -110,6 +111,7 @@ public sealed class PatrimonioRepository(DbConnectionFactory db) : RepositorioBa
               LEFT JOIN funcionarios f ON f.funcionario_id = u.funcionario_id
              WHERE (@ambienteId IS NULL OR pi.ambiente_id = @ambienteId)
                AND (@semAmbiente = FALSE OR pi.ambiente_id IS NULL)
+               AND (@responsavelUsuarioId IS NULL OR pi.responsavel_usuario_id = @responsavelUsuarioId)
                AND (@categoria IS NULL OR p.categoria = @categoria)
                AND (@status IS NULL OR pi.status = @status)
                AND (@busca IS NULL OR (
@@ -125,6 +127,7 @@ public sealed class PatrimonioRepository(DbConnectionFactory db) : RepositorioBa
         var res = await con.QueryAsync<PatrimonioItemDto>(sql, new {
             ambienteId = semAmbiente ? null : ambienteId,
             semAmbiente,
+            responsavelUsuarioId,
             categoria,
             status,
             busca = string.IsNullOrWhiteSpace(busca) ? null : busca.Trim()

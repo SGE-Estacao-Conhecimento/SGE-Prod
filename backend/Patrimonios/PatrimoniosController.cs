@@ -32,10 +32,11 @@ public sealed class PatrimoniosController(PatrimonioService service) : Controlle
     public Task<IReadOnlyList<PatrimonioItemDto>> ListarItens(
         [FromQuery] int? ambienteId = null,
         [FromQuery] bool semAmbiente = false,
+        [FromQuery] int? responsavelUsuarioId = null,
         [FromQuery] string? busca = null,
         [FromQuery] string? categoria = null,
         [FromQuery] string? status = null)
-        => service.ListarItensAsync(ambienteId, semAmbiente, busca, categoria, status);
+        => service.ListarItensAsync(ambienteId, semAmbiente, responsavelUsuarioId, busca, categoria, status);
 
     [HttpGet("itens/{id:int}")]
     public Task<PatrimonioItemDto> ObterItem(int id)

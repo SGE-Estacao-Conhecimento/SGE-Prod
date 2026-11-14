@@ -19,6 +19,7 @@ export const listarItensPatrimonio = (filtros = {}) => {
   const params = new URLSearchParams();
   if (filtros.ambienteId) params.append('ambienteId', filtros.ambienteId);
   if (filtros.semAmbiente) params.append('semAmbiente', 'true');
+  if (filtros.responsavelUsuarioId) params.append('responsavelUsuarioId', filtros.responsavelUsuarioId);
   if (filtros.busca) params.append('busca', filtros.busca);
   if (filtros.categoria) params.append('categoria', filtros.categoria);
   if (filtros.status) params.append('status', filtros.status);

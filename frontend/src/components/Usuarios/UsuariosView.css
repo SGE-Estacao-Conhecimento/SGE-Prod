@@ -428,6 +428,20 @@
   background: #FAFAFA;
 }
 
+.tr-clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.tr-clickable:hover {
+  background-color: var(--border-light, #f8fafc);
+}
+
+.tr-clickable.tr-selected {
+  background-color: #eef2ff !important;
+  box-shadow: inset 3px 0 0 #4f46e5;
+}
+
 .user-cell-info {
   display: flex;
   align-items: center;

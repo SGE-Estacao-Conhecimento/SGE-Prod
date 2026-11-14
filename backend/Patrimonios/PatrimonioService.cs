@@ -43,10 +43,11 @@ public sealed class PatrimonioService(
     public Task<IReadOnlyList<PatrimonioItemDto>> ListarItensAsync(
         int? ambienteId = null,
         bool semAmbiente = false,
+        int? responsavelUsuarioId = null,
         string? busca = null,
         string? categoria = null,
         string? status = null)
-        => repo.ListarItensAsync(ambienteId, semAmbiente, busca, categoria, status);
+        => repo.ListarItensAsync(ambienteId, semAmbiente, responsavelUsuarioId, busca, categoria, status);
 
     public async Task<PatrimonioItemDto> ObterItemPorIdAsync(int id)
     {

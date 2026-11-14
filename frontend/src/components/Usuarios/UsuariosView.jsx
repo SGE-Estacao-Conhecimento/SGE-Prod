@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import NovoUsuarioModal from './NovoUsuarioModal';
+import UsuarioDrawer from './UsuarioDrawer';
 import { ConfirmDialog } from '../common';
 import { limparCpf, validarCpf } from '../../utils/cpf';
 import './UsuariosView.css';
@@ -9,20 +10,27 @@ import './UsuariosView.css';
  * Módulo de Gerenciamento de Usuários (RF-002)
  * Props esperadas do backend (C# / MySQL):
  * @param {Array} usuarios - Lista de usuários [{ id, nome, email, perfil, setor, ativo, inicial, dataCadastro }]
+ * @param {Array} setores - Lista de setores
+ * @param {Array} ambientes - Lista de ambientes (salas)
+ * @param {Function} onCriarSetor - Callback para criar setor
  * @param {Function} onSave - Callback chamado ao criar/editar usuário
  * @param {Function} onDelete - Callback chamado ao remover usuário
  * @param {Function} onToggleStatus - Callback chamado ao alterar status ativo/inativo
  * @param {Function} onResetPassword - Callback chamado ao resetar a senha do usuário
+ * @param {Object} usuarioSelecionado - Usuário pré-selecionado para edição
+ * @param {Function} onTransferirPatrimonio - Callback para transferir/desvincular patrimônio
  */
 const UsuariosView = ({
   usuarios: initialUsuariosProp,
   setores = [],
+  ambientes = [],
   onCriarSetor,
   onSave,
   onDelete,
   onToggleStatus,
   onResetPassword,
-  usuarioSelecionado
+  usuarioSelecionado,
+  onTransferirPatrimonio
 }) => {
   // Estado inicial zerado, pronto para conexão com o backend
   const [usuarios, setUsuarios] = useState(initialUsuariosProp || []);
@@ -39,6 +47,9 @@ const UsuariosView = ({
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState(null);
   const [openMenuUserId, setOpenMenuUserId] = useState(null);
+
+  // Ficha lateral (Drawer) do usuário e bens vinculados
+  const [usuarioParaDrawer, setUsuarioParaDrawer] = useState(null);
 
   // Cadastro rápido de setor na barra lateral
   const [showNovoSetorInput, setShowNovoSetorInput] = useState(false);
@@ -150,6 +161,9 @@ const UsuariosView = ({
 
   const confirmDeleteUsuario = () => {
     if (!usuarioToDelete) return;
+    if (usuarioParaDrawer?.id === usuarioToDelete.id) {
+      setUsuarioParaDrawer(null);
+    }
     if (onDelete) {
       onDelete(usuarioToDelete.id);
     } else {
@@ -159,6 +173,7 @@ const UsuariosView = ({
   };
 
   const handleToggleActive = (id) => {
+    setUsuarioParaDrawer(prev => prev && prev.id === id ? { ...prev, ativo: !prev.ativo } : prev);
     if (onToggleStatus) {
       onToggleStatus(id);
     } else {
@@ -167,13 +182,16 @@ const UsuariosView = ({
   };
 
   const handleSaveUsuario = async (usuarioData) => {
+    let salvo = null;
     if (onSave) {
-      return await onSave(usuarioData);
+      salvo = await onSave(usuarioData);
     }
+    const dadosAtualizados = salvo || usuarioData;
+    setUsuarioParaDrawer(prev => prev && prev.id === dadosAtualizados.id ? { ...prev, ...dadosAtualizados } : prev);
     if (editingUsuario) {
-      setUsuarios(prev => prev.map(u => u.id === usuarioData.id ? usuarioData : u));
+      setUsuarios(prev => prev.map(u => u.id === dadosAtualizados.id ? dadosAtualizados : u));
     } else {
-      setUsuarios(prev => [usuarioData, ...prev]);
+      setUsuarios(prev => [dadosAtualizados, ...prev]);
     }
     return true;
   };
@@ -453,7 +471,11 @@ const UsuariosView = ({
                       const temCpfValido = validarCpf(limparCpf(user.cpf));
                       const isNearBottom = index >= filteredUsuarios.length - 2 && filteredUsuarios.length > 2;
                       return (
-                        <tr key={user.id} className={!user.ativo ? 'tr-inativo' : ''}>
+                        <tr
+                          key={user.id}
+                          className={`tr-clickable ${!user.ativo ? 'tr-inativo' : ''} ${usuarioParaDrawer?.id === user.id ? 'tr-selected' : ''}`}
+                          onClick={() => setUsuarioParaDrawer(user)}
+                        >
                           <td>
                             <div className="user-cell-info">
                               <div className={`user-avatar user-avatar--${user.perfil.toLowerCase()}`}>
@@ -486,7 +508,7 @@ const UsuariosView = ({
                             <span className="date-text">{user.dataCadastro || '—'}</span>
                           </td>
                           <td style={{ textAlign: 'right' }}>
-                            <div className="user-kebab-container">
+                            <div className="user-kebab-container" onClick={(e) => e.stopPropagation()}>
                               <button
                                 type="button"
                                 className={`btn-kebab ${openMenuUserId === user.id ? 'btn-kebab--active' : ''}`}
@@ -506,12 +528,13 @@ const UsuariosView = ({
                               </button>
 
                               {openMenuUserId === user.id && (
-                                <div className={`user-kebab-menu ${isNearBottom ? 'user-kebab-menu--up' : ''}`} role="menu">
+                                <div className={`user-kebab-menu ${isNearBottom ? 'user-kebab-menu--up' : ''}`} role="menu" onClick={(e) => e.stopPropagation()}>
                                   <button
                                     type="button"
                                     className="user-kebab-item"
                                     role="menuitem"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setOpenMenuUserId(null);
                                       handleOpenEditModal(user);
                                     }}
@@ -531,7 +554,8 @@ const UsuariosView = ({
                                     title={temCpfValido
                                       ? 'Redefinir senha para os 6 primeiros dígitos do CPF'
                                       : 'Cadastre um CPF válido para habilitar o reset'}
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setOpenMenuUserId(null);
                                       setUsuarioToReset(user);
                                     }}
@@ -547,7 +571,8 @@ const UsuariosView = ({
                                     type="button"
                                     className="user-kebab-item"
                                     role="menuitem"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setOpenMenuUserId(null);
                                       handleToggleActive(user.id);
                                     }}
@@ -577,7 +602,8 @@ const UsuariosView = ({
                                     type="button"
                                     className="user-kebab-item user-kebab-item--danger"
                                     role="menuitem"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setOpenMenuUserId(null);
                                       handleDeleteUsuario(user.id, user.nome);
                                     }}
@@ -692,6 +718,23 @@ const UsuariosView = ({
           onConfirm={confirmResetPassword}
         />
       )}
+
+      {/* Drawer lateral inspirado no ClickUp para Ficha do Usuário e Bens Patrimoniados */}
+      <UsuarioDrawer
+        usuario={usuarioParaDrawer}
+        isOpen={Boolean(usuarioParaDrawer)}
+        onClose={() => setUsuarioParaDrawer(null)}
+        onEdit={(u) => {
+          setUsuarioParaDrawer(null);
+          handleOpenEditModal(u);
+        }}
+        onResetPassword={(u) => {
+          setUsuarioToReset(u);
+        }}
+        ambientes={ambientes}
+        usuarios={usuarios}
+        onTransferirPatrimonio={onTransferirPatrimonio}
+      />
     </div>
   );
 };

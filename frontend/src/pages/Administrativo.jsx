@@ -497,12 +497,14 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
               <UsuariosView
                 usuarios={usuarios}
                 setores={setores}
+                ambientes={ambientes}
                 onCriarSetor={handleCriarSetor}
                 onSave={handleSaveUsuario}
                 onToggleStatus={handleToggleUsuarioStatus}
                 onResetPassword={handleResetSenhaUsuario}
                 onDelete={handleRemoverUsuario}
                 usuarioSelecionado={usuarioSelecionado}
+                onTransferirPatrimonio={handleTransferirPatrimonioItem}
               />
             )}
           </div>
