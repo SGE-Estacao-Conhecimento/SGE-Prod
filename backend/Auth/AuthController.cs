@@ -81,18 +81,25 @@ public sealed class AuthController(AuthRepository repo, PasswordService senhas, 
     {
         var atual = req.SenhaAtual ?? string.Empty;
         var nova = req.NovaSenha ?? string.Empty;
-        if (atual.Length == 0)
-            throw ApiException.BadRequest("Informe sua senha atual para autorizar a alteração.");
         if (nova.Trim().Length == 0)
             throw ApiException.BadRequest("Informe a nova senha desejada.");
         if (nova.Length < PasswordService.TamanhoMinimo || nova.Length > PasswordService.TamanhoMaximo)
             throw ApiException.BadRequest($"A nova senha deve possuir entre {PasswordService.TamanhoMinimo} e {PasswordService.TamanhoMaximo} caracteres.");
-        if (string.Equals(nova, atual, StringComparison.Ordinal))
-            throw ApiException.BadRequest("A nova senha deve ser diferente da senha atual.");
 
         var usuario = await repo.BuscarPorIdAsync(User.UsuarioId()) ?? throw new ApiException(401, "Sessão inválida.");
-        if (senhas.Verificar(usuario.SenhaHash, atual) == PasswordVerificationResult.Failed)
-            throw ApiException.BadRequest("A senha atual não confere.");
+        if (!usuario.TrocaSenhaObrigatoria)
+        {
+            if (atual.Length == 0)
+                throw ApiException.BadRequest("Informe sua senha atual para autorizar a alteração.");
+            if (string.Equals(nova, atual, StringComparison.Ordinal))
+                throw ApiException.BadRequest("A nova senha deve ser diferente da senha atual.");
+            if (senhas.Verificar(usuario.SenhaHash, atual) == PasswordVerificationResult.Failed)
+                throw ApiException.BadRequest("A senha atual não confere.");
+        }
+        else if (senhas.Verificar(usuario.SenhaHash, nova) != PasswordVerificationResult.Failed)
+        {
+            throw ApiException.BadRequest("A nova senha deve ser diferente da senha provisória.");
+        }
 
         await repo.AtualizarSenhaAsync(usuario.UsuarioId, senhas.Hash(nova));
         usuario.TrocaSenhaObrigatoria = false;

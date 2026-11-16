@@ -44,15 +44,15 @@ export const atualizarUsuarioLocal = (atualizacoes) => {
   return atualizado;
 };
 
-export const login = async ({ email, senha, rememberMe = false, role = 'admin' }) => {
+export const login = async ({ email, senha, rememberMe = false }) => {
   const usuario = await request('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, senha, lembrar: rememberMe, role })
+    body: JSON.stringify({ email, senha, lembrar: rememberMe })
   });
 
   return salvarSessaoAuth({
     ...usuario,
-    role: normalizeRole(usuario.role || role),
+    role: normalizeRole(usuario.role),
     identifier: usuario.email || usuario.identifier || email
   }, rememberMe);
 };

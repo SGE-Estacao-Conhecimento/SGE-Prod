@@ -25,8 +25,7 @@ function App() {
       const usuario = await login({
         email: credentials.identifier,
         senha: credentials.password,
-        rememberMe: credentials.rememberMe,
-        role: credentials.role
+        rememberMe: credentials.rememberMe
       });
       setCurrentUser(usuario);
     } catch (error) {

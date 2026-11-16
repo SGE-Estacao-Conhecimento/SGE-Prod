@@ -6,7 +6,6 @@ import { ForgotPasswordModal } from '../components/common';
 const Login = ({ onLogin, onForgotPassword, error, isLoading = false }) => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('admin'); // 'admin' | 'usuario' | 'almoxarife'
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -21,7 +20,6 @@ const Login = ({ onLogin, onForgotPassword, error, isLoading = false }) => {
       onLogin({
         identifier,
         password,
-        role,
         rememberMe
       });
     }
@@ -76,38 +74,6 @@ const Login = ({ onLogin, onForgotPassword, error, isLoading = false }) => {
 
           {/* Formulário */}
           <form className="login-form" onSubmit={handleSubmit}>
-            <div className="login-field">
-              <label className="login-label" htmlFor="login-role">
-                Perfil de Acesso
-              </label>
-              <div className="login-role-selector">
-                <button
-                  type="button"
-                  id="role-admin-btn"
-                  className={`login-role-btn ${role === 'admin' ? 'login-role-btn--active' : ''}`}
-                  onClick={() => setRole('admin')}
-                >
-                  Administrativo
-                </button>
-                <button
-                  type="button"
-                  id="role-usuario-btn"
-                  className={`login-role-btn ${role === 'usuario' ? 'login-role-btn--active' : ''}`}
-                  onClick={() => setRole('usuario')}
-                >
-                  Usuário
-                </button>
-                <button
-                  type="button"
-                  id="role-almoxarife-btn"
-                  className={`login-role-btn ${role === 'almoxarife' ? 'login-role-btn--active' : ''}`}
-                  onClick={() => setRole('almoxarife')}
-                >
-                  Almoxarife
-                </button>
-              </div>
-            </div>
-
             {/* Email ou CPF */}
             <div className="login-field">
               <label className="login-label" htmlFor="login-identifier">

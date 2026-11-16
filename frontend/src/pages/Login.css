@@ -159,39 +159,6 @@
   text-decoration: underline;
 }
 
-/* Role Selector Buttons */
-.login-role-selector {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  background: var(--content-bg);
-  padding: 4px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-
-.login-role-btn {
-  padding: 8px 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: transparent;
-  border-radius: var(--radius-sm);
-  transition: all 0.18s ease;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.login-role-btn:hover {
-  color: var(--text-primary);
-}
-
-.login-role-btn--active {
-  background: var(--card-bg);
-  color: var(--accent);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
 /* Inputs */
 .login-input-group {
   position: relative;
@@ -315,15 +282,6 @@
 @media (max-width: 480px) {
   .login-card {
     padding: 26px 20px;
-  }
-
-  .login-role-selector {
-    gap: 4px;
-  }
-
-  .login-role-btn {
-    font-size: 11px;
-    padding: 6px 2px;
   }
 
   .login-title {
