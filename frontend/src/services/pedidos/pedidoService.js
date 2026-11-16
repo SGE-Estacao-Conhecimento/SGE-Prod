@@ -60,10 +60,14 @@ export const atualizarStatusPedido = (id, status, extras = {}) =>
 export const cancelarPedido = (id) =>
   request(`/api/pedidos/${id}`, { method: 'DELETE' });
 
+export const obterHistoricoPedido = (id) =>
+  request(`/api/pedidos/${id}/historico`);
+
 export const pedidoService = {
   listar: listarPedidos,
   listarMeus: listarMeusPedidos,
   criar: criarPedido,
   atualizarStatus: atualizarStatusPedido,
-  cancelar: cancelarPedido
+  cancelar: cancelarPedido,
+  obterHistorico: obterHistoricoPedido
 };

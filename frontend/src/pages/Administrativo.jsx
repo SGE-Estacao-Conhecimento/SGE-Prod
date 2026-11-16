@@ -11,7 +11,7 @@ import EstoqueView from '../components/Estoque/EstoqueView';
 import PatrimonioView from '../components/Patrimonio/PatrimonioView';
 import AmbientesView from '../components/Ambientes/AmbientesView';
 import UsuariosView from '../components/Usuarios/UsuariosView';
-import PedidosView from '../components/Pedidos/PedidosView';
+import PedidosAdminView from '../components/Pedidos/PedidosAdminView';
 import RelatoriosView from '../components/Relatorios/RelatoriosView';
 import './Administrativo.css';
 import { materialService } from '../services/materiais/materialService';
@@ -304,7 +304,11 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
 
   // Contadores dinâmicos para a Sidebar e Dashboard
   const counts = useMemo(() => {
-    const pedidosPendentes = pedidos.filter(p => (p.status || '').toLowerCase() === 'pendente').length;
+    // Para o Administrador, o badge de pedidos reflete estritamente as solicitações de patrimônio pendentes de autorização institucional.
+    const pedidosPendentes = pedidos.filter(p =>
+      (p.tipoPedido === 'patrimonio' || p.aguardandoAprovacaoAdmin || p.itens?.some(i => i.bemDuravel)) &&
+      (p.status || '').toLowerCase() === 'pendente'
+    ).length;
     const estoqueCritico = materiais.filter(m => Number(m.quantidade ?? 0) === 0).length;
     const totalUsuarios = usuarios.length;
     return { pedidosPendentes, estoqueCritico, totalUsuarios };
@@ -315,17 +319,28 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     return materiais.filter(m => Number(m.quantidade ?? 0) === 0);
   }, [materiais]);
 
-  // Atualização de status de pedidos. Repassa a mensagem de retirada, o motivo da recusa e as
-  // quantidades da entrega; falhas sobem para a tela de pedidos, que mantém a etapa e avisa.
-  const handleUpdatePedidoStatus = async (pedidoId, novoStatus, extras = {}) => {
-    const atualizado = await pedidoService.atualizarStatus(pedidoId, novoStatus, extras);
-    setPedidos(prev => prev.map(p => (p.id === pedidoId ? (atualizado || { ...p, status: novoStatus, ...extras }) : p)));
+  // Autorização de solicitação de patrimônio pelo Administrador.
+  // Transiciona de pendente para em_separacao, liberando para a esteira do almoxarifado.
+  const handleAutorizarPedidoPatrimonio = async (pedidoId) => {
+    try {
+      const atualizado = await pedidoService.atualizarStatus(pedidoId, 'em_separacao');
+      setPedidos(prev => prev.map(p => (p.id === pedidoId ? (atualizado || { ...p, status: 'Em Separação' }) : p)));
+      return true;
+    } catch (error) {
+      alert(error?.message || 'Não foi possível autorizar a solicitação de patrimônio.');
+      return false;
+    }
+  };
 
-    // A entrega dá baixa no estoque: recarrega saldos e histórico.
-    if (String(novoStatus).toLowerCase().startsWith('atendido')) {
-      const [materiaisAtualizados, movsAtualizadas] = await Promise.all([materialService.listar(), movimentacaoService.listar()]);
-      if (materiaisAtualizados) setMateriais(materiaisAtualizados);
-      if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
+  // Recusa de solicitação de patrimônio pelo Administrador com registro de justificativa.
+  const handleRecusarPedidoPatrimonio = async (pedidoId, motivo) => {
+    try {
+      const atualizado = await pedidoService.atualizarStatus(pedidoId, 'cancelado', { motivoCancelamento: motivo });
+      setPedidos(prev => prev.map(p => (p.id === pedidoId ? (atualizado || { ...p, status: 'Cancelado', motivoCancelamento: motivo }) : p)));
+      return true;
+    } catch (error) {
+      alert(error?.message || 'Não foi possível recusar a solicitação de patrimônio.');
+      return false;
     }
   };
 
@@ -552,7 +567,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
         );
       case 'pedidos':
         return (
-          <div className="dashboard-page-scroll">
+          <div className="dashboard-page-scroll dashboard-page-scroll--pedidos">
             {pedidosLoading && <p>Carregando pedidos...</p>}
             {pedidosError && (
               <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
@@ -565,13 +580,14 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
               </div>
             )}
             {!pedidosLoading && (!pedidosError || pedidos.length > 0) && (
-              <PedidosView
+              <PedidosAdminView
                 pedidos={pedidos}
-                onUpdateStatus={handleUpdatePedidoStatus}
+                onAutorizar={handleAutorizarPedidoPatrimonio}
+                onRecusar={handleRecusarPedidoPatrimonio}
+                onNovoPedido={handleNovoPedido}
                 usuariosDisponiveis={usuarios}
                 materiaisDisponiveis={materiais}
                 setoresDisponiveis={setores}
-                userRole="admin"
               />
             )}
           </div>
@@ -644,7 +660,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
                 <KpiCards
                   data={{
                     usuarios: dashboardLoading ? '...' : dashboard?.totalUsuarios,
-                    pedidosPendentes: dashboardLoading ? '...' : dashboard?.pedidosPendentes
+                    pedidosPendentes: counts.pedidosPendentes
                   }}
                   onNavigate={setActiveNav}
                 />

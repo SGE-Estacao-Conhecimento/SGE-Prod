@@ -27,6 +27,43 @@ public sealed class PedidoRepository(DbConnectionFactory db, AppClock relogio)
         public string? Descricao { get; set; }
     }
 
+    private sealed class LogDetalheLinha
+    {
+        public long LogId { get; set; }
+        public int PedidoId { get; set; }
+        public string? StatusAnterior { get; set; }
+        public string StatusNovo { get; set; } = string.Empty;
+        public int UsuarioId { get; set; }
+        public string UsuarioNome { get; set; } = string.Empty;
+        public string? Descricao { get; set; }
+        public DateTime DataLog { get; set; }
+    }
+
+    public async Task<IReadOnlyList<PedidoLogDto>> ListarLogsAsync(int pedidoId)
+    {
+        await using var con = await db.AbrirAsync();
+        var logs = (await con.QueryAsync<LogDetalheLinha>("""
+            SELECT l.log_id, l.pedido_id, l.status_anterior, l.status_novo, l.descricao,
+                   l.data_log, u.usuario_id, u.nome AS usuario_nome
+              FROM pedido_logs l
+              JOIN usuarios u ON u.usuario_id = l.usuario_id
+             WHERE l.pedido_id = @pedidoId
+             ORDER BY l.data_log ASC, l.log_id ASC
+            """, new { pedidoId })).ToList();
+
+        return logs.Select(l => new PedidoLogDto(
+            l.LogId,
+            l.PedidoId,
+            l.StatusAnterior is null ? null : StatusPedido.Rotulo(l.StatusAnterior),
+            StatusPedido.Rotulo(l.StatusNovo),
+            l.UsuarioId,
+            l.UsuarioNome,
+            l.Descricao,
+            AppClock.ComoUtc(l.DataLog),
+            relogio.DataHora(l.DataLog)
+        )).ToList();
+    }
+
     public sealed class ItemParaAtendimento
     {
         public int PedidoItemId { get; set; }

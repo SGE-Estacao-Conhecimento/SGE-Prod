@@ -80,6 +80,19 @@ public sealed record PedidoDto(
     string TipoPedido = "consumo",
     bool AguardandoAprovacaoAdmin = false);
 
+// ---------- Histórico de auditoria do pedido (pedido_logs) ----------
+
+public sealed record PedidoLogDto(
+    long Id,
+    int PedidoId,
+    string? StatusAnterior,
+    string StatusNovo,
+    int UsuarioId,
+    string UsuarioNome,
+    string? Descricao,
+    DateTime DataIso,
+    string DataHora);
+
 // ---------- Atendimento pelo almoxarifado (contrato de pedidoService.atualizarStatus) ----------
 
 /// <summary>Quantidade entregue de cada material, enviada na confirmação da entrega.</summary>

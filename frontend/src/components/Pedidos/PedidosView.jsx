@@ -1118,13 +1118,15 @@ const PedidosView = ({
                     {/* Fase 2: Separação / Picking */}
                     {abaAtiva === 'separacao' && (
                       <div className="atendimento-actions-row">
-                        <button
-                          type="button"
-                          className="atendimento-btn atendimento-btn--secondary"
-                          onClick={() => handleMudarStatus(pedido.id, 'Pendente', `Pedido #${pedido.id} retornado para Novos.`)}
-                        >
-                          Voltar p/ Triagem
-                        </button>
+                        {!isPatrimonio && (
+                          <button
+                            type="button"
+                            className="atendimento-btn atendimento-btn--secondary"
+                            onClick={() => handleMudarStatus(pedido.id, 'Pendente', `Pedido #${pedido.id} retornado para Novos.`)}
+                          >
+                            Voltar p/ Triagem
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="atendimento-btn atendimento-btn--primary"

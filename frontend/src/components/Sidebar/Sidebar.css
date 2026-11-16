@@ -1,7 +1,11 @@
-/* ===== SIDEBAR ===== */
+/* ==========================================================================
+   SIDEBAR COMPONENT - Painel Institucional SGE
+   Organizado por tópicos semânticos e suporte ao modo compacto (recolhido)
+   ========================================================================== */
+
 .sidebar {
-  width: var(--sidebar-width);
-  min-width: var(--sidebar-width);
+  width: var(--sidebar-width, 210px);
+  min-width: var(--sidebar-width, 210px);
   height: 100vh;
   background: #017F7B !important;
   display: flex;
@@ -10,57 +14,153 @@
   position: relative;
   z-index: 10;
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Brand */
+/* Modo Recolhido no Desktop */
+.sidebar--collapsed {
+  width: var(--sidebar-collapsed-width, 64px) !important;
+  min-width: var(--sidebar-collapsed-width, 64px) !important;
+}
+
+/* Brand / Cabeçalho */
 .sidebar__brand {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 16px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  min-height: 64px;
+  box-sizing: border-box;
+}
+
+.sidebar--collapsed .sidebar__brand {
+  padding: 14px 8px;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.sidebar__brand-logo-wrap {
+  display: flex;
+  align-items: center;
   gap: 10px;
-  padding: 22px 18px 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  min-width: 0;
 }
 
 .sidebar__logo {
   width: 32px;
   height: 32px;
   background: rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-sm, 6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: #FFFFFF;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar__brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .sidebar__brand-name {
   font-size: 15px;
   font-weight: 700;
   color: #FFFFFF;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
 }
 
-/* Navigation */
+.sidebar__brand-role {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+/* Botão de Alternância do Modo Compacto */
+.sidebar__collapse-toggle-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  color: #FFFFFF;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.sidebar__collapse-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: scale(1.05);
+}
+
+/* ==========================================================================
+   Navegação Estruturada por Tópicos
+   ========================================================================== */
 .sidebar__nav {
   flex: 1;
   padding: 12px 10px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.sidebar__nav ul {
+.sidebar--collapsed .sidebar__nav {
+  padding: 12px 6px;
+}
+
+.sidebar__section {
+  margin-bottom: 12px;
+}
+
+.sidebar__section:last-child {
+  margin-bottom: 4px;
+}
+
+.sidebar__section-title {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 6px 12px 4px;
+  user-select: none;
+}
+
+.sidebar__section-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 8px 6px;
+}
+
+.sidebar__section-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
+/* Itens de Menu */
 .sidebar__nav-item {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-sm, 6px);
   background: transparent;
   color: rgba(255, 255, 255, 0.85);
   font-size: 13px;
@@ -70,6 +170,12 @@
   text-align: left;
   border: none;
   cursor: pointer;
+}
+
+.sidebar--collapsed .sidebar__nav-item {
+  padding: 10px 0;
+  justify-content: center;
+  gap: 0;
 }
 
 .sidebar__nav-item:hover {
@@ -101,6 +207,7 @@
 .sidebar__nav-label {
   font-size: 13px;
   color: inherit;
+  white-space: nowrap;
 }
 
 .sidebar__nav-indicator {
@@ -115,7 +222,7 @@
   pointer-events: none;
 }
 
-/* Badges de contador e alerta no menu */
+/* Badges Dinâmicos */
 .sidebar__badge {
   margin-left: auto;
   font-size: 11px;
@@ -150,27 +257,83 @@
   color: rgba(255, 255, 255, 0.95);
 }
 
-/* Footer */
+/* Micro-ponto do badge no modo recolhido */
+.sidebar__badge--collapsed {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  margin-left: 0;
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid #017F7B;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   Footer / Rodapé do Usuário
+   ========================================================================== */
 .sidebar__footer {
-  padding: 16px 14px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 60px;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.sidebar--collapsed .sidebar__footer {
+  padding: 12px 0;
+  justify-content: center;
+  align-items: center;
+}
+
+.sidebar__user-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm, 6px);
+  transition: background 0.15s ease;
+  user-select: none;
+  position: relative;
+  z-index: 2;
+}
+
+.sidebar--collapsed .sidebar__user-block {
+  justify-content: center;
+  padding: 4px;
+  flex: initial;
+}
+
+.sidebar__user-block:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.sidebar__user-block--active {
+  background: rgba(255, 255, 255, 0.22) !important;
 }
 
 .sidebar__user-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
   flex-shrink: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
 }
 
 .sidebar__user-info {
@@ -190,28 +353,42 @@
 
 .sidebar__user-role {
   font-size: 10px;
-  color: var(--sidebar-text);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .sidebar-logout-action {
   background: transparent;
-  color: var(--sidebar-text);
+  color: var(--sidebar-text, rgba(255, 255, 255, 0.85));
   padding: 6px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-sm, 6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: auto;
-  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s ease, color 0.15s ease;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar--collapsed .sidebar-logout-action {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.4) translateX(-18px);
+  z-index: 0;
 }
 
 .sidebar-logout-action:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #EF4444;
+  background: rgba(239, 68, 68, 0.25);
+  color: #FCA5A5;
 }
 
-/* Mobile Sidebar Drawer & Backdrop */
+/* ==========================================================================
+   Mobile Sidebar Drawer & Backdrop
+   ========================================================================== */
 .sidebar-backdrop {
   display: none;
 }
@@ -219,12 +396,13 @@
 .sidebar__close-btn {
   display: none;
   background: transparent;
-  color: var(--sidebar-text);
-  margin-left: auto;
+  color: var(--sidebar-text, rgba(255, 255, 255, 0.85));
   padding: 4px;
-  border-radius: var(--radius-sm);
+  border: none;
+  border-radius: var(--radius-sm, 6px);
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   transition: color 0.15s ease;
 }
 
@@ -249,8 +427,8 @@
     top: 0;
     left: 0;
     height: 100vh;
-    width: 240px;
-    min-width: 240px;
+    width: 240px !important;
+    min-width: 240px !important;
     z-index: 999;
     transform: translateX(-100%);
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -262,5 +440,9 @@
 
   .sidebar__close-btn {
     display: flex;
+  }
+
+  .sidebar__collapse-toggle-btn {
+    display: none !important;
   }
 }

@@ -99,12 +99,17 @@ public sealed class PedidoService(DbConnectionFactory db, PedidoRepository repo,
         }
         else
         {
+            var ehAdmin = usuario.Perfil() == Perfis.Admin;
+            var statusInicial = (temPatrimonio && ehAdmin)
+                ? StatusPedido.EmSeparacao
+                : StatusPedido.Pendente;
+
             pedidoId = await repo.InserirPedidoAsync(
                 t,
                 solicitante.FuncionarioId,
                 solicitante.SetorId,
                 usuarioId,
-                StatusPedido.Pendente,
+                statusInicial,
                 urgencia,
                 justificativa);
 
@@ -112,9 +117,11 @@ public sealed class PedidoService(DbConnectionFactory db, PedidoRepository repo,
                 await repo.InserirPedidoItemAsync(t, pedidoId, item.ProdutoId, item.Quantidade);
 
             var logInicial = temPatrimonio
-                ? "Pedido de patrimônio criado. Aguardando autorização do administrativo."
+                ? (ehAdmin
+                    ? "Pedido de patrimônio registrado e autorizado diretamente pela administração."
+                    : "Pedido de patrimônio criado. Aguardando autorização do administrativo.")
                 : "Pedido criado.";
-            await repo.RegistrarLogAsync(t, pedidoId, null, StatusPedido.Pendente, usuarioId, logInicial);
+            await repo.RegistrarLogAsync(t, pedidoId, null, statusInicial, usuarioId, logInicial);
         }
 
         var criado = await repo.ObterAsync(t, pedidoId);
@@ -136,9 +143,18 @@ public sealed class PedidoService(DbConnectionFactory db, PedidoRepository repo,
         if (pedido.Status != StatusPedido.Pendente)
             throw ApiException.Conflict("Somente pedidos pendentes podem ser cancelados.");
 
+        var ehPatrimonio = await repo.PedidoEhPatrimonioAsync(t, pedidoId);
+        var perfil = usuario.Perfil();
+        if (perfil == Perfis.Admin && !ehPatrimonio)
+            throw new ApiException(403, "O cancelamento de pedidos de consumo é de competência do solicitante ou do almoxarifado.");
+        if (perfil == Perfis.Almoxarifado && ehPatrimonio)
+            throw new ApiException(403, "A autorização ou recusa de pedidos de patrimônio é de competência do administrativo.");
+
         await repo.MudarStatusAsync(t, pedidoId, StatusPedido.Pendente, StatusPedido.Cancelado);
-        await repo.RegistrarLogAsync(t, pedidoId, pedido.Status, StatusPedido.Cancelado, usuario.UsuarioId(),
-            "Cancelado pelo solicitante.");
+        var descricao = ehPatrimonio && perfil == Perfis.Admin
+            ? "Solicitação de patrimônio recusada pelo administrativo."
+            : (usuario.EhEquipe() ? "Cancelado pela equipe." : "Cancelado pelo solicitante.");
+        await repo.RegistrarLogAsync(t, pedidoId, pedido.Status, StatusPedido.Cancelado, usuario.UsuarioId(), descricao);
 
         var atualizado = await repo.ObterAsync(t, pedidoId);
         await t.ConfirmarAsync();

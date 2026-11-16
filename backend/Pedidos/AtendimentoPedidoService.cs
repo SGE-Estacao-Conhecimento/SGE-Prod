@@ -37,8 +37,23 @@ public sealed class AtendimentoPedidoService(DbConnectionFactory db, PedidoRepos
             throw ApiException.Conflict(
                 $"Não é possível mudar o pedido de \"{StatusPedido.Rotulo(pedido.Status)}\" para \"{StatusPedido.Rotulo(novo)}\".");
 
-        if (ehPatrimonio && pedido.Status == StatusPedido.Pendente && usuario.Perfil() != Perfis.Admin)
-            throw new ApiException(403, "Pedidos de patrimônio precisam ser autorizados pelo administrativo.");
+        var perfil = usuario.Perfil();
+        if (perfil == Perfis.Admin)
+        {
+            if (!ehPatrimonio)
+                throw new ApiException(403, "O atendimento e a gestão operacional de pedidos de consumo são de competência exclusiva do almoxarifado.");
+
+            if (pedido.Status != StatusPedido.Pendente || (novo != StatusPedido.EmSeparacao && novo != StatusPedido.Cancelado))
+                throw new ApiException(403, "As etapas operacionais de separação e entrega física são de competência exclusiva do almoxarifado.");
+        }
+        else if (perfil == Perfis.Almoxarifado)
+        {
+            if (ehPatrimonio && pedido.Status == StatusPedido.Pendente)
+                throw new ApiException(403, "Pedidos de patrimônio precisam ser autorizados pelo administrativo antes do atendimento.");
+
+            if (ehPatrimonio && pedido.Status == StatusPedido.EmSeparacao && novo == StatusPedido.Pendente)
+                throw new ApiException(400, "Pedidos de patrimônio já autorizados pela administração não podem retornar para a etapa de autorização/triagem.");
+        }
 
         var usuarioId = usuario.UsuarioId();
         if (novo == StatusPedido.Atendido)
@@ -51,7 +66,9 @@ public sealed class AtendimentoPedidoService(DbConnectionFactory db, PedidoRepos
             var descricao = novo switch
             {
                 StatusPedido.Cancelado => Texto(req.MotivoCancelamento, "O motivo da recusa") ??
-                    (ehPatrimonio ? "Solicitação de patrimônio recusada." : "Recusado pelo almoxarifado."),
+                    (ehPatrimonio
+                        ? (perfil == Perfis.Admin ? "Solicitação de patrimônio recusada pelo administrativo." : "Solicitação de patrimônio recusada.")
+                        : "Recusado pelo almoxarifado."),
                 StatusPedido.ProntoRetirada => Texto(req.MensagemAlmoxarife, "A mensagem de retirada"),
                 StatusPedido.EmSeparacao when ehPatrimonio && pedido.Status == StatusPedido.Pendente =>
                     "Autorizado pelo administrativo para separação.",

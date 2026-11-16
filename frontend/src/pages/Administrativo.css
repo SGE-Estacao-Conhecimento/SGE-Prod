@@ -30,6 +30,15 @@
   padding: 24px;
 }
 
+.dashboard-page-scroll--pedidos {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
 /* Left/Center scrollable content */
 .dashboard-content {
   flex: 1;

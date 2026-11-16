@@ -71,7 +71,8 @@ const NovoPedidoModal = ({
   }, [materiaisDisponiveis]);
 
   const ehTipoPatrimonio = tipoPedido === 'patrimonio';
-  const entregaImediataAtiva = isAlmoxarife && !ehTipoPatrimonio && entregaImediata && !initialData;
+  const isEdicao = Boolean(initialData && initialData.id);
+  const entregaImediataAtiva = isAlmoxarife && !ehTipoPatrimonio && entregaImediata && !isEdicao;
 
   // Apenas materiais compatíveis com o tipo de pedido escolhido
   const materiaisDoTipo = useMemo(() => {
@@ -100,17 +101,23 @@ const NovoPedidoModal = ({
     if (!isOpen) return;
 
     if (initialData) {
-      const uEncontrado = listaUsuarios.find(
-        u => u.nome?.toLowerCase() === initialData.usuario?.toLowerCase()
-      );
-      if (uEncontrado) {
-        setUsuarioSelecionadoId(String(uEncontrado.id));
+      if (initialData.usuario) {
+        const uEncontrado = listaUsuarios.find(
+          u => u.nome?.toLowerCase() === initialData.usuario?.toLowerCase()
+        );
+        if (uEncontrado) {
+          setUsuarioSelecionadoId(String(uEncontrado.id));
+          setUsuarioNomeCustom('');
+          setSetorCustom('');
+        } else {
+          setUsuarioSelecionadoId('custom');
+          setUsuarioNomeCustom(initialData.usuario || '');
+          setSetorCustom(initialData.setor || '');
+        }
+      } else {
+        setUsuarioSelecionadoId(listaUsuarios.length > 0 ? String(listaUsuarios[0].id) : 'custom');
         setUsuarioNomeCustom('');
         setSetorCustom('');
-      } else {
-        setUsuarioSelecionadoId('custom');
-        setUsuarioNomeCustom(initialData.usuario || '');
-        setSetorCustom(initialData.setor || '');
       }
 
       setUrgente(initialData.urgente || String(initialData.prioridade).toLowerCase() === 'urgente');
@@ -166,7 +173,7 @@ const NovoPedidoModal = ({
     if (novoTipo === 'patrimonio') {
       setEntregaImediata(false);
     } else {
-      setEntregaImediata(isAlmoxarife && !initialData);
+      setEntregaImediata(isAlmoxarife && !isEdicao);
     }
     if (itens.length > 0) {
       setItens([]);
@@ -294,7 +301,7 @@ const NovoPedidoModal = ({
       justificativa: justificativa.trim(),
       tipoPedido,
       entregaImediata: entregaImediataAtiva,
-      status: initialData?.status || 'Pendente',
+      status: initialData?.status || (userRole === 'admin' && tipoPedido === 'patrimonio' ? 'Em Separação' : 'Pendente'),
       itens: itens.map(it => ({
         produtoId: it.produtoId,
         materialNome: it.materialNome,
@@ -319,20 +326,36 @@ const NovoPedidoModal = ({
 
   const textoBotaoSubmit = submitting
     ? 'Registrando...'
-    : initialData
+    : isEdicao
     ? 'Salvar Alterações'
+    : (userRole === 'admin' && ehTipoPatrimonio)
+    ? 'Registrar e Autorizar'
     : entregaImediataAtiva
     ? 'Registrar e Dar Baixa'
     : ehTipoPatrimonio
     ? 'Enviar p/ Administrativo'
     : 'Criar Pedido';
 
+  const modalTitle = isEdicao
+    ? `Editar Pedido #${initialData.id}`
+    : ehTipoPatrimonio
+    ? (userRole === 'admin' ? 'Novo Pedido de Patrimônio' : 'Nova Solicitação de Patrimônio')
+    : 'Novo Pedido de Material';
+
+  const modalSubtitle = isEdicao
+    ? 'Edição de Pedido'
+    : userRole === 'admin'
+    ? 'Governança & Gestão de Patrimônio'
+    : isAlmoxarife
+    ? 'Balcão de Atendimento'
+    : 'Solicitação Interna';
+
   return (
     <BottomSheetModal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialData ? `Editar Pedido #${initialData.id}` : 'Novo Pedido de Material'}
-      subtitle={isAlmoxarife ? 'Balcão de Atendimento' : 'Solicitação Interna'}
+      title={modalTitle}
+      subtitle={modalSubtitle}
       maxWidth="580px"
       badge={
         urgente ? (
@@ -403,12 +426,14 @@ const NovoPedidoModal = ({
                 <line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
               <span>
-                Pedidos de patrimônio vão primeiro para autorização do Administrativo antes da separação e não realizam baixa automática no estoque.
+                {userRole === 'admin'
+                  ? 'Pedidos de patrimônio cadastrados pela administração são autorizados imediatamente e encaminhados para a esteira de separação do almoxarifado.'
+                  : 'Pedidos de patrimônio vão primeiro para autorização do Administrativo antes da separação e não realizam baixa automática no estoque.'}
               </span>
             </div>
           )}
 
-          {isAlmoxarife && !ehTipoPatrimonio && !initialData && (
+          {isAlmoxarife && !ehTipoPatrimonio && !isEdicao && (
             <label className="novo-pedido-baixa-card">
               <input
                 type="checkbox"
@@ -442,7 +467,7 @@ const NovoPedidoModal = ({
         {/* 1. SELEÇÃO DE SOLICITANTE */}
         <div className="novo-pedido-section">
           <label className="novo-pedido-label" htmlFor="select-solicitante-almox">
-            Solicitante do Pedido <span className="campo-obrigatorio">*</span>
+            {ehTipoPatrimonio ? 'Solicitante do Patrimônio' : 'Solicitante do Material'} <span className="campo-obrigatorio">*</span>
           </label>
           <div className="novo-pedido-solicitante-row">
             <select

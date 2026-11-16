@@ -41,4 +41,9 @@ public sealed class PedidosController(PedidoRepository repo, PedidoService servi
     /// <summary>Cancela o pedido (contrato de pedidoService.cancelar).</summary>
     [HttpDelete("{id:int}")]
     public Task<PedidoDto> Cancelar(int id) => service.CancelarAsync(id, User);
+
+    /// <summary>Histórico de movimentações e eventos do pedido (pedido_logs).</summary>
+    [HttpGet("{id:int}/historico")]
+    [Authorize(Roles = Perfis.Equipe)]
+    public Task<IReadOnlyList<PedidoLogDto>> ObterHistorico(int id) => repo.ListarLogsAsync(id);
 }

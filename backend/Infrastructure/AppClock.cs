@@ -13,4 +13,7 @@ public sealed class AppClock(string fusoHorario)
 
     /// <summary>Data no formato exibido pelo front-end (dd/MM/yyyy).</summary>
     public string DataCurta(DateTime utc) => ParaLocal(utc).ToString("dd/MM/yyyy");
+
+    /// <summary>Data e hora no formato exibido pelo front-end (dd/MM/yyyy HH:mm).</summary>
+    public string DataHora(DateTime utc) => ParaLocal(utc).ToString("dd/MM/yyyy HH:mm");
 }
