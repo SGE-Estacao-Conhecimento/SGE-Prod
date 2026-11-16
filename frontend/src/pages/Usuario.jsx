@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import Topbar from '../components/Topbar/Topbar';
+import Sidebar from '../components/Sidebar/Sidebar';
 import UsuarioEstoque from '../components/UsuarioEstoque/UsuarioEstoque';
 import MeusPedidos from '../components/MeusPedidos/MeusPedidos';
 import UsuarioPerfil from '../components/UsuarioPerfil/UsuarioPerfil';
 import { BottomNav, PageTabTransition, useSectionNavigation } from '../components/common';
 import './Usuario.css';
-// A página renderiza a sidebar diretamente, então precisa carregar seus estilos.
-import '../components/Sidebar/Sidebar.css';
 import { pedidoService } from '../services/pedidos/pedidoService';
 import { materialService } from '../services/materiais/materialService';
 import { notificacaoService } from '../services/notificacoes/notificacaoService';
@@ -232,7 +231,6 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
   };
 
   const pendentesCount = pedidos.filter(p => p.status === 'Pendente').length;
-  const initial = (user?.identifier || 'U')[0].toUpperCase();
 
   const renderContent = () => {
     switch (activeNav) {
@@ -305,89 +303,17 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
 
   return (
     <div className="usuario-layout">
-      {isSidebarOpen && (
-        <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
-      )}
-
-      {/* Sidebar Desktop do Usuário */}
-      <aside className={`sidebar ${isSidebarOpen ? 'sidebar--open' : ''}`}>
-        <div className="sidebar__brand">
-          <div className="sidebar__logo">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            </svg>
-          </div>
-          <span className="sidebar__brand-name">SGE</span>
-          <button
-            type="button"
-            className="sidebar__close-btn"
-            onClick={() => setIsSidebarOpen(false)}
-            aria-label="Fechar menu"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <nav className="sidebar__nav">
-          <ul>
-            {navItemsUsuario.map(item => {
-              const isActive = activeNav === item.id;
-              return (
-                <li key={item.id}>
-                  <motion.button
-                    id={`nav-user-${item.id}`}
-                    className={`sidebar__nav-item ${isActive ? 'sidebar__nav-item--active' : ''}`}
-                    onClick={() => handleNavClick(item.id)}
-                    whileHover={{ x: 2 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <span className="sidebar__nav-icon">{item.icon}</span>
-                    <span className="sidebar__nav-label">{item.label}</span>
-                    {item.id === 'pedidos' && pendentesCount > 0 && (
-                      <span className="sidebar__badge">{pendentesCount}</span>
-                    )}
-                    {isActive && (
-                      <motion.span
-                        layoutId="userSidebarIndicator"
-                        className="sidebar__nav-indicator"
-                        transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                      />
-                    )}
-                  </motion.button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        <div className="sidebar__footer">
-          <div className="sidebar__user-avatar">{initial}</div>
-          <div className="sidebar__user-info">
-            <span className="sidebar__user-name">{user?.identifier || 'Usuário'}</span>
-            <span className="sidebar__user-role">Solicitante</span>
-          </div>
-          {onLogout && (
-            <motion.button
-              id="sidebar-logout-btn"
-              className="sidebar-logout-action"
-              onClick={onLogout}
-              title="Sair"
-              aria-label="Sair da conta"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.92 }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </motion.button>
-          )}
-        </div>
-      </aside>
+      {/* Sidebar Unificada do Usuário (Desktop) */}
+      <Sidebar
+        role="usuario"
+        activeItem={activeNav}
+        onNavigate={handleNavClick}
+        onLogout={onLogout}
+        user={user}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        counts={{ pedidosPendentes: pendentesCount }}
+      />
 
       <div className="usuario-main">
         <Topbar

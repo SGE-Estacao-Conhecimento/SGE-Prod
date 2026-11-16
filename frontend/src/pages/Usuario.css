@@ -35,7 +35,7 @@
     padding: 28px clamp(28px, 4vw, 64px);
   }
 
-  .usuario-page-scroll > * {
+  .usuario-page-scroll>* {
     width: 100%;
     max-width: 1280px;
     margin-left: auto;
@@ -55,20 +55,9 @@
     gap: 24px;
   }
 
-  .usuario-page-scroll .usuario-perfil > * {
+  .usuario-page-scroll .usuario-perfil>* {
     min-width: 0;
   }
-}
-
-/* Sidebar badge for pending items */
-.sidebar__badge {
-  background: rgba(255, 255, 255, 0.28);
-  color: #FFFFFF;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 10px;
-  margin-left: auto;
 }
 
 /* Oculta a barra inferior de celular no desktop */
@@ -78,6 +67,7 @@
 
 /* ===== MODO CELULAR (MOBILE-FIRST) ===== */
 @media (max-width: 900px) {
+
   /* Oculta totalmente a barra lateral no celular */
   .usuario-layout .sidebar {
     display: none !important;

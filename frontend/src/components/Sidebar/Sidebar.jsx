@@ -3,9 +3,72 @@ import { motion } from 'motion/react';
 import './Sidebar.css';
 
 /**
- * Agrupamento semântico dos módulos do painel administrativo por tópicos
+ * Ícones reutilizáveis da navegação institucional
  */
-const navGroups = [
+const ICONS = {
+  dashboard: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </svg>
+  ),
+  home: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  ),
+  consumo: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+      <line x1="12" y1="22.08" x2="12" y2="12" />
+    </svg>
+  ),
+  patrimonio: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+    </svg>
+  ),
+  ambientes: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  ),
+  pedidos: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+      <polyline points="10 9 9 9 8 9" />
+    </svg>
+  ),
+  usuarios: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  relatorios: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  )
+};
+
+/**
+ * Agrupamentos de navegação semânticos específicos por perfil
+ */
+const adminNavGroups = [
   {
     id: 'inicio',
     label: 'Início',
@@ -13,14 +76,7 @@ const navGroups = [
       {
         id: 'dashboard',
         label: 'Início',
-        icon: (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="7" height="7" />
-            <rect x="14" y="3" width="7" height="7" />
-            <rect x="14" y="14" width="7" height="7" />
-            <rect x="3" y="14" width="7" height="7" />
-          </svg>
-        )
+        icon: ICONS.dashboard
       }
     ]
   },
@@ -34,33 +90,17 @@ const navGroups = [
         badgeKey: 'estoqueCritico',
         badgeType: 'danger',
         badgeTitle: 'materiais em estoque crítico',
-        icon: (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-            <line x1="12" y1="22.08" x2="12" y2="12" />
-          </svg>
-        )
+        icon: ICONS.consumo
       },
       {
         id: 'patrimonio',
         label: 'Patrimônio',
-        icon: (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-          </svg>
-        )
+        icon: ICONS.patrimonio
       },
       {
         id: 'ambientes',
         label: 'Ambientes',
-        icon: (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
-        )
+        icon: ICONS.ambientes
       }
     ]
   },
@@ -74,15 +114,7 @@ const navGroups = [
         badgeKey: 'pedidosPendentes',
         badgeType: 'amber',
         badgeTitle: 'solicitações de patrimônio aguardando parecer',
-        icon: (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-            <polyline points="10 9 9 9 8 9" />
-          </svg>
-        )
+        icon: ICONS.pedidos
       },
       {
         id: 'usuarios',
@@ -90,31 +122,109 @@ const navGroups = [
         badgeKey: 'totalUsuarios',
         badgeType: 'neutral',
         badgeTitle: 'usuários cadastrados',
-        icon: (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-        )
+        icon: ICONS.usuarios
       },
       {
         id: 'relatorios',
         label: 'Relatórios',
-        icon: (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <line x1="18" y1="20" x2="18" y2="10" />
-            <line x1="12" y1="20" x2="12" y2="4" />
-            <line x1="6" y1="20" x2="6" y2="14" />
-          </svg>
-        )
+        icon: ICONS.relatorios
       }
     ]
   }
 ];
 
+const almoxarifeNavGroups = [
+  {
+    id: 'materiais_bens',
+    label: 'Materiais & Bens',
+    items: [
+      {
+        id: 'consumo',
+        label: 'Consumo',
+        badgeKey: 'estoqueCritico',
+        badgeType: 'danger',
+        badgeTitle: 'materiais em estoque crítico',
+        icon: ICONS.consumo
+      },
+      {
+        id: 'patrimonio',
+        label: 'Patrimônio',
+        icon: ICONS.patrimonio
+      }
+    ]
+  },
+  {
+    id: 'operacao',
+    label: 'Operação',
+    items: [
+      {
+        id: 'pedidos',
+        label: 'Pedidos',
+        badgeKey: 'pedidosPendentes',
+        badgeType: 'amber',
+        badgeTitle: 'pedidos aguardando separação',
+        icon: ICONS.pedidos
+      },
+      {
+        id: 'relatorios',
+        label: 'Relatórios',
+        icon: ICONS.relatorios
+      }
+    ]
+  }
+];
+
+const usuarioNavGroups = [
+  {
+    id: 'navegacao',
+    label: 'Navegação',
+    items: [
+      {
+        id: 'inicio',
+        label: 'Início',
+        icon: ICONS.home
+      },
+      {
+        id: 'pedidos',
+        label: 'Meus Pedidos',
+        badgeKey: 'pedidosPendentes',
+        badgeType: 'amber',
+        badgeTitle: 'pedidos em andamento',
+        icon: ICONS.pedidos
+      }
+    ]
+  }
+];
+
+const ROLE_CONFIG = {
+  admin: {
+    brandRole: 'Administração',
+    defaultName: 'Administrador',
+    defaultInitial: 'A',
+    groups: adminNavGroups,
+    storageKey: 'sge_admin_sidebar_collapsed',
+    indicatorId: 'adminSidebarIndicator'
+  },
+  almoxarife: {
+    brandRole: 'Almoxarifado',
+    defaultName: 'Almoxarife',
+    defaultInitial: 'AL',
+    groups: almoxarifeNavGroups,
+    storageKey: 'sge_almoxarife_sidebar_collapsed',
+    indicatorId: 'almoxarifeSidebarIndicator'
+  },
+  usuario: {
+    brandRole: 'Solicitante',
+    defaultName: 'Usuário',
+    defaultInitial: 'U',
+    groups: usuarioNavGroups,
+    storageKey: 'sge_usuario_sidebar_collapsed',
+    indicatorId: 'usuarioSidebarIndicator'
+  }
+};
+
 const Sidebar = ({
+  role = 'admin',
   activeItem,
   onNavigate,
   onLogout,
@@ -123,10 +233,12 @@ const Sidebar = ({
   onClose,
   counts = {}
 }) => {
-  // Estado de recolhimento da sidebar com persistência local no navegador
+  const config = ROLE_CONFIG[role] || ROLE_CONFIG.admin;
+
+  // Estado de recolhimento da sidebar com persistência local independente por perfil
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
-      return localStorage.getItem('sge_admin_sidebar_collapsed') === 'true';
+      return localStorage.getItem(config.storageKey) === 'true';
     } catch {
       return false;
     }
@@ -136,7 +248,7 @@ const Sidebar = ({
     setIsCollapsed((prev) => {
       const next = !prev;
       try {
-        localStorage.setItem('sge_admin_sidebar_collapsed', String(next));
+        localStorage.setItem(config.storageKey, String(next));
       } catch {}
       return next;
     });
@@ -162,12 +274,12 @@ const Sidebar = ({
             {!isCollapsed && (
               <div className="sidebar__brand-text">
                 <span className="sidebar__brand-name">SGE</span>
-                <span className="sidebar__brand-role">Administração</span>
+                <span className="sidebar__brand-role">{config.brandRole}</span>
               </div>
             )}
           </div>
 
-          {/* Botão de Fechar no Mobile */}
+          {/* Botão de Fechar no Mobile (quando drawer aberto) */}
           {onClose && (
             <button
               type="button"
@@ -202,7 +314,7 @@ const Sidebar = ({
 
         {/* Navegação Estruturada por Tópicos */}
         <nav className="sidebar__nav">
-          {navGroups.map((group, groupIdx) => (
+          {config.groups.map((group, groupIdx) => (
             <div key={group.id} className="sidebar__section">
               {groupIdx > 0 && isCollapsed && (
                 <div className="sidebar__section-divider" aria-hidden="true" />
@@ -221,7 +333,7 @@ const Sidebar = ({
                   return (
                     <li key={item.id}>
                       <motion.button
-                        id={`nav-${item.id}`}
+                        id={`nav-${role}-${item.id}`}
                         className={`sidebar__nav-item ${isActive ? 'sidebar__nav-item--active' : ''} ${isCollapsed ? 'sidebar__nav-item--collapsed' : ''}`}
                         onClick={() => handleItemClick(item.id)}
                         title={item.label}
@@ -246,7 +358,7 @@ const Sidebar = ({
 
                         {isActive && (
                           <motion.span
-                            layoutId="adminSidebarIndicator"
+                            layoutId={config.indicatorId}
                             className="sidebar__nav-indicator"
                             transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                           />
@@ -260,12 +372,12 @@ const Sidebar = ({
           ))}
         </nav>
 
-        {/* Rodapé da Conta: Acesso Centralizado a Meu Perfil e Botão Sair */}
+        {/* Rodapé da Conta: Acesso Centralizado a Meu Perfil e Botão Sair com recolhimento */}
         <div className={`sidebar__footer ${isCollapsed ? 'sidebar__footer--collapsed' : ''}`}>
           <div
             className={`sidebar__user-block ${activeItem === 'perfil' ? 'sidebar__user-block--active' : ''}`}
             onClick={() => handleItemClick('perfil')}
-            title={`${user?.nome || user?.identifier || 'Administrador'} (Clique para ver Meu Perfil)`}
+            title={`${user?.nome || user?.identifier || config.defaultName} (Clique para ver Meu Perfil)`}
             tabIndex={0}
             role="button"
             onKeyDown={(e) => {
@@ -276,18 +388,18 @@ const Sidebar = ({
             }}
           >
             <div className="sidebar__user-avatar">
-              {(user?.nome || user?.identifier || 'A').charAt(0).toUpperCase()}
+              {(user?.nome || user?.identifier || config.defaultInitial).charAt(0).toUpperCase()}
             </div>
             {!isCollapsed && (
               <div className="sidebar__user-info">
-                <span className="sidebar__user-name">{user?.nome || user?.identifier || 'Administrador'}</span>
+                <span className="sidebar__user-name">{user?.nome || user?.identifier || config.defaultName}</span>
                 <span className="sidebar__user-role">Meu Perfil</span>
               </div>
             )}
           </div>
           {onLogout && (
             <motion.button
-              id="sidebar-admin-logout-btn"
+              id={`sidebar-${role}-logout-btn`}
               className="sidebar-logout-action"
               onClick={onLogout}
               title="Sair do sistema"
