@@ -1063,3 +1063,414 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ================= SEÇÃO DE PEDIDOS DE BAIXA DE PATRIMÔNIO ================= */
+
+.pedidos-admin__autorizacoes-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pedidos-admin__baixa-section {
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-md, 8px);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.pedidos-admin__baixa-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pedidos-admin__baixa-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pedidos-admin__baixa-tag {
+  background-color: #fef08a;
+  color: #854d0e;
+  border: 1px solid #facc15;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.pedidos-admin__baixa-section-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #78350f;
+  margin: 0;
+}
+
+.pedidos-admin__baixa-section-desc {
+  font-size: 0.8125rem;
+  color: #92400e;
+}
+
+.pedidos-admin__baixa-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+}
+
+.pedidos-admin__baixa-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pedidos-admin__baixa-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.baixa-card-id {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.baixa-card-data {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.pedidos-admin__baixa-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.baixa-card-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.baixa-card-item-patrimonio {
+  font-size: 0.9375rem;
+  color: var(--text-primary, #0f172a);
+}
+
+.baixa-card-item-nome {
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #475569);
+}
+
+.baixa-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.baixa-card-justificativa {
+  font-size: 0.8125rem;
+  font-style: italic;
+  color: var(--text-primary, #334155);
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border-left: 3px solid #f59e0b;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.pedidos-admin__baixa-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-color, #f1f5f9);
+}
+
+.pedidos-admin__btn-ver-fotos {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 6px;
+  background: var(--bg-card, #ffffff);
+  color: var(--text-primary, #334155);
+  cursor: pointer;
+}
+
+.pedidos-admin__btn-ver-fotos:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.pedidos-admin__btn-deliberar-baixa {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background-color: #d97706;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.pedidos-admin__btn-deliberar-baixa:hover {
+  background-color: #b45309;
+}
+
+.pedidos-admin__subtitulo-secao-wrap {
+  padding-top: 6px;
+}
+
+.pedidos-admin__subtitulo-secao {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary, #475569);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+/* Formulario da Gaveta de Deliberacao de Baixa */
+.pedidos-admin__baixa-deliberar-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 16px 0;
+}
+
+.pedidos-admin__baixa-resumo-bem {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  background-color: #f8fafc;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.baixa-resumo-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.baixa-resumo-rotulo {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #64748b);
+  font-weight: 600;
+}
+
+.baixa-resumo-destaque {
+  font-size: 1rem;
+  color: var(--text-primary, #0f172a);
+}
+
+.baixa-resumo-texto {
+  font-size: 0.875rem;
+  color: var(--text-primary, #334155);
+}
+
+.pedidos-admin__baixa-detalhe-solicitacao {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.baixa-detalhe-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+}
+
+.baixa-detalhe-rotulo {
+  font-weight: 600;
+  color: var(--text-secondary, #475569);
+}
+
+.baixa-detalhe-valor {
+  color: var(--text-primary, #0f172a);
+}
+
+.baixa-detalhe-motivo-tag {
+  background-color: #fee2e2;
+  color: #991b1b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.baixa-detalhe-justificativa-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.baixa-detalhe-justificativa-texto {
+  font-size: 0.875rem;
+  color: var(--text-primary, #1e293b);
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.pedidos-admin__baixa-fotos-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  gap: 12px;
+}
+
+.baixa-fotos-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #1e40af;
+}
+
+.baixa-fotos-info strong {
+  font-size: 0.875rem;
+  display: block;
+}
+
+.baixa-fotos-info p {
+  font-size: 0.75rem;
+  color: #3b82f6;
+  margin: 0;
+}
+
+.pedidos-admin__btn-abrir-galeria {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pedidos-admin__btn-abrir-galeria:hover {
+  background-color: #1d4ed8;
+}
+
+.pedidos-admin__baixa-parecer-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.baixa-parecer-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+
+.baixa-parecer-dica {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-secondary, #64748b);
+}
+
+.baixa-parecer-textarea {
+  width: 100%;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  color: var(--text-primary, #0f172a);
+  background-color: var(--bg-card, #ffffff);
+  box-sizing: border-box;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.baixa-parecer-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.pedidos-admin__baixa-acoes-deliberacao {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+}
+
+.pedidos-admin__btn-baixa-recusar {
+  padding: 9px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  background-color: #fee2e2;
+  color: #991b1b;
+  cursor: pointer;
+}
+
+.pedidos-admin__btn-baixa-recusar:hover:not(:disabled) {
+  background-color: #fecaca;
+}
+
+.pedidos-admin__btn-baixa-aprovar {
+  padding: 9px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background-color: #dc2626;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.pedidos-admin__btn-baixa-aprovar:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+.pedidos-admin__btn-baixa-recusar:disabled,
+.pedidos-admin__btn-baixa-aprovar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

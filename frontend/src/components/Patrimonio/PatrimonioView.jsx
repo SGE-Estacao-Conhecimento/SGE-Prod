@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import NovoModeloModal from './NovoModeloModal';
 import TombamentoModal from '../Ambientes/TombamentoModal';
 import TransferirPatrimonioModal from '../Ambientes/TransferirPatrimonioModal';
-import { ConfirmDialog } from '../common';
+import SolicitarBaixaModal from './SolicitarBaixaModal';
+import { baixaPatrimonioService } from '../../services/baixaPatrimonio/baixaPatrimonioService';
 import './PatrimonioView.css';
 
 const CATEGORIAS_FILTRO = [
@@ -42,7 +43,8 @@ const PatrimonioView = ({
   onCriarModelo,
   onSalvarItem,
   onTransferirItem,
-  onBaixarItem
+  onBaixarItem,
+  onSolicitarBaixa
 }) => {
   // Navegação: 'catalogo' (tabela de modelos / "caixas") ou 'detalhe' (dentro da caixa selecionada)
   const [viewMode, setViewMode] = useState('catalogo');
@@ -203,16 +205,22 @@ const PatrimonioView = ({
     setItemParaBaixar(item);
   };
 
-  const handleConfirmarBaixa = async () => {
-    if (!itemParaBaixar || !onBaixarItem) return;
+  const handleConfirmarBaixa = async (dados) => {
+    if (!itemParaBaixar) return;
     setIsBaixando(true);
     try {
-      await onBaixarItem(itemParaBaixar.id);
-      setFeedbackMsg({ tipo: 'sucesso', texto: `Baixa efetuada para a plaqueta "${itemParaBaixar.numeroPatrimonio}".` });
+      if (onSolicitarBaixa) {
+        await onSolicitarBaixa(dados);
+      } else if (onBaixarItem) {
+        await onBaixarItem(dados);
+      } else {
+        await baixaPatrimonioService.solicitar(dados);
+      }
+      setFeedbackMsg({ tipo: 'sucesso', texto: `Solicitacao de baixa enviada para a plaqueta "${itemParaBaixar.numeroPatrimonio}".` });
       setItemParaBaixar(null);
       setTimeout(() => setFeedbackMsg(null), 3500);
     } catch (err) {
-      setFeedbackMsg({ tipo: 'erro', texto: err?.message || 'Falha ao efetuar baixa do bem.' });
+      setFeedbackMsg({ tipo: 'erro', texto: err?.message || 'Falha ao solicitar baixa do bem.' });
     } finally {
       setIsBaixando(false);
     }
@@ -710,9 +718,19 @@ const PatrimonioView = ({
                             )}
                           </td>
                           <td>
-                            <span className={`status-badge status-badge--${item.estadoConservacao === 'danificado' ? 'danger' : item.estadoConservacao === 'em_manutencao' || item.estadoConservacao === 'regular' ? 'warning' : 'success'}`}>
-                              {CONSERVACAO_LABELS[item.estadoConservacao] || item.estadoConservacao || 'Bom'}
-                            </span>
+                            {item.status === 'aguardando_baixa' ? (
+                              <span className="status-badge status-badge--warning" title="Solicitacao de baixa em analise pela administracao">
+                                Baixa em analise
+                              </span>
+                            ) : item.status === 'baixado' ? (
+                              <span className="status-badge status-badge--danger" title="Item baixado do acervo patrimonial">
+                                Baixado
+                              </span>
+                            ) : (
+                              <span className={`status-badge status-badge--${item.estadoConservacao === 'danificado' ? 'danger' : item.estadoConservacao === 'em_manutencao' || item.estadoConservacao === 'regular' ? 'warning' : 'success'}`}>
+                                {CONSERVACAO_LABELS[item.estadoConservacao] || item.estadoConservacao || 'Bom'}
+                              </span>
+                            )}
                           </td>
                           <td>
                             {item.dataAquisicao ? (
@@ -751,17 +769,31 @@ const PatrimonioView = ({
                                 </svg>
                               </button>
 
-                              <button
-                                type="button"
-                                className="btn-action btn-action--delete"
-                                onClick={() => handleSolicitarBaixa(item)}
-                                title="Baixar exemplar"
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <polyline points="3 6 5 6 21 6" />
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
-                              </button>
+                              {item.status === 'aguardando_baixa' ? (
+                                <button
+                                  type="button"
+                                  className="btn-action btn-action--disabled"
+                                  disabled
+                                  title="Solicitacao de baixa em analise pela administracao"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <polyline points="12 6 12 12 16 14" />
+                                  </svg>
+                                </button>
+                              ) : item.status !== 'baixado' ? (
+                                <button
+                                  type="button"
+                                  className="btn-action btn-action--delete"
+                                  onClick={() => handleSolicitarBaixa(item)}
+                                  title="Solicitar baixa do exemplar"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                  </svg>
+                                </button>
+                              ) : null}
                             </div>
                           </td>
                         </tr>
@@ -781,9 +813,19 @@ const PatrimonioView = ({
                             <span className="patrimonio-serie-code">S/N: {item.numeroSerie}</span>
                           )}
                         </div>
-                        <span className={`status-badge status-badge--${item.estadoConservacao === 'danificado' ? 'danger' : item.estadoConservacao === 'em_manutencao' || item.estadoConservacao === 'regular' ? 'warning' : 'success'}`}>
-                          {CONSERVACAO_LABELS[item.estadoConservacao] || item.estadoConservacao || 'Bom'}
-                        </span>
+                        {item.status === 'aguardando_baixa' ? (
+                          <span className="status-badge status-badge--warning" title="Solicitacao de baixa em analise pela administracao">
+                            Baixa em analise
+                          </span>
+                        ) : item.status === 'baixado' ? (
+                          <span className="status-badge status-badge--danger" title="Item baixado do acervo patrimonial">
+                            Baixado
+                          </span>
+                        ) : (
+                          <span className={`status-badge status-badge--${item.estadoConservacao === 'danificado' ? 'danger' : item.estadoConservacao === 'em_manutencao' || item.estadoConservacao === 'regular' ? 'warning' : 'success'}`}>
+                            {CONSERVACAO_LABELS[item.estadoConservacao] || item.estadoConservacao || 'Bom'}
+                          </span>
+                        )}
                       </div>
 
                       <div className="patrimonio-exemplar-card__body">
@@ -867,19 +909,35 @@ const PatrimonioView = ({
                           <span>Editar</span>
                         </button>
 
-                        <button
-                          type="button"
-                          className="btn-exemplar-action-baixar"
-                          onClick={() => handleSolicitarBaixa(item)}
-                          title="Baixar exemplar"
-                          aria-label={`Baixar ${item.numeroPatrimonio}`}
-                        >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                          <span>Baixar</span>
-                        </button>
+                        {item.status === 'aguardando_baixa' ? (
+                          <button
+                            type="button"
+                            className="btn-exemplar-action-baixar btn-exemplar-action-disabled"
+                            disabled
+                            title="Solicitacao de baixa em analise"
+                            aria-label={`Baixa em analise para ${item.numeroPatrimonio}`}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <circle cx="12" cy="12" r="10" />
+                              <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            <span>Em analise</span>
+                          </button>
+                        ) : item.status !== 'baixado' ? (
+                          <button
+                            type="button"
+                            className="btn-exemplar-action-baixar"
+                            onClick={() => handleSolicitarBaixa(item)}
+                            title="Solicitar baixa do exemplar"
+                            aria-label={`Solicitar baixa de ${item.numeroPatrimonio}`}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                            <span>Baixar</span>
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                   ))}
@@ -955,16 +1013,14 @@ const PatrimonioView = ({
         usuarios={usuarios}
       />
 
-      {/* Confirmação de Baixa */}
+      {/* Modal de Solicitacao de Baixa de Patrimonio */}
       {itemParaBaixar && (
-        <ConfirmDialog
-          title="Confirmar baixa de patrimônio?"
-          description={`O bem com a plaqueta "${itemParaBaixar.numeroPatrimonio}" (${itemParaBaixar.nomePatrimonio}) será removido do acervo patrimonial ativo.`}
-          confirmLabel="Efetuar Baixa"
-          tone="danger"
-          isBusy={isBaixando}
-          onCancel={() => setItemParaBaixar(null)}
-          onConfirm={handleConfirmarBaixa}
+        <SolicitarBaixaModal
+          isOpen={Boolean(itemParaBaixar)}
+          item={itemParaBaixar}
+          isEnviando={isBaixando}
+          onClose={() => setItemParaBaixar(null)}
+          onSubmit={handleConfirmarBaixa}
         />
       )}
     </div>

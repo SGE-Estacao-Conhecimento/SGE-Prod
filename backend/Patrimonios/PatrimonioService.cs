@@ -94,7 +94,7 @@ public sealed class PatrimonioService(
             estado = "bom";
 
         var status = string.IsNullOrWhiteSpace(req.Status) ? "ativo" : req.Status.Trim().ToLowerInvariant();
-        if (status is not ("ativo" or "em_manutencao" or "baixado"))
+        if (status is not ("ativo" or "em_manutencao" or "baixado" or "aguardando_baixa"))
             status = "ativo";
 
         DateTime? dataAquisicao = null;
@@ -154,10 +154,9 @@ public sealed class PatrimonioService(
         if (!ok) throw ApiException.NotFound("Item de patrimônio não encontrado.");
     }
 
-    public async Task BaixarItemAsync(int itemId)
+    public Task BaixarItemAsync(int itemId)
     {
-        var ok = await repo.BaixarItemAsync(itemId);
-        if (!ok) throw ApiException.NotFound("Item de patrimônio não encontrado.");
+        throw ApiException.BadRequest("A baixa de itens patrimoniais exige solicitação com motivo, justificativa e fotos para deliberação administrativa.");
     }
 }
 

@@ -16,6 +16,7 @@ using Sge.Api.Infrastructure;
 using Sge.Api.Infrastructure.Armazenamento;
 using Sge.Api.Materiais;
 using Sge.Api.Notificacoes;
+using Sge.Api.BaixaPatrimonio;
 using Sge.Api.Patrimonios;
 using Sge.Api.Pedidos;
 using Sge.Api.Remessas;
@@ -72,9 +73,11 @@ builder.Services.AddScoped<RemessaRepository>();
 if (armazenamento is not null)
 {
     builder.Services.AddScoped<RemessaService>();
+    builder.Services.AddScoped<BaixaPatrimonioService>();
     builder.Services.AddSingleton(armazenamento);
     builder.Services.AddSingleton<ArmazenamentoArquivosBase, ArmazenamentoMinio>();
 }
+builder.Services.AddScoped<BaixaPatrimonioRepository>();
 builder.Services.AddScoped<DevSeeder>();
 
 builder.Services

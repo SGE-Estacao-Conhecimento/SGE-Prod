@@ -1,9 +1,21 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { StatusBadge, BottomSheetModal } from '../common';
+import { StatusBadge, BottomSheetModal, FotoGaleriaModal } from '../common';
 import NovoPedidoModal from './NovoPedidoModal';
 import { pedidoService } from '../../services/pedidos/pedidoService';
+import { baixaPatrimonioService } from '../../services/baixaPatrimonio/baixaPatrimonioService';
 import './PedidosAdminView.css';
+
+/**
+ * Rótulos descritivos dos motivos de baixa de patrimônio
+ */
+const MOTIVOS_BAIXA_ROTULOS = {
+  avaria_irreparavel: 'Avaria irreparável',
+  sucata: 'Sucata / Fim de vida útil',
+  obsolescencia: 'Obsolescência tecnológica',
+  furto_extravio: 'Furto ou extravio',
+  outro: 'Outro motivo'
+};
 
 /**
  * Motivos pré-definidos para recusa de solicitações de patrimônio pela administração
@@ -174,8 +186,11 @@ const obterInfoEtapaTriagem = (pedido) => {
  */
 const PedidosAdminView = ({
   pedidos = [],
+  pedidosBaixa = [],
   onAutorizar,
   onRecusar,
+  onAprovarBaixa,
+  onRecusarBaixa,
   onNovoPedido,
   usuariosDisponiveis = [],
   materiaisDisponiveis = []
@@ -194,6 +209,12 @@ const PedidosAdminView = ({
   const [fichaHistorico, setFichaHistorico] = useState([]);
   const [fichaLoading, setFichaLoading] = useState(false);
 
+  // Deliberação de Baixa de Patrimônio
+  const [pedidoBaixaFicha, setPedidoBaixaFicha] = useState(null);
+  const [pedidoBaixaFotosModal, setPedidoBaixaFotosModal] = useState(null);
+  const [parecerBaixa, setParecerBaixa] = useState('');
+  const [deliberandoBaixa, setDeliberandoBaixa] = useState(false);
+
   // Estado de autorização e recusa
   const [processandoId, setProcessandoId] = useState(null);
   const [pedidoRecusa, setPedidoRecusa] = useState(null);
@@ -211,6 +232,61 @@ const PedidosAdminView = ({
       return isPatrimonio && isPendente;
     });
   }, [pedidos]);
+
+  // Pedidos de baixa de patrimônio aguardando deliberação
+  const pendentesBaixa = useMemo(() => {
+    return (pedidosBaixa || []).filter((b) => String(b.status || '').toLowerCase().trim() === 'pendente');
+  }, [pedidosBaixa]);
+
+  const totalPendentesAutorizacao = pendentesPatrimonio.length + pendentesBaixa.length;
+
+  const handleAbrirFichaBaixa = (baixa) => {
+    setPedidoBaixaFicha(baixa);
+    setParecerBaixa('');
+  };
+
+  const handleConfirmarAprovarBaixa = async () => {
+    if (!pedidoBaixaFicha) return;
+    setDeliberandoBaixa(true);
+    try {
+      if (onAprovarBaixa) {
+        await onAprovarBaixa(pedidoBaixaFicha.id, parecerBaixa);
+      } else {
+        await baixaPatrimonioService.aprovar(pedidoBaixaFicha.id, parecerBaixa);
+      }
+      setFeedback({ tipo: 'sucesso', texto: `Baixa da plaqueta "${pedidoBaixaFicha.numeroPatrimonio}" aprovada com sucesso.` });
+      setPedidoBaixaFicha(null);
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err) {
+      setFeedback({ tipo: 'erro', texto: err?.message || 'Falha ao aprovar baixa de patrimônio.' });
+    } finally {
+      setDeliberandoBaixa(false);
+    }
+  };
+
+  const handleConfirmarRecusarBaixa = async () => {
+    if (!pedidoBaixaFicha) return;
+    const parecerLimpo = parecerBaixa.trim();
+    if (!parecerLimpo) {
+      alert('Informe o parecer da administração justificando a recusa da solicitação de baixa.');
+      return;
+    }
+    setDeliberandoBaixa(true);
+    try {
+      if (onRecusarBaixa) {
+        await onRecusarBaixa(pedidoBaixaFicha.id, parecerLimpo);
+      } else {
+        await baixaPatrimonioService.recusar(pedidoBaixaFicha.id, parecerLimpo);
+      }
+      setFeedback({ tipo: 'sucesso', texto: `Solicitação de baixa da plaqueta "${pedidoBaixaFicha.numeroPatrimonio}" recusada.` });
+      setPedidoBaixaFicha(null);
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err) {
+      setFeedback({ tipo: 'erro', texto: err?.message || 'Falha ao recusar solicitação de baixa.' });
+    } finally {
+      setDeliberandoBaixa(false);
+    }
+  };
 
   // Lista filtrada da aba "Aguardando Autorização"
   const autorizacoesFiltradas = useMemo(() => {
@@ -426,9 +502,9 @@ const PedidosAdminView = ({
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
             <span>Aguardando Autorização</span>
-            {pendentesPatrimonio.length > 0 ? (
+            {totalPendentesAutorizacao > 0 ? (
               <span className="pedidos-admin__tab-badge pedidos-admin__tab-badge--amber">
-                {pendentesPatrimonio.length}
+                {totalPendentesAutorizacao}
               </span>
             ) : (
               <span className="pedidos-admin__tab-badge pedidos-admin__tab-badge--zero">0</span>
@@ -539,8 +615,74 @@ const PedidosAdminView = ({
       <div className="pedidos-admin__workspace">
         <div className="pedidos-admin__tabela-scroll">
           {abaAtiva === 'autorizacoes' ? (
-            /* ================= TABELA DE AUTORIZAÇÕES DE PATRIMÔNIO ================= */
-            <table className="pedidos-admin__tabela">
+            <>
+              {/* Solicitações de Baixa de Patrimônio Pendentes de Avaliação */}
+              {pendentesBaixa.length > 0 && (
+                <div className="pedidos-admin__baixa-section">
+                  <div className="pedidos-admin__baixa-section-header">
+                    <div className="pedidos-admin__baixa-section-title-wrap">
+                      <span className="pedidos-admin__baixa-tag">Baixa de Patrimônio</span>
+                      <h4 className="pedidos-admin__baixa-section-title">
+                        Solicitações de Baixa Aguardando Deliberação ({pendentesBaixa.length})
+                      </h4>
+                    </div>
+                    <span className="pedidos-admin__baixa-section-desc">
+                      Examine as justificativas e as evidências fotográficas anexadas pelo almoxarifado antes de autorizar a baixa definitiva.
+                    </span>
+                  </div>
+
+                  <div className="pedidos-admin__baixa-cards-grid">
+                    {pendentesBaixa.map((baixa) => (
+                      <div key={baixa.id} className="pedidos-admin__baixa-card">
+                        <div className="pedidos-admin__baixa-card-header">
+                          <span className="baixa-card-id">#B-{baixa.id}</span>
+                          <span className="baixa-card-data">{baixa.dataSolicitacao}</span>
+                        </div>
+                        <div className="pedidos-admin__baixa-card-body">
+                          <div className="baixa-card-item-info">
+                            <strong className="baixa-card-item-patrimonio">{baixa.numeroPatrimonio}</strong>
+                            <span className="baixa-card-item-nome">{baixa.nomePatrimonio}</span>
+                          </div>
+                          <div className="baixa-card-meta">
+                            <span><strong>Solicitante:</strong> {baixa.nomeSolicitante}</span>
+                            <span><strong>Motivo:</strong> {MOTIVOS_BAIXA_ROTULOS[baixa.motivo] || baixa.motivo}</span>
+                          </div>
+                          <p className="baixa-card-justificativa" title={baixa.justificativa}>
+                            "{baixa.justificativa}"
+                          </p>
+                        </div>
+                        <div className="pedidos-admin__baixa-card-footer">
+                          <button
+                            type="button"
+                            className="pedidos-admin__btn-ver-fotos"
+                            onClick={() => setPedidoBaixaFotosModal(baixa)}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="21 15 16 10 5 21" />
+                            </svg>
+                            <span>Fotos ({baixa.anexos?.length || 0})</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="pedidos-admin__btn-deliberar-baixa"
+                            onClick={() => handleAbrirFichaBaixa(baixa)}
+                          >
+                            <span>Deliberar Baixa</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tabela de Solicitações de Bens */}
+              <table className="pedidos-admin__tabela">
               <thead>
                 <tr>
                   <th scope="col" style={{ width: '75px' }}>Nº</th>
@@ -645,6 +787,7 @@ const PedidosAdminView = ({
                 )}
               </tbody>
             </table>
+            </>
           ) : (
             /* ================= TABELA GERAL DE AUDITORIA ================= */
             <table className="pedidos-admin__tabela">
@@ -1023,6 +1166,145 @@ const PedidosAdminView = ({
           </div>
         )}
       </BottomSheetModal>
+
+      {/* Modal de Deliberação de Baixa de Patrimônio */}
+      <BottomSheetModal
+        isOpen={Boolean(pedidoBaixaFicha)}
+        onClose={() => setPedidoBaixaFicha(null)}
+        title={pedidoBaixaFicha ? `Deliberar Pedido de Baixa #B-${pedidoBaixaFicha.id}` : ''}
+        subtitle="Avaliação de Baixa Definitiva do Acervo Patrimonial"
+        maxWidth="640px"
+      >
+        {pedidoBaixaFicha && (
+          <div className="pedidos-admin__baixa-deliberar-form">
+            <div className="pedidos-admin__baixa-resumo-bem">
+              <div className="baixa-resumo-col">
+                <span className="baixa-resumo-rotulo">Plaqueta / N.º Patrimônio</span>
+                <strong className="baixa-resumo-destaque">{pedidoBaixaFicha.numeroPatrimonio}</strong>
+              </div>
+              <div className="baixa-resumo-col">
+                <span className="baixa-resumo-rotulo">Modelo / Descrição</span>
+                <span className="baixa-resumo-texto">{pedidoBaixaFicha.nomePatrimonio}</span>
+              </div>
+              <div className="baixa-resumo-col">
+                <span className="baixa-resumo-rotulo">Localização Atual</span>
+                <span className="baixa-resumo-texto">{pedidoBaixaFicha.nomeAmbiente || 'Sem ambiente'}</span>
+              </div>
+              <div className="baixa-resumo-col">
+                <span className="baixa-resumo-rotulo">Responsável</span>
+                <span className="baixa-resumo-texto">{pedidoBaixaFicha.nomeResponsavel || 'Sem responsável'}</span>
+              </div>
+            </div>
+
+            <div className="pedidos-admin__baixa-detalhe-solicitacao">
+              <div className="baixa-detalhe-linha">
+                <span className="baixa-detalhe-rotulo">Solicitado por:</span>
+                <span className="baixa-detalhe-valor">{pedidoBaixaFicha.nomeSolicitante} em {pedidoBaixaFicha.dataSolicitacao}</span>
+              </div>
+              <div className="baixa-detalhe-linha">
+                <span className="baixa-detalhe-rotulo">Motivo Declarado:</span>
+                <span className="baixa-detalhe-motivo-tag">
+                  {MOTIVOS_BAIXA_ROTULOS[pedidoBaixaFicha.motivo] || pedidoBaixaFicha.motivo}
+                </span>
+              </div>
+              <div className="baixa-detalhe-justificativa-box">
+                <span className="baixa-detalhe-rotulo">Justificativa do Solicitante:</span>
+                <p className="baixa-detalhe-justificativa-texto">"{pedidoBaixaFicha.justificativa}"</p>
+              </div>
+            </div>
+
+            {/* Evidências Fotográficas */}
+            <div className="pedidos-admin__baixa-fotos-banner">
+              <div className="baixa-fotos-info">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                <div>
+                  <strong>Evidências Fotográficas ({pedidoBaixaFicha.anexos?.length || 0})</strong>
+                  <p>Fotos anexadas pelo solicitante para comprovação do estado do bem.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="pedidos-admin__btn-abrir-galeria"
+                onClick={() => setPedidoBaixaFotosModal(pedidoBaixaFicha)}
+              >
+                <span>Visualizar Fotos</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Parecer da Administração */}
+            <div className="pedidos-admin__baixa-parecer-wrap">
+              <label htmlFor="parecer-baixa" className="baixa-parecer-label">
+                Parecer / Despacho da Administração
+                <span className="baixa-parecer-dica"> (obrigatório em caso de recusa)</span>
+              </label>
+              <textarea
+                id="parecer-baixa"
+                className="baixa-parecer-textarea"
+                rows="3"
+                placeholder="Insira as observações sobre a deliberação, instrução de descarte ou justificativa da recusa..."
+                value={parecerBaixa}
+                onChange={(e) => setParecerBaixa(e.target.value)}
+                disabled={deliberandoBaixa}
+              />
+            </div>
+
+            {/* Botões de Ação */}
+            <div className="pedidos-admin__baixa-acoes-deliberacao">
+              <button
+                type="button"
+                className="pedidos-admin__btn-baixa-recusar"
+                onClick={handleConfirmarRecusarBaixa}
+                disabled={deliberandoBaixa}
+              >
+                {deliberandoBaixa ? 'Processando...' : 'Recusar Baixa'}
+              </button>
+              <button
+                type="button"
+                className="pedidos-admin__btn-baixa-aprovar"
+                onClick={handleConfirmarAprovarBaixa}
+                disabled={deliberandoBaixa}
+              >
+                {deliberandoBaixa ? 'Processando...' : 'Aprovar Baixa Definitiva'}
+              </button>
+            </div>
+          </div>
+        )}
+      </BottomSheetModal>
+
+      {/* Visualizador de Imagens Corporativo (Mesmo do Histórico de Estoque) */}
+      <FotoGaleriaModal
+        isOpen={Boolean(pedidoBaixaFotosModal)}
+        onClose={() => setPedidoBaixaFotosModal(null)}
+        fotos={pedidoBaixaFotosModal?.anexos || []}
+        recebimentoId={pedidoBaixaFotosModal?.id}
+        tituloDocumento={pedidoBaixaFotosModal ? `Evidências da Baixa — Plaqueta ${pedidoBaixaFotosModal.numeroPatrimonio}` : 'Inspeção Documental'}
+        obterFotoFn={baixaPatrimonioService.obterFotoBlobUrl}
+        dadosOperacao={pedidoBaixaFotosModal ? {
+          tipoOrigem: 'Baixa de Patrimônio',
+          documentoFiscal: `Pedido de Baixa #${pedidoBaixaFotosModal.id}`,
+          numeroRemessa: pedidoBaixaFotosModal.numeroPatrimonio,
+          fornecedor: `${pedidoBaixaFotosModal.numeroPatrimonio} — ${pedidoBaixaFotosModal.nomePatrimonio}`,
+          responsavel: pedidoBaixaFotosModal.nomeSolicitante,
+          data: pedidoBaixaFotosModal.dataSolicitacao,
+          observacao: `Motivo: ${MOTIVOS_BAIXA_ROTULOS[pedidoBaixaFotosModal.motivo] || pedidoBaixaFotosModal.motivo}\n\nJustificativa: "${pedidoBaixaFotosModal.justificativa}"`,
+          itens: [
+            {
+              materialNome: pedidoBaixaFotosModal.nomePatrimonio,
+              codigo: pedidoBaixaFotosModal.numeroPatrimonio,
+              quantidade: 1,
+              unidadeMedida: 'UN',
+              categoria: pedidoBaixaFotosModal.nomeAmbiente || 'Ambiente não definido'
+            }
+          ]
+        } : null}
+      />
 
       {/* Modal de Novo Pedido de Patrimônio (Autorizado Imediatamente pelo Admin) */}
       {onNovoPedido && (

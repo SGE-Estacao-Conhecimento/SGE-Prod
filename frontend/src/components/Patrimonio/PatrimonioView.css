@@ -807,6 +807,22 @@
   border-color: #fca5a5;
 }
 
+.btn-action--disabled,
+.btn-exemplar-action-disabled {
+  opacity: 0.55;
+  cursor: not-allowed !important;
+  background-color: var(--bg-hover, #f1f5f9) !important;
+  border-color: var(--border-color, #e2e8f0) !important;
+  color: var(--text-secondary, #64748b) !important;
+}
+
+.btn-action--disabled:hover,
+.btn-exemplar-action-disabled:hover {
+  background-color: var(--bg-hover, #f1f5f9) !important;
+  border-color: var(--border-color, #e2e8f0) !important;
+  color: var(--text-secondary, #64748b) !important;
+}
+
 /* Responsividade Mobile Geral */
 @media (max-width: 768px) {
   .patrimonio-container {

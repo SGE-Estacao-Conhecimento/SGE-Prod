@@ -51,7 +51,8 @@ const FotoGaleriaModal = ({
   fotos = [],
   recebimentoId,
   tituloDocumento = 'Inspeção de Documento Fiscal',
-  dadosOperacao = null
+  dadosOperacao = null,
+  obterFotoFn = null
 }) => {
   const [indiceAtivo, setIndiceAtivo] = useState(0);
   const [blobCache, setBlobCache] = useState({});
@@ -197,7 +198,8 @@ const FotoGaleriaModal = ({
     if (emCurso) return emCurso;
 
     const sessaoLocal = sessaoIdRef.current;
-    const promessa = obterFotoBlobUrl(recId, anexoId)
+    const carregarFn = obterFotoFn || obterFotoBlobUrl;
+    const promessa = carregarFn(recId, anexoId)
       .then((url) => {
         if (sessaoLocal !== sessaoIdRef.current) {
           try {
@@ -220,7 +222,7 @@ const FotoGaleriaModal = ({
 
     emAndamentoRef.current.set(anexoId, promessa);
     return promessa;
-  }, []);
+  }, [obterFotoFn]);
 
   // Carregamento autenticado da foto ativa sob demanda
   const carregarFotoAtual = useCallback(async () => {

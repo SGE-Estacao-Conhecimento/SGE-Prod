@@ -18,6 +18,7 @@ import { notificacaoService } from '../services/notificacoes/notificacaoService'
 import { remessaService } from '../services/remessas/remessaService';
 import { pedidoService } from '../services/pedidos/pedidoService';
 import { usuarioService } from '../services/usuarios/usuarioService';
+import { baixaPatrimonioService } from '../services/baixaPatrimonio/baixaPatrimonioService';
 import { formatarErroApi } from '../services/api/client';
 
 const TITLES = {
@@ -386,8 +387,12 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
     if (Array.isArray(itens)) setPatrimoniosItens(itens);
   };
 
-  const handleBaixarPatrimonioItem = async (id) => {
-    await patrimonioService.baixarItem(id);
+  const handleBaixarPatrimonioItem = async (dadosOuId) => {
+    if (typeof dadosOuId === 'object' && dadosOuId !== null) {
+      await baixaPatrimonioService.solicitar(dadosOuId);
+    } else {
+      await patrimonioService.baixarItem(dadosOuId);
+    }
     const itens = await patrimonioService.listarItens().catch(() => []);
     if (Array.isArray(itens)) setPatrimoniosItens(itens);
   };

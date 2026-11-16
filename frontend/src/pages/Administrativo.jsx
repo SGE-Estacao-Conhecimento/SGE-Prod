@@ -24,6 +24,7 @@ import { setorService } from '../services/setores/setorService';
 import { movimentacaoService } from '../services/movimentacoes/movimentacaoService';
 import { notificacaoService } from '../services/notificacoes/notificacaoService';
 import { remessaService } from '../services/remessas/remessaService';
+import { baixaPatrimonioService } from '../services/baixaPatrimonio/baixaPatrimonioService';
 import { formatarErroApi } from '../services/api/client';
 import NovoMaterialModal from '../components/Estoque/NovoMaterialModal';
 import NovoUsuarioModal from '../components/Usuarios/NovoUsuarioModal';
@@ -53,6 +54,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
   const [pedidos, setPedidos] = useState([]);
   const [pedidosLoading, setPedidosLoading] = useState(true);
   const [pedidosError, setPedidosError] = useState(null);
+  const [pedidosBaixa, setPedidosBaixa] = useState([]);
   const [materiais, setMateriais] = useState([]);
   const [materiaisLoading, setMateriaisLoading] = useState(true);
   const [materiaisError, setMateriaisError] = useState(null);
@@ -235,14 +237,20 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     if (Array.isArray(listaAmb)) setAmbientes(listaAmb);
   };
 
-  const handleBaixarPatrimonioItem = async (id) => {
-    await patrimonioService.baixarItem(id);
-    const [itens, listaAmb] = await Promise.all([
+  const handleBaixarPatrimonioItem = async (dadosOuId) => {
+    if (typeof dadosOuId === 'object' && dadosOuId !== null) {
+      await baixaPatrimonioService.solicitar(dadosOuId);
+    } else {
+      await patrimonioService.baixarItem(dadosOuId);
+    }
+    const [itens, listaAmb, baixas] = await Promise.all([
       patrimonioService.listarItens().catch(() => []),
-      ambienteService.listar().catch(() => [])
+      ambienteService.listar().catch(() => []),
+      baixaPatrimonioService.listar().catch(() => [])
     ]);
     if (Array.isArray(itens)) setPatrimoniosItens(itens);
     if (Array.isArray(listaAmb)) setAmbientes(listaAmb);
+    if (Array.isArray(baixas)) setPedidosBaixa(baixas);
   };
 
   useEffect(() => {
@@ -280,6 +288,18 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
         }
       })
       .finally(() => { if (active) setPedidosLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    baixaPatrimonioService.listar()
+      .then((data) => {
+        if (active) setPedidosBaixa(data || []);
+      })
+      .catch(() => {
+        if (active) setPedidosBaixa([]);
+      });
     return () => { active = false; };
   }, []);
 
@@ -340,6 +360,39 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
       return true;
     } catch (error) {
       alert(error?.message || 'Não foi possível recusar a solicitação de patrimônio.');
+      return false;
+    }
+  };
+
+  // Deliberação de pedidos de baixa de patrimônio
+  const handleAprovarBaixa = async (id, parecer) => {
+    try {
+      await baixaPatrimonioService.aprovar(id, parecer);
+      const [atualizadas, itens] = await Promise.all([
+        baixaPatrimonioService.listar().catch(() => []),
+        patrimonioService.listarItens().catch(() => [])
+      ]);
+      setPedidosBaixa(atualizadas || []);
+      if (Array.isArray(itens)) setPatrimoniosItens(itens);
+      return true;
+    } catch (error) {
+      alert(error?.message || 'Não foi possível aprovar a baixa de patrimônio.');
+      return false;
+    }
+  };
+
+  const handleRecusarBaixa = async (id, parecer) => {
+    try {
+      await baixaPatrimonioService.recusar(id, parecer);
+      const [atualizadas, itens] = await Promise.all([
+        baixaPatrimonioService.listar().catch(() => []),
+        patrimonioService.listarItens().catch(() => [])
+      ]);
+      setPedidosBaixa(atualizadas || []);
+      if (Array.isArray(itens)) setPatrimoniosItens(itens);
+      return true;
+    } catch (error) {
+      alert(error?.message || 'Não foi possível recusar o pedido de baixa.');
       return false;
     }
   };
@@ -582,8 +635,11 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
             {!pedidosLoading && (!pedidosError || pedidos.length > 0) && (
               <PedidosAdminView
                 pedidos={pedidos}
+                pedidosBaixa={pedidosBaixa}
                 onAutorizar={handleAutorizarPedidoPatrimonio}
                 onRecusar={handleRecusarPedidoPatrimonio}
+                onAprovarBaixa={handleAprovarBaixa}
+                onRecusarBaixa={handleRecusarBaixa}
                 onNovoPedido={handleNovoPedido}
                 usuariosDisponiveis={usuarios}
                 materiaisDisponiveis={materiais}
