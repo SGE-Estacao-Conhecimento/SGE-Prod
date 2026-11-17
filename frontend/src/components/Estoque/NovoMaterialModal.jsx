@@ -105,7 +105,7 @@ const NovoMaterialModal = ({ isOpen, onClose, onSave, initialData = null }) => {
     onSave({
       ...formData,
       status,
-      bemDuravel: Boolean(formData.bemDuravel),
+      bemDuravel: false,
       // Só a edição leva o id; no cadastro o id é definido pelo servidor (ou pelo modo simulado).
       id: initialData ? initialData.id : undefined
     });
@@ -274,20 +274,6 @@ const NovoMaterialModal = ({ isOpen, onClose, onSave, initialData = null }) => {
               value={formData.descricao}
               onChange={handleChange}
             />
-          </div>
-
-          {/* Tipo de Material: Patrimônio / Bem Durável */}
-          <div className="form-group margin-top-sm">
-            <label className="modal-checkbox-label" htmlFor="material-bem-duravel">
-              <input
-                id="material-bem-duravel"
-                type="checkbox"
-                name="bemDuravel"
-                checked={Boolean(formData.bemDuravel)}
-                onChange={(e) => setFormData((prev) => ({ ...prev, bemDuravel: e.target.checked }))}
-              />
-              <span className="modal-checkbox-text">Item Permanente / Patrimônio (Bem Durável)</span>
-            </label>
           </div>
 
           <div className="modal-footer">

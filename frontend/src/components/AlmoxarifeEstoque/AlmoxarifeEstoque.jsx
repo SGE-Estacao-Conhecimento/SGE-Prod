@@ -854,7 +854,6 @@ const AlmoxarifeEstoque = ({
     const codigoFormatado = detalhesForm.codigo.trim() || materialModal.codigo;
     const nomeFormatado = detalhesForm.nome.trim() || materialModal.nome;
     const itensPorEmbalagemNum = ehIndividual ? undefined : qtdNum;
-    const ehBemDuravel = !!detalhesForm.bemDuravel;
 
     const materialAtualizado = {
       ...materialModal,
@@ -866,9 +865,9 @@ const AlmoxarifeEstoque = ({
       estoqueMinimo: Number(detalhesForm.estoqueMinimo) || materialModal.estoqueMinimo,
       complexo: detalhesForm.complexo || materialModal.complexo || 'Almoxarifado Central',
       localizacao: detalhesForm.localizacao.trim(),
-      dataValidade: ehBemDuravel ? '' : (detalhesForm.dataValidade || ''),
+      dataValidade: detalhesForm.dataValidade || '',
       descricao: detalhesForm.descricao.trim(),
-      bemDuravel: ehBemDuravel
+      bemDuravel: false
     };
 
     // Com persistência, só confirma na tela depois que o servidor aceitar a alteração.
@@ -963,8 +962,6 @@ const AlmoxarifeEstoque = ({
     const codigoGerado = novoItemForm.codigo.trim() || `MAT-${String(novoId).padStart(3, '0')}`;
     const itensPorEmbalagemNum = ehIndividual ? undefined : qtdNum;
 
-    const ehBemDuravel = !!novoItemForm.bemDuravel;
-
     const novoMaterial = {
       id: novoId,
       codigo: codigoGerado,
@@ -976,9 +973,9 @@ const AlmoxarifeEstoque = ({
       estoqueMinimo: Number(novoItemForm.estoqueMinimo) || 5,
       complexo: novoItemForm.complexo || 'Almoxarifado Central',
       localizacao: novoItemForm.localizacao.trim(),
-      dataValidade: ehBemDuravel ? '' : (novoItemForm.dataValidade || ''),
+      dataValidade: novoItemForm.dataValidade || '',
       descricao: novoItemForm.descricao.trim(),
-      bemDuravel: ehBemDuravel
+      bemDuravel: false
     };
 
     // Com persistência, o código e o id definitivos vêm do servidor (a lista é recarregada pelo pai).
@@ -1960,21 +1957,20 @@ const AlmoxarifeEstoque = ({
                     </div>
                   </div>
 
-                  {/* Classificação: Bem Durável vs Material de Consumo */}
+                  {/* Validade (Opcional, Editável / Data) */}
                   <div
                     className={`detail-card ${isEditandoDetalhes ? 'detail-card--button detail-card--editing' : ''}`}
                     onClick={
                       isEditandoDetalhes
-                        ? () => setDetalhesForm(prev => ({
-                          ...prev,
-                          bemDuravel: !prev.bemDuravel,
-                          dataValidade: !prev.bemDuravel ? '' : prev.dataValidade
-                        }))
+                        ? (e) => {
+                          const el = e.currentTarget.querySelector('input');
+                          if (el && document.activeElement !== el) el.focus();
+                        }
                         : undefined
                     }
                   >
                     <div className="detail-card__header">
-                      <span className="detail-label">Classificação</span>
+                      <span className="detail-label">Validade (Opcional)</span>
                       {isEditandoDetalhes && (
                         <span className="detail-card__pencil" aria-hidden="true">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1986,57 +1982,6 @@ const AlmoxarifeEstoque = ({
                     </div>
                     <div className="detail-card__value-wrap">
                       {isEditandoDetalhes ? (
-                        <label className="durable-toggle-label" onClick={e => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={!!detalhesForm.bemDuravel}
-                            onChange={e => setDetalhesForm(prev => ({
-                              ...prev,
-                              bemDuravel: e.target.checked,
-                              dataValidade: e.target.checked ? '' : prev.dataValidade
-                            }))}
-                          />
-                          <span className="durable-toggle-text">
-                            {detalhesForm.bemDuravel ? 'Bem Durável / Patrimônio' : 'Material de Consumo'}
-                          </span>
-                        </label>
-                      ) : (
-                        <span className={`detail-value ${materialModal.bemDuravel ? 'detail-value--durable' : ''}`}>
-                          {materialModal.bemDuravel ? 'Bem Durável / Patrimônio' : 'Material de Consumo'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Validade (Opcional, Editável / Data) */}
-                  <div
-                    className={`detail-card ${isEditandoDetalhes && !(isEditandoDetalhes ? detalhesForm.bemDuravel : materialModal.bemDuravel) ? 'detail-card--button detail-card--editing' : ''}`}
-                    onClick={
-                      isEditandoDetalhes && !detalhesForm.bemDuravel
-                        ? (e) => {
-                          const el = e.currentTarget.querySelector('input');
-                          if (el && document.activeElement !== el) el.focus();
-                        }
-                        : undefined
-                    }
-                  >
-                    <div className="detail-card__header">
-                      <span className="detail-label">Validade (Opcional)</span>
-                      {isEditandoDetalhes && !detalhesForm.bemDuravel && (
-                        <span className="detail-card__pencil" aria-hidden="true">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 20h9" />
-                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                          </svg>
-                        </span>
-                      )}
-                    </div>
-                    <div className="detail-card__value-wrap">
-                      {(isEditandoDetalhes ? detalhesForm.bemDuravel : materialModal.bemDuravel) ? (
-                        <span className="detail-value detail-value--muted">
-                          Não se aplica (Bem Durável)
-                        </span>
-                      ) : isEditandoDetalhes ? (
                         <input
                           type="date"
                           className="card-btn-input"
@@ -2551,42 +2496,16 @@ const AlmoxarifeEstoque = ({
               </div>
             </div>
 
-            {/* Classificação: Bem Durável vs Material de Consumo */}
+            {/* Validade (Opcional) */}
             <div className="modal-form-group">
-              <label className="durable-checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={!!novoItemForm.bemDuravel}
-                  onChange={e => setNovoItemForm(prev => ({
-                    ...prev,
-                    bemDuravel: e.target.checked,
-                    dataValidade: e.target.checked ? '' : prev.dataValidade
-                  }))}
-                />
-                <span className="durable-checkbox-text">
-                  <strong>Bem Durável / Patrimônio</strong> (Equipamento permanente não consumível em pedidos)
-                </span>
-              </label>
+              <label className="modal-label">Data de Validade (Opcional)</label>
+              <input
+                type="date"
+                className="modal-input"
+                value={novoItemForm.dataValidade}
+                onChange={e => setNovoItemForm({ ...novoItemForm, dataValidade: e.target.value })}
+              />
             </div>
-
-            {/* Validade (Opcional - apenas para materiais de consumo) */}
-            {!novoItemForm.bemDuravel ? (
-              <div className="modal-form-group">
-                <label className="modal-label">Data de Validade (Opcional)</label>
-                <input
-                  type="date"
-                  className="modal-input"
-                  value={novoItemForm.dataValidade}
-                  onChange={e => setNovoItemForm({ ...novoItemForm, dataValidade: e.target.value })}
-                />
-              </div>
-            ) : (
-              <div className="modal-form-group">
-                <span className="durable-help-text">
-                  Bens duráveis são permanentes e não possuem controle de validade ou perecibilidade.
-                </span>
-              </div>
-            )}
 
             <div className="modal-form-group">
               <label className="modal-label">Descrição / Especificação</label>
