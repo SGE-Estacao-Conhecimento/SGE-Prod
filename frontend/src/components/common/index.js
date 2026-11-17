@@ -26,4 +26,5 @@ export { default as AtualizarEmailCard } from './AtualizarEmailCard/AtualizarEma
 export { default as FotoGaleriaModal } from './FotoGaleriaModal/FotoGaleriaModal';
 export { default as useDialogAccessibility } from './useDialogAccessibility';
 export { default as useSectionNavigation } from './useSectionNavigation';
+export { default as useAutoRefresh } from './useAutoRefresh';
 

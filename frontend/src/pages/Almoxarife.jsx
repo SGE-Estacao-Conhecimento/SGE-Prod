@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AnimatePresence } from 'motion/react';
 import Topbar from '../components/Topbar/Topbar';
 import Sidebar from '../components/Sidebar/Sidebar';
@@ -8,7 +8,7 @@ import PedidosView from '../components/Pedidos/PedidosView';
 import RelatoriosView from '../components/Relatorios/RelatoriosView';
 import AlmoxarifePerfil from '../components/AlmoxarifePerfil/AlmoxarifePerfil';
 import NovoPedidoModal from '../components/Pedidos/NovoPedidoModal';
-import { BottomNav, PageTabTransition, useSectionNavigation, SpeedDialFAB } from '../components/common';
+import { BottomNav, PageTabTransition, useSectionNavigation, SpeedDialFAB, useAutoRefresh } from '../components/common';
 import './Almoxarife.css';
 import { materialService } from '../services/materiais/materialService';
 import { patrimonioService } from '../services/patrimonios/patrimonioService';
@@ -88,6 +88,9 @@ const navItemsAlmoxarife = [
 const ALMOXARIFE_SECTIONS = ['consumo', 'patrimonio', 'estoque', 'pedidos', 'relatorios', 'perfil'];
 
 const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
+  const [activeNav, setActiveNav] = useSectionNavigation('almoxarife', ALMOXARIFE_SECTIONS, 'consumo');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   const [materiais, setMateriais] = useState([]);
   const [materiaisLoading, setMateriaisLoading] = useState(true);
   const [materiaisError, setMateriaisError] = useState(null);
@@ -119,67 +122,135 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
     }).length;
   }, [pedidos]);
 
-  useEffect(() => {
-    let active = true;
-    Promise.all([
-      patrimonioService.listarCatalogo().catch(() => []),
-      patrimonioService.listarItens().catch(() => []),
-      ambienteService.listar().catch(() => [])
-    ])
-      .then(([cats, itens, ambs]) => {
-        if (active) {
-          setPatrimoniosCatalogo(cats || []);
-          setPatrimoniosItens(itens || []);
-          setAmbientes(ambs || []);
-          setPatrimoniosError(null);
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setPatrimoniosError(formatarErroApi(err, 'Não foi possível carregar os patrimônios.'));
-        }
-      })
-      .finally(() => { if (active) setPatrimoniosLoading(false); });
-    return () => { active = false; };
+  const carregarPedidos = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setPedidosLoading(true);
+      setPedidosError(null);
+    }
+    try {
+      const data = await pedidoService.listar();
+      setPedidos(data || []);
+      setPedidosError(null);
+    } catch (err) {
+      if (!silencioso) {
+        setPedidos((prev) => (prev.length > 0 ? prev : []));
+        setPedidosError(formatarErroApi(err, 'Não foi possível carregar os pedidos.'));
+      }
+    } finally {
+      if (!silencioso) setPedidosLoading(false);
+    }
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    usuarioService.listar()
-      .then((data) => {
-        if (active) {
-          setUsuarios(data || []);
-          setUsuariosError(null);
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setUsuarios((prev) => (prev.length > 0 ? prev : []));
-          setUsuariosError(formatarErroApi(err, 'Não foi possível carregar os usuários.'));
-        }
-      })
-      .finally(() => { if (active) setUsuariosLoading(false); });
-    return () => { active = false; };
+  const carregarMateriais = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setMateriaisLoading(true);
+      setMateriaisError(null);
+    }
+    try {
+      const data = await materialService.listar();
+      setMateriais(data || []);
+      setMateriaisError(null);
+    } catch (err) {
+      if (!silencioso) {
+        setMateriais((prev) => (prev.length > 0 ? prev : []));
+        setMateriaisError(formatarErroApi(err, 'Não foi possível carregar os materiais do estoque.'));
+      }
+    } finally {
+      if (!silencioso) setMateriaisLoading(false);
+    }
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    pedidoService.listar()
-      .then((data) => {
-        if (active) {
-          setPedidos(data || []);
-          setPedidosError(null);
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setPedidos((prev) => (prev.length > 0 ? prev : []));
-          setPedidosError(formatarErroApi(err, 'Não foi possível carregar os pedidos.'));
-        }
-      })
-      .finally(() => { if (active) setPedidosLoading(false); });
-    return () => { active = false; };
+  const carregarPatrimonios = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setPatrimoniosLoading(true);
+      setPatrimoniosError(null);
+    }
+    try {
+      const [cats, itens, ambs] = await Promise.all([
+        patrimonioService.listarCatalogo().catch(() => []),
+        patrimonioService.listarItens().catch(() => []),
+        ambienteService.listar().catch(() => [])
+      ]);
+      setPatrimoniosCatalogo(cats || []);
+      setPatrimoniosItens(itens || []);
+      setAmbientes(ambs || []);
+      setPatrimoniosError(null);
+    } catch (err) {
+      if (!silencioso) {
+        setPatrimoniosError(formatarErroApi(err, 'Não foi possível carregar os patrimônios.'));
+      }
+    } finally {
+      if (!silencioso) setPatrimoniosLoading(false);
+    }
   }, []);
+
+  const carregarUsuarios = useCallback(async (silencioso = false) => {
+    if (!silencioso) setUsuariosLoading(true);
+    try {
+      const data = await usuarioService.listar();
+      setUsuarios(data || []);
+      setUsuariosError(null);
+    } catch (err) {
+      if (!silencioso) {
+        setUsuarios((prev) => (prev.length > 0 ? prev : []));
+        setUsuariosError(formatarErroApi(err, 'Não foi possível carregar os usuários.'));
+      }
+    } finally {
+      if (!silencioso) setUsuariosLoading(false);
+    }
+  }, []);
+
+  const carregarMovimentacoes = useCallback(async () => {
+    try {
+      const movs = await movimentacaoService.listar();
+      setMovimentacoes(movs || []);
+      const agrupado = (movs || []).reduce((acc, item) => {
+        const lista = acc[item.produtoId] || [];
+        lista.push({
+          id: item.id,
+          tipo: item.tipo,
+          qtd: item.quantidade,
+          data: new Date(item.data).toLocaleString('pt-BR'),
+          responsavel: item.funcionarioNome || 'Usuário',
+          motivo: item.observacao || 'Movimentação registrada'
+        });
+        acc[item.produtoId] = lista;
+        return acc;
+      }, {});
+      setHistoricoMovimentacoes(agrupado);
+    } catch {
+      // Falha silenciosa de carga secundária
+    }
+  }, []);
+
+  // Carga inicial
+  useEffect(() => {
+    carregarPatrimonios();
+    carregarUsuarios();
+    carregarPedidos();
+    carregarMateriais();
+    carregarMovimentacoes();
+  }, [carregarPatrimonios, carregarUsuarios, carregarPedidos, carregarMateriais, carregarMovimentacoes]);
+
+  // Revalidação silenciosa ao navegar entre seções (SPA)
+  useEffect(() => {
+    if (activeNav === 'pedidos') {
+      carregarPedidos(true);
+    } else if (activeNav === 'consumo' || activeNav === 'estoque') {
+      carregarMateriais(true);
+      carregarMovimentacoes();
+    } else if (activeNav === 'patrimonio') {
+      carregarPatrimonios(true);
+    }
+  }, [activeNav, carregarPedidos, carregarMateriais, carregarPatrimonios, carregarMovimentacoes]);
+
+  // Sincronização passiva em segundo plano e ao focar a janela
+  useAutoRefresh(() => {
+    carregarPedidos(true);
+    if (activeNav === 'consumo' || activeNav === 'estoque') {
+      carregarMateriais(true);
+    }
+  }, { intervalMs: 20000, enabled: true });
 
   const handleRegistrarMovimentacao = async (movimentacao) => {
     await movimentacaoService.registrar(movimentacao);
@@ -225,43 +296,23 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
     });
     setPedidos(prev => prev.map(p => p.id === pedidoAtualizado.id ? (atualizado || pedidoAtualizado) : p));
 
-    const [materiaisAtualizados, movsAtualizadas] = await Promise.all([
-      materialService.listar(),
-      movimentacaoService.listar()
+    await Promise.all([
+      carregarPedidos(true),
+      carregarMateriais(true),
+      carregarMovimentacoes()
     ]);
-    if (materiaisAtualizados) setMateriais(materiaisAtualizados);
-    if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
   };
 
   // Cadastro e edição de material pela tela de estoque (recarrega a lista com os dados do servidor).
   const handleNovoMaterial = async (material) => {
     await materialService.criar(material);
-    setMateriais(await materialService.listar());
+    await carregarMateriais(true);
   };
 
   const handleAtualizarMaterial = async (material) => {
     await materialService.editar(material.id, material);
-    setMateriais(await materialService.listar());
+    await carregarMateriais(true);
   };
-
-  useEffect(() => {
-    let active = true;
-    materialService.listar()
-      .then((data) => {
-        if (active) {
-          setMateriais(data || []);
-          setMateriaisError(null);
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setMateriais((prev) => (prev.length > 0 ? prev : []));
-          setMateriaisError(formatarErroApi(err, 'Não foi possível carregar os materiais do estoque.'));
-        }
-      })
-      .finally(() => { if (active) setMateriaisLoading(false); });
-    return () => { active = false; };
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -276,33 +327,6 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
     const intervalo = window.setInterval(carregarDados, 15000);
     return () => { active = false; window.clearInterval(intervalo); };
   }, []);
-
-  useEffect(() => {
-    let active = true;
-    movimentacaoService.listar()
-      .then((movs) => {
-        if (!active) return;
-        setMovimentacoes(movs || []);
-        const agrupado = (movs || []).reduce((acc, item) => {
-          const lista = acc[item.produtoId] || [];
-          lista.push({
-            id: item.id,
-            tipo: item.tipo,
-            qtd: item.quantidade,
-            data: new Date(item.data).toLocaleString('pt-BR'),
-            responsavel: item.funcionarioNome || 'Usuário',
-            motivo: item.observacao || 'Movimentação registrada'
-          });
-          acc[item.produtoId] = lista;
-          return acc;
-        }, {});
-        setHistoricoMovimentacoes(agrupado);
-      })
-      .catch(() => {});
-    return () => { active = false; };
-  }, []);
-  const [activeNav, setActiveNav] = useSectionNavigation('almoxarife', ALMOXARIFE_SECTIONS, 'consumo');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Estados Globais acionados pelo SpeedDialFAB flutuante (Oculto apenas no Perfil)
   const [isNovoPedidoModalOpen, setIsNovoPedidoModalOpen] = useState(false);
@@ -322,14 +346,14 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
       const pedidoSalvo = criado?.id ? criado : { ...novoPedido, id: novoPedido.id || Date.now(), data: new Date().toISOString(), status: 'Pendente' };
       setPedidos(prev => [pedidoSalvo, ...prev]);
 
+      await carregarPedidos(true);
+
       // Consumo criado pelo almoxarife com baixa direta já sai como Atendido e debita saldo.
       if (String(pedidoSalvo.status || '').toLowerCase().startsWith('atendido') || novoPedido?.entregaImediata) {
-        const [materiaisAtualizados, movsAtualizadas] = await Promise.all([
-          materialService.listar(),
-          movimentacaoService.listar()
+        await Promise.all([
+          carregarMateriais(true),
+          carregarMovimentacoes()
         ]);
-        if (materiaisAtualizados) setMateriais(materiaisAtualizados);
-        if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
       }
 
       setIsNovoPedidoModalOpen(false);
@@ -431,13 +455,18 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
                 usuariosDisponiveis={usuarios}
                 userRole="almoxarife"
                 onConfirmarEntrega={handleConfirmarEntregaPedido}
-                onSave={(novo) => {
-                  setPedidos(prev => [novo, ...prev]);
-                }}
+                onSave={handleCriarNovoPedido}
                 onUpdateStatus={async (pedidoId, novoStatus, extras = {}) => {
                   // Falhas sobem para a tela de pedidos, que mantém o pedido na etapa anterior e avisa.
                   const atualizado = await pedidoService.atualizarStatus(pedidoId, novoStatus, extras);
                   setPedidos(prev => prev.map(p => p.id === pedidoId ? (atualizado || { ...p, status: novoStatus, ...extras }) : p));
+                  await carregarPedidos(true);
+                  if (novoStatus.toLowerCase().includes('atendido')) {
+                    await Promise.all([
+                      carregarMateriais(true),
+                      carregarMovimentacoes()
+                    ]);
+                  }
                 }}
               />
             )}

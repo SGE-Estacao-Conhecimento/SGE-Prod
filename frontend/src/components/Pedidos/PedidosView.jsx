@@ -1339,13 +1339,23 @@ const PedidosView = ({
         materiaisDisponiveis={listaMateriais}
         usuariosDisponiveis={usuariosDisponiveis}
         userRole={userRole}
-        onSave={(novo) => {
+        onSave={async (novo) => {
+          let ok = true;
           if (onSave) {
-            onSave(novo);
+            ok = await onSave(novo);
           } else {
             setPedidos(prev => [novo, ...prev]);
           }
-          exibirToast(`Pedido #${novo.id || ''} cadastrado com sucesso!`, 'sucesso');
+          if (ok !== false) {
+            if (novo?.entregaImediata) {
+              setAbaAtiva('historico');
+              exibirToast(`Pedido #${novo.id || ''} entregue diretamente no histórico!`, 'sucesso');
+            } else {
+              setAbaAtiva('novos');
+              exibirToast(`Pedido #${novo.id || ''} cadastrado com sucesso!`, 'sucesso');
+            }
+          }
+          return ok;
         }}
       />
     </div>

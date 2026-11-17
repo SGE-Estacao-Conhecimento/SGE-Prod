@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'motion/react';
 import Topbar from '../components/Topbar/Topbar';
 import Sidebar from '../components/Sidebar/Sidebar';
 import UsuarioEstoque from '../components/UsuarioEstoque/UsuarioEstoque';
 import MeusPedidos from '../components/MeusPedidos/MeusPedidos';
 import UsuarioPerfil from '../components/UsuarioPerfil/UsuarioPerfil';
-import { BottomNav, PageTabTransition, useSectionNavigation } from '../components/common';
+import { BottomNav, PageTabTransition, useSectionNavigation, useAutoRefresh } from '../components/common';
 import './Usuario.css';
 import { pedidoService } from '../services/pedidos/pedidoService';
 import { materialService } from '../services/materiais/materialService';
@@ -56,27 +56,63 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
 
   const [notificacoes, setNotificacoes] = useState([]);
 
-  useEffect(() => {
-    let active = true;
-    setPedidosLoading(true);
-    setPedidosError(null);
-    pedidoService.listarMeus()
-      .then((data) => {
-        if (active) {
-          setPedidos(data || []);
-          setPedidosError(null);
-        }
-      })
-      .catch((err) => {
-        if (!active) return;
+  const carregarPedidos = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setPedidosLoading(true);
+      setPedidosError(null);
+    }
+    try {
+      const data = await pedidoService.listarMeus();
+      setPedidos(data || []);
+      setPedidosError(null);
+    } catch (err) {
+      if (!silencioso) {
         setPedidos((prev) => (prev.length > 0 ? prev : []));
         setPedidosError(formatarErroApi(err, 'Erro ao carregar seus pedidos da API.'));
-      })
-      .finally(() => {
-        if (active) setPedidosLoading(false);
-      });
-    return () => { active = false; };
+      }
+    } finally {
+      if (!silencioso) setPedidosLoading(false);
+    }
   }, []);
+
+  const carregarMateriais = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setMateriaisLoading(true);
+      setMateriaisError(null);
+    }
+    try {
+      const data = await materialService.listar();
+      setMateriaisReais(data || []);
+      setMateriaisError(null);
+    } catch (err) {
+      if (!silencioso) {
+        setMateriaisReais((prev) => (prev.length > 0 ? prev : []));
+        setMateriaisError(formatarErroApi(err, 'Erro ao carregar catálogo de materiais da API.'));
+      }
+    } finally {
+      if (!silencioso) setMateriaisLoading(false);
+    }
+  }, []);
+
+  // Carga inicial dos pedidos e materiais
+  useEffect(() => {
+    carregarPedidos();
+    carregarMateriais();
+  }, [carregarPedidos, carregarMateriais]);
+
+  // Revalidação silenciosa ao navegar entre seções (SPA)
+  useEffect(() => {
+    if (activeNav === 'pedidos') {
+      carregarPedidos(true);
+    } else if (activeNav === 'inicio') {
+      carregarMateriais(true);
+    }
+  }, [activeNav, carregarPedidos, carregarMateriais]);
+
+  // Sincronização passiva em segundo plano e ao focar a janela
+  useAutoRefresh(() => {
+    carregarPedidos(true);
+  }, { intervalMs: 25000, enabled: true });
 
   useEffect(() => {
     let active = true;
@@ -96,28 +132,6 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
     const intervalo = window.setInterval(carregarNotificacoes, 15000);
 
     return () => { active = false; window.clearInterval(intervalo); };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    setMateriaisLoading(true);
-    setMateriaisError(null);
-    materialService.listar()
-      .then((data) => {
-        if (active) {
-          setMateriaisReais(data || []);
-          setMateriaisError(null);
-        }
-      })
-      .catch((err) => {
-        if (!active) return;
-        setMateriaisReais((prev) => (prev.length > 0 ? prev : []));
-        setMateriaisError(formatarErroApi(err, 'Erro ao carregar catálogo de materiais da API.'));
-      })
-      .finally(() => {
-        if (active) setMateriaisLoading(false);
-      });
-    return () => { active = false; };
   }, []);
 
   const handleNavClick = (id) => {
@@ -170,6 +184,9 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
       } : criado;
 
       setPedidos(prev => [pedidoFormatado, ...prev]);
+
+      // Re-busca canônica silenciosa para garantir integridade e relacionamentos calculados pelo servidor
+      carregarPedidos(true);
 
       setNotificacoes(prev => [
         {
@@ -228,6 +245,7 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
   const handleCancelarPedido = async (pedidoId) => {
     await pedidoService.cancelar(pedidoId);
     setPedidos(prev => prev.map(p => (p.id === pedidoId ? { ...p, status: 'cancelado' } : p)));
+    await carregarPedidos(true);
   };
 
   const pendentesCount = pedidos.filter(p => p.status === 'Pendente').length;

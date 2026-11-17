@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Sidebar from '../components/Sidebar/Sidebar';
 import Topbar from '../components/Topbar/Topbar';
 import KpiCards from '../components/KpiCards/KpiCards';
@@ -30,7 +30,7 @@ import NovoMaterialModal from '../components/Estoque/NovoMaterialModal';
 import NovoUsuarioModal from '../components/Usuarios/NovoUsuarioModal';
 import NovoPedidoModal from '../components/Pedidos/NovoPedidoModal';
 import AdminPerfil from '../components/AdminPerfil/AdminPerfil';
-import { useSectionNavigation, SpeedDialFAB } from '../components/common';
+import { useSectionNavigation, SpeedDialFAB, useAutoRefresh } from '../components/common';
 
 const ADMIN_SECTIONS = ['dashboard', 'consumo', 'patrimonio', 'estoque', 'ambientes', 'usuarios', 'pedidos', 'relatorios', 'perfil'];
 
@@ -93,24 +93,144 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     }
   }, [activeNav]);
 
-  useEffect(() => {
-    let active = true;
-    materialService.listar()
-      .then((data) => {
-        if (active) {
-          setMateriais(data || []);
-          setMateriaisError(null);
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setMateriais((prev) => (prev.length > 0 ? prev : []));
-          setMateriaisError(formatarErroApi(err, 'Não foi possível carregar os materiais do estoque.'));
-        }
-      })
-      .finally(() => { if (active) setMateriaisLoading(false); });
-    return () => { active = false; };
+  const carregarPedidos = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setPedidosLoading(true);
+      setPedidosError(null);
+    }
+    try {
+      const data = await pedidoService.listar();
+      setPedidos(data || []);
+      setPedidosError(null);
+    } catch (err) {
+      if (!silencioso) {
+        setPedidos((prev) => (prev.length > 0 ? prev : []));
+        setPedidosError(formatarErroApi(err, 'Não foi possível carregar os pedidos.'));
+      }
+    } finally {
+      if (!silencioso) setPedidosLoading(false);
+    }
   }, []);
+
+  const carregarBaixas = useCallback(async () => {
+    try {
+      const data = await baixaPatrimonioService.listar();
+      setPedidosBaixa(data || []);
+    } catch {
+      setPedidosBaixa([]);
+    }
+  }, []);
+
+  const carregarMateriais = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setMateriaisLoading(true);
+      setMateriaisError(null);
+    }
+    try {
+      const data = await materialService.listar();
+      setMateriais(data || []);
+      setMateriaisError(null);
+    } catch (err) {
+      if (!silencioso) {
+        setMateriais((prev) => (prev.length > 0 ? prev : []));
+        setMateriaisError(formatarErroApi(err, 'Não foi possível carregar os materiais do estoque.'));
+      }
+    } finally {
+      if (!silencioso) setMateriaisLoading(false);
+    }
+  }, []);
+
+  const carregarDashboard = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setDashboardLoading(true);
+      setDashboardError(null);
+    }
+    try {
+      const data = await dashboardService.obter();
+      setDashboard(data);
+      setDashboardError(null);
+    } catch (err) {
+      if (!silencioso) {
+        setDashboard((prev) => prev);
+        setDashboardError(formatarErroApi(err, 'Não foi possível carregar os indicadores do painel.'));
+      }
+    } finally {
+      if (!silencioso) setDashboardLoading(false);
+    }
+  }, []);
+
+  const carregarUsuarios = useCallback(async (silencioso = false) => {
+    if (!silencioso) setUsuariosLoading(true);
+    try {
+      const data = await usuarioService.listar();
+      setUsuarios(data || []);
+      setUsuariosError(null);
+    } catch (err) {
+      if (!silencioso) {
+        setUsuarios((prev) => (prev.length > 0 ? prev : []));
+        setUsuariosError(formatarErroApi(err, 'Não foi possível carregar a lista de usuários.'));
+      }
+    } finally {
+      if (!silencioso) setUsuariosLoading(false);
+    }
+  }, []);
+
+  const carregarPatrimonios = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setPatrimoniosLoading(true);
+      setPatrimoniosError(null);
+    }
+    try {
+      const [cats, itens] = await Promise.all([
+        patrimonioService.listarCatalogo().catch(() => []),
+        patrimonioService.listarItens().catch(() => [])
+      ]);
+      setPatrimoniosCatalogo(cats || []);
+      setPatrimoniosItens(itens || []);
+      setPatrimoniosError(null);
+    } catch (err) {
+      if (!silencioso) {
+        setPatrimoniosError(formatarErroApi(err, 'Não foi possível carregar os patrimônios.'));
+      }
+    } finally {
+      if (!silencioso) setPatrimoniosLoading(false);
+    }
+  }, []);
+
+  // Carga inicial dos módulos
+  useEffect(() => {
+    carregarMateriais();
+    carregarPedidos();
+    carregarBaixas();
+    carregarDashboard();
+    carregarUsuarios();
+    carregarPatrimonios();
+  }, [carregarMateriais, carregarPedidos, carregarBaixas, carregarDashboard, carregarUsuarios, carregarPatrimonios]);
+
+  // Revalidação silenciosa ao navegar entre seções (SPA)
+  useEffect(() => {
+    if (activeNav === 'pedidos') {
+      carregarPedidos(true);
+      carregarBaixas();
+    } else if (activeNav === 'consumo' || activeNav === 'estoque') {
+      carregarMateriais(true);
+    } else if (activeNav === 'patrimonio') {
+      carregarPatrimonios(true);
+    } else if (activeNav === 'usuarios') {
+      carregarUsuarios(true);
+    } else if (activeNav === 'dashboard') {
+      carregarDashboard(true);
+    }
+  }, [activeNav, carregarPedidos, carregarBaixas, carregarMateriais, carregarPatrimonios, carregarUsuarios, carregarDashboard]);
+
+  // Sincronização passiva em segundo plano e ao focar a janela
+  useAutoRefresh(() => {
+    carregarPedidos(true);
+    carregarBaixas();
+    if (activeNav === 'dashboard') {
+      carregarDashboard(true);
+    }
+  }, { intervalMs: 20000, enabled: true });
 
   useEffect(() => {
     let active = true;
@@ -173,27 +293,6 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     return () => { active = false; };
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    Promise.all([
-      patrimonioService.listarCatalogo().catch(() => []),
-      patrimonioService.listarItens().catch(() => [])
-    ])
-      .then(([cats, itens]) => {
-        if (active) {
-          setPatrimoniosCatalogo(cats || []);
-          setPatrimoniosItens(itens || []);
-          setPatrimoniosError(null);
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setPatrimoniosError(formatarErroApi(err, 'Não foi possível carregar os patrimônios.'));
-        }
-      })
-      .finally(() => { if (active) setPatrimoniosLoading(false); });
-    return () => { active = false; };
-  }, []);
 
   const handleCriarAmbiente = async (dados) => {
     const criado = await ambienteService.criar(dados);
@@ -253,74 +352,6 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     if (Array.isArray(baixas)) setPedidosBaixa(baixas);
   };
 
-  useEffect(() => {
-    let active = true;
-    usuarioService.listar()
-      .then((data) => {
-        if (active) {
-          setUsuarios(data || []);
-          setUsuariosError(null);
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setUsuarios((prev) => (prev.length > 0 ? prev : []));
-          setUsuariosError(formatarErroApi(err, 'Não foi possível carregar a lista de usuários.'));
-        }
-      })
-      .finally(() => { if (active) setUsuariosLoading(false); });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    pedidoService.listar()
-      .then((data) => {
-        if (active) {
-          setPedidos(data || []);
-          setPedidosError(null);
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setPedidos((prev) => (prev.length > 0 ? prev : []));
-          setPedidosError(formatarErroApi(err, 'Não foi possível carregar os pedidos.'));
-        }
-      })
-      .finally(() => { if (active) setPedidosLoading(false); });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    baixaPatrimonioService.listar()
-      .then((data) => {
-        if (active) setPedidosBaixa(data || []);
-      })
-      .catch(() => {
-        if (active) setPedidosBaixa([]);
-      });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    dashboardService.obter()
-      .then((data) => {
-        if (active) {
-          setDashboard(data);
-          setDashboardError(null);
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setDashboard((prev) => prev);
-          setDashboardError(formatarErroApi(err, 'Não foi possível carregar os indicadores do painel.'));
-        }
-      })
-      .finally(() => { if (active) setDashboardLoading(false); });
-    return () => { active = false; };
-  }, []);
 
   // Contadores dinâmicos para a Sidebar e Dashboard
   const counts = useMemo(() => {
@@ -345,6 +376,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     try {
       const atualizado = await pedidoService.atualizarStatus(pedidoId, 'em_separacao');
       setPedidos(prev => prev.map(p => (p.id === pedidoId ? (atualizado || { ...p, status: 'Em Separação' }) : p)));
+      await carregarPedidos(true);
       return true;
     } catch (error) {
       alert(error?.message || 'Não foi possível autorizar a solicitação de patrimônio.');
@@ -357,6 +389,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     try {
       const atualizado = await pedidoService.atualizarStatus(pedidoId, 'cancelado', { motivoCancelamento: motivo });
       setPedidos(prev => prev.map(p => (p.id === pedidoId ? (atualizado || { ...p, status: 'Cancelado', motivoCancelamento: motivo }) : p)));
+      await carregarPedidos(true);
       return true;
     } catch (error) {
       alert(error?.message || 'Não foi possível recusar a solicitação de patrimônio.');
@@ -426,6 +459,11 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
         itens: criado.itens || itensRecebidos
       } : criado;
       setPedidos(prev => [pedidoFormatado, ...prev]);
+
+      await Promise.all([
+        carregarPedidos(true),
+        carregarMateriais(true)
+      ]);
       return true;
     } catch (error) {
       // Não exibe um pedido que não foi gravado.
@@ -442,8 +480,10 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
       setMateriais(prev => material.id
         ? prev.map(item => item.id === material.id ? saved : item)
         : [saved, ...prev]);
-      const movsAtualizadas = await movimentacaoService.listar();
-      if (movsAtualizadas) setMovimentacoes(movsAtualizadas);
+      await Promise.all([
+        carregarMateriais(true),
+        movimentacaoService.listar().then(movs => { if (movs) setMovimentacoes(movs); })
+      ]);
     } catch (error) {
       // Aviso pontual: a tela de estoque continua disponível (antes o erro substituía a tela inteira).
       alert(error?.message || 'Não foi possível salvar o material.');
@@ -455,6 +495,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     try {
       await materialService.excluir(materialId);
       setMateriais(prev => prev.filter(item => item.id !== materialId));
+      await carregarMateriais(true);
     } catch (error) {
       alert(error?.message || 'Não foi possível excluir o material.');
     }
@@ -464,6 +505,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     try {
       const atualizado = await usuarioService.alternarStatus(usuarioId);
       setUsuarios(prev => prev.map(u => u.id === usuarioId ? (atualizado || { ...u, ativo: !u.ativo }) : u));
+      await carregarUsuarios(true);
     } catch (error) {
       alert(error?.message || 'Não foi possível alterar o status do usuário.');
     }
@@ -479,6 +521,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
         ? prev.map(item => item.id === salvo.id ? salvo : item)
         : [salvo, ...prev]);
       setUsuariosError(null);
+      await carregarUsuarios(true);
       return true;
     } catch (error) {
       // Não exibe um usuário que não foi gravado (ex.: CPF inválido ou já cadastrado).

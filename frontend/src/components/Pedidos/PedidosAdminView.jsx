@@ -1318,6 +1318,7 @@ const PedidosAdminView = ({
               tipoPedido: 'patrimonio'
             });
             if (sucesso) {
+              setAbaAtiva('todos');
               dispararFeedback('Pedido de patrimônio registrado e autorizado com sucesso! Encaminhado ao almoxarifado.');
               setIsNovoPedidoPatrimonioOpen(false);
             }
