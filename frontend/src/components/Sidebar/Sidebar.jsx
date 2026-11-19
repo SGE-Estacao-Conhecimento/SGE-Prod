@@ -186,7 +186,7 @@ const usuarioNavGroups = [
       },
       {
         id: 'pedidos',
-        label: 'Meus Pedidos',
+        label: 'Pedidos',
         badgeKey: 'pedidosPendentes',
         badgeType: 'amber',
         badgeTitle: 'pedidos em andamento',

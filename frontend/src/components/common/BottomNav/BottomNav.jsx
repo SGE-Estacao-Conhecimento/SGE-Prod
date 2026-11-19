@@ -21,6 +21,13 @@ const BottomNav = ({
     <nav className="sge-bottom-nav" aria-label={ariaLabel}>
       {items.map((item) => {
         const isActive = activeNav === item.id;
+        const badge = item.badge;
+        const isBadgeObject = badge && typeof badge === 'object';
+        const isDot = isBadgeObject ? Boolean(badge.dot) : badge === 'dot';
+        const badgeCount = isBadgeObject ? Number(badge.count || 0) : Number(badge || 0);
+        const badgeVariant = (isBadgeObject && badge.variant) || (badgeCount > 0 ? 'danger' : 'warning');
+        const showBadge = isDot || badgeCount > 0;
+
         return (
           <motion.button
             key={item.id}
@@ -41,8 +48,13 @@ const BottomNav = ({
             )}
             <span className="sge-bottom-nav__icon">
               {item.icon}
-              {item.badge > 0 && (
-                <span className="sge-bottom-nav__badge">{item.badge}</span>
+              {showBadge && (
+                <span
+                  className={`sge-bottom-nav__badge ${isDot ? 'sge-bottom-nav__badge--dot' : ''} sge-bottom-nav__badge--${badgeVariant}`}
+                  aria-hidden={isDot ? 'true' : undefined}
+                >
+                  {!isDot ? badgeCount : null}
+                </span>
               )}
             </span>
             <span className="sge-bottom-nav__label">{item.label}</span>

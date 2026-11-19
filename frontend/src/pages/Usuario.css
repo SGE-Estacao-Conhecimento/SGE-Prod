@@ -20,6 +20,7 @@
 .usuario-page-scroll {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px 24px;
 }
 
@@ -60,11 +61,6 @@
   }
 }
 
-/* Oculta a barra inferior de celular no desktop */
-.usuario-bottom-nav {
-  display: none;
-}
-
 /* ===== MODO CELULAR (MOBILE-FIRST) ===== */
 @media (max-width: 900px) {
 
@@ -83,8 +79,16 @@
 
   .sge-page-scroll,
   .usuario-page-scroll {
+    overflow-x: hidden;
     padding: 10px 12px calc(112px + env(safe-area-inset-bottom, 24px)) 12px !important;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
+  }
+
+  /* Na tela Meus Pedidos no celular, remove totalmente as bordas/paddings laterais para visual edge-to-edge */
+  .usuario-pedidos-page-scroll,
+  .sge-page-scroll:has(.meus-pedidos-container) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
 import Topbar from '../components/Topbar/Topbar';
 import Sidebar from '../components/Sidebar/Sidebar';
@@ -14,7 +14,7 @@ import { formatarErroApi } from '../services/api/client';
 
 const TITLES = {
   inicio: 'Início',
-  pedidos: 'Meus Pedidos',
+  pedidos: 'Pedidos',
   perfil: 'Meu Perfil'
 };
 
@@ -25,7 +25,7 @@ const navItemsUsuario = [
       <polyline points="9 22 9 12 15 12 15 22"/>
     </svg>
   )},
-  { id: 'pedidos', label: 'Meus Pedidos', icon: (
+  { id: 'pedidos', label: 'Pedidos', icon: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
       <polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/>
@@ -42,17 +42,17 @@ const navItemsUsuario = [
 
 const USUARIO_SECTIONS = navItemsUsuario.map((item) => item.id);
 
-const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos = [] }) => {
+const Usuario = ({ onLogout, user, onUserUpdate }) => {
   const [activeNav, setActiveNav] = useSectionNavigation('usuario', USUARIO_SECTIONS, 'inicio');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const [pedidos, setPedidos] = useState(initialPedidos || []);
+  const [pedidos, setPedidos] = useState([]);
   const [pedidosLoading, setPedidosLoading] = useState(true);
   const [pedidosError, setPedidosError] = useState(null);
-  const [materiaisReais, setMateriaisReais] = useState(materiais);
+  const [materiais, setMateriais] = useState([]);
   const [materiaisLoading, setMateriaisLoading] = useState(true);
   const [materiaisError, setMateriaisError] = useState(null);
-  const [autoFocusBuscaTrigger, setAutoFocusBuscaTrigger] = useState(0);
+  const [pedidoFocadoId, setPedidoFocadoId] = useState(null);
 
   const [notificacoes, setNotificacoes] = useState([]);
 
@@ -82,11 +82,11 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
     }
     try {
       const data = await materialService.listar();
-      setMateriaisReais(data || []);
+      setMateriais(data || []);
       setMateriaisError(null);
     } catch (err) {
       if (!silencioso) {
-        setMateriaisReais((prev) => (prev.length > 0 ? prev : []));
+        setMateriais((prev) => (prev.length > 0 ? prev : []));
         setMateriaisError(formatarErroApi(err, 'Erro ao carregar catálogo de materiais da API.'));
       }
     } finally {
@@ -147,9 +147,10 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
     setNotificacoes(prev => prev.map(n => ({ ...n, lida: true })));
   };
 
-  const handleNavigateToPedido = () => {
+  const handleNavigateToPedido = useCallback((pedidoId) => {
+    setPedidoFocadoId(pedidoId || null);
     setActiveNav('pedidos');
-  };
+  }, [setActiveNav]);
 
   const handleNovoPedidoSubmit = async (novoPedido) => {
     const itensRecebidos = Array.isArray(novoPedido.itens) && novoPedido.itens.length > 0
@@ -203,40 +204,8 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
 
       return pedidoFormatado;
     } catch (err) {
-      if (USA_API) {
-        throw err;
-      }
-      const nextId = Math.max(...pedidos.map(p => Number(p.id) || 0), 100) + 1;
-      const pedidoCriado = {
-        id: nextId,
-        data: new Date().toLocaleDateString('pt-BR'),
-        material: resumoMaterial,
-        quantidade: itensRecebidos.reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0),
-        materiais: materiaisFormatados,
-        itens: itensRecebidos,
-        justificativa: novoPedido.justificativa,
-        prioridade: prioridadeFinal,
-        urgente: isUrgente,
-        status: 'Pendente',
-        usuario: user?.identifier || user?.nome || 'Usuário'
-      };
-
-      setPedidos(prev => [pedidoCriado, ...prev]);
-
-      setNotificacoes(prev => [
-        {
-          id: `notif-${Date.now()}`,
-          pedidoId: nextId,
-          titulo: isUrgente ? 'Pedido Urgente Registrado' : `Pedido #${nextId} Criado`,
-          mensagem: `${resumoMaterial} enviado para o almoxarifado.`,
-          tipo: isUrgente ? 'urgente' : 'info',
-          tempo: 'Agora mesmo',
-          lida: false
-        },
-        ...prev
-      ]);
-
-      return pedidoCriado;
+      const mensagemErro = formatarErroApi(err, 'Não foi possível registrar o pedido.');
+      throw new Error(mensagemErro);
     }
   };
 
@@ -248,7 +217,52 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
     await carregarPedidos(true);
   };
 
-  const pendentesCount = pedidos.filter(p => p.status === 'Pendente').length;
+  const normalizarStatusPedido = (status = '') => {
+    const s = String(status).toLowerCase().trim();
+    if (s.includes('insuficiente') || s.includes('falta') || s.includes('recusad')) return 'estoque-insuficiente';
+    if (s === 'atendido-parcialmente' || s === 'atendido parcialmente' || s.includes('atendido parc')) return 'atendido-parcialmente';
+    if (s.includes('parcial')) return 'parcialmente-disponivel';
+    if (s.includes('pronto') || s.includes('retirada')) return 'pronto';
+    if (s.includes('separ')) return 'em-separacao';
+    if (s.includes('pendent') || s.includes('aguard')) return 'aguardando-separacao';
+    if (s.includes('atendid') || s.includes('entreg') || s.includes('conclui')) return 'entregue';
+    if (s.includes('cancel')) return 'cancelado';
+    return s || 'aguardando-separacao';
+  };
+
+  const pedidosParaRetirar = useMemo(() => {
+    return pedidos.filter(p => {
+      const st = normalizarStatusPedido(p.status);
+      return st === 'pronto' || st === 'parcialmente-disponivel';
+    });
+  }, [pedidos]);
+
+  const pedidosEmAndamento = useMemo(() => {
+    return pedidos.filter(p => {
+      const st = normalizarStatusPedido(p.status);
+      return st === 'aguardando-separacao' || st === 'em-separacao';
+    });
+  }, [pedidos]);
+
+  const pedidosBadge = useMemo(() => {
+    if (pedidosParaRetirar.length > 0) {
+      // Quando houver pedido pronto para retirar: vermelho com número exato de pedidos a retirar
+      return {
+        count: pedidosParaRetirar.length,
+        variant: 'danger',
+        dot: false
+      };
+    }
+    if (pedidosEmAndamento.length > 0) {
+      // Quando houver pedido em andamento (sem nenhum pronto para retirada): apenas bolinha laranja
+      return {
+        count: 0,
+        variant: 'warning',
+        dot: true
+      };
+    }
+    return null;
+  }, [pedidosParaRetirar.length, pedidosEmAndamento.length]);
 
   const renderContent = () => {
     switch (activeNav) {
@@ -266,7 +280,7 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
         );
       case 'pedidos':
         return (
-          <PageTabTransition tabKey="pedidos">
+          <PageTabTransition tabKey="pedidos" className="usuario-pedidos-page-scroll">
             {pedidosLoading && <p className="sge-loading-text">Carregando seus pedidos...</p>}
             {pedidosError && (
               <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
@@ -285,6 +299,9 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
                 onCancelarPedido={handleCancelarPedido}
                 onNavigateToEstoque={() => handleNavClick('inicio')}
                 onPedirNovamente={handleNovoPedidoSubmit}
+                pedidoFocadoId={pedidoFocadoId}
+                onLimparFocoPedido={() => setPedidoFocadoId(null)}
+                onRecarregarPedidos={() => carregarPedidos(false)}
               />
             )}
           </PageTabTransition>
@@ -304,14 +321,13 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
                 <span>{materiaisError}</span>
               </div>
             )}
-            {!materiaisLoading && (!materiaisError || materiaisReais.length > 0) && (
+            {!materiaisLoading && (!materiaisError || materiais.length > 0) && (
               <UsuarioEstoque
-                materiais={materiaisReais}
+                materiais={materiais}
                 pedidos={pedidos}
                 user={user}
                 onSolicitarMaterial={handleNovoPedidoSubmit}
                 onNavigateToPedidos={() => handleNavClick('pedidos')}
-                autoFocusBuscaTrigger={autoFocusBuscaTrigger}
               />
             )}
           </PageTabTransition>
@@ -330,7 +346,7 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
         user={user}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        counts={{ pedidosPendentes: pendentesCount }}
+        counts={{ pedidosPendentes: pedidosParaRetirar.length || (pedidosEmAndamento.length ? 1 : 0) }}
       />
 
       <div className="usuario-main">
@@ -352,7 +368,7 @@ const Usuario = ({ onLogout, user, onUserUpdate, materiais = [], initialPedidos 
         <BottomNav
           items={navItemsUsuario.map(item => ({
             ...item,
-            badge: item.id === 'pedidos' ? pendentesCount : 0
+            badge: item.id === 'pedidos' ? pedidosBadge : null
           }))}
           activeNav={activeNav}
           onNavClick={handleNavClick}

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { SearchFilterBar, FilterDrawer, FilterGroup, FilterChip, SortLoopButton, QuantityStepper } from '../common';
+import { SearchFilterBar, FilterDrawer, FilterGroup, FilterChip, SortLoopButton, QuantityStepper, BottomSheetModal } from '../common';
 import './UsuarioEstoque.css';
 import { favoritoService } from '../../services/favoritos/favoritoService';
 import { corrigirTexto } from '../../utils/text';
@@ -59,18 +59,6 @@ const getMultiplicador = (material) => {
   return null;
 };
 
-// Calcula a intensidade de destaque do material proporcional ao seu volume de uso/pedidos
-// Retorna um valor de 0 (sem traço) até 1.0 (máxima intensidade visual)
-const getIntensidadeUso = (pedidos) => {
-  const qtd = Number(pedidos ?? 0);
-  const MIN_PEDIDOS = 35; // Itens com menos de 35 pedidos não exibem traço (já sumiram)
-  const MAX_PEDIDOS = 148; // Referência de uso máximo no almoxarifado
-
-  if (qtd < MIN_PEDIDOS) return 0;
-  const ratio = (qtd - MIN_PEDIDOS) / (MAX_PEDIDOS - MIN_PEDIDOS);
-  return Math.min(Math.max(0.25 + ratio * 0.75, 0.25), 1.0);
-};
-
 // Normaliza texto removendo acentos gráficos e caracteres especiais para busca instantânea e fluida
 const normalizeText = (text) => {
   return (text || '')
@@ -80,11 +68,7 @@ const normalizeText = (text) => {
     .toLowerCase();
 };
 
-const displayText = (text = '') => corrigirTexto(text)
-  .replace(/Ã¡/g, 'á').replace(/Ã©/g, 'é').replace(/Ã­/g, 'í')
-  .replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú').replace(/Ã§/g, 'ç')
-  .replace(/Ã£/g, 'ã').replace(/Ãµ/g, 'õ').replace(/Ãª/g, 'ê')
-  .replace(/Ã´/g, 'ô').replace(/Ã/g, 'Á').replace(/Ã/g, '');
+const displayText = (text = '') => corrigirTexto(text);
 
 const UsuarioEstoque = ({
   materiais = [],
@@ -92,8 +76,7 @@ const UsuarioEstoque = ({
   user,
   onSolicitarMaterial,
   onNavigateToPedidos,
-  autoFocusBuscaTrigger
-}) => {
+  }) => {
   // Funcionário comum visualiza apenas materiais de consumo (bens duráveis/patrimônio são restritos à equipe).
   const dados = useMemo(
     () => (materiais || []).filter((item) => !item?.bemDuravel),
@@ -145,19 +128,6 @@ const UsuarioEstoque = ({
       setItensCaderneta([]);
     }
   }, [storageKeyCaderneta]);
-
-  // Foco automático e seleção da busca ao ser acionado externamente
-  useEffect(() => {
-    if (autoFocusBuscaTrigger) {
-      const timer = setTimeout(() => {
-        if (searchInputRef.current) {
-          searchInputRef.current.focus();
-          searchInputRef.current.select?.();
-        }
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [autoFocusBuscaTrigger]);
 
   // Lista de IDs favoritados com persistência no localStorage (Padrões iniciais: Papel, Caneta, Álcool)
   const [favoritos, setFavoritos] = useState([]);
@@ -400,275 +370,16 @@ const UsuarioEstoque = ({
 
   // Ao clicar em uma linha/material da tabela
   const handleItemClick = (material) => {
-    if (isClosingRef.current) return;
     setItemSelecionado(material);
     const itemExistente = itensCaderneta.find(i => i.id === material.id);
     setQuantidade(itemExistente ? itemExistente.quantidade : 1);
     setErroQtd('');
   };
 
-  // Referências para arrastar e fechar (Swipe down to dismiss)
-  const sheetRef = useRef(null);
-  const backdropRef = useRef(null);
-  const isDraggingRef = useRef(false);
-  const startYRef = useRef(0);
-  const currentYRef = useRef(0);
-  const startTimeRef = useRef(0);
-  const hasDraggedRef = useRef(false);
-  const isClosingRef = useRef(false);
-  const closeTimerRef = useRef(null);
-
-  // Limpa o timer de fechamento ao desmontar o componente
-  useEffect(() => {
-    return () => {
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Reseta referências e estilos inline ao abrir novo material
-  useEffect(() => {
-    if (itemSelecionado) {
-      isClosingRef.current = false;
-      isDraggingRef.current = false;
-      hasDraggedRef.current = false;
-      if (sheetRef.current) {
-        sheetRef.current.style.display = '';
-        sheetRef.current.style.opacity = '';
-        sheetRef.current.style.transform = '';
-        sheetRef.current.style.transition = '';
-      }
-      if (backdropRef.current) {
-        backdropRef.current.style.display = '';
-        backdropRef.current.style.opacity = '';
-        backdropRef.current.style.transition = '';
-      }
-    }
-  }, [itemSelecionado]);
-
-  // Fechamento padrão do modal com animação simétrica de Zoom Out
   const handleCloseModal = useCallback(() => {
-    if (isClosingRef.current) return;
-    if (document.activeElement && document.activeElement.blur) {
-      document.activeElement.blur();
-    }
-    if (sheetRef.current) {
-      sheetRef.current.style.transition = '';
-      sheetRef.current.style.transform = '';
-      sheetRef.current.style.transformOrigin = 'center center';
-    }
-    if (backdropRef.current) {
-      backdropRef.current.style.transition = '';
-      backdropRef.current.style.opacity = '';
-    }
     setItemSelecionado(null);
+    setErroQtd('');
   }, []);
-
-  // Atalho de acessibilidade: tecla Escape para fechar
-  useEffect(() => {
-    if (!itemSelecionado) return;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        handleCloseModal();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [itemSelecionado, handleCloseModal]);
-
-  const onDragStart = (clientY) => {
-    if (isClosingRef.current) return;
-    isDraggingRef.current = true;
-    startYRef.current = clientY;
-    currentYRef.current = clientY;
-    startTimeRef.current = Date.now();
-    hasDraggedRef.current = false;
-  };
-
-  const onDragMove = (clientY) => {
-    if (!isDraggingRef.current || isClosingRef.current) return;
-    currentYRef.current = clientY;
-    const deltaY = clientY - startYRef.current;
-
-    // Aumentada a tolerância para 12px para evitar que micro-vibrações do toque anulem cliques
-    if (Math.abs(deltaY) > 12) {
-      hasDraggedRef.current = true;
-    }
-
-    if (!sheetRef.current) return;
-
-    if (deltaY > 0) {
-      // Arrastando para baixo: acompanha diretamente o dedo em tempo real
-      sheetRef.current.style.transformOrigin = 'bottom center';
-      sheetRef.current.style.transition = 'none';
-      sheetRef.current.style.transform = `translateY(${deltaY}px)`;
-
-      if (backdropRef.current) {
-        backdropRef.current.style.transition = 'none';
-        const opacity = Math.max(0, 1 - (deltaY / 320));
-        backdropRef.current.style.opacity = `${opacity}`;
-      }
-    } else {
-      // Puxando para cima: BASE FIXA NO CHÃO + ESTIRAMENTO ELÁSTICO (Opção 2)
-      sheetRef.current.style.transformOrigin = 'bottom center';
-      sheetRef.current.style.transition = 'none';
-      const pullUp = Math.abs(deltaY);
-      // Resistência elástica progressiva suave (máximo 6% de estiramento vertical)
-      const stretch = Math.min(Math.pow(pullUp, 0.6) * 0.005, 0.06);
-      sheetRef.current.style.transform = `scaleY(${1 + stretch})`;
-    }
-  };
-
-  const onDragEnd = () => {
-    if (!isDraggingRef.current || isClosingRef.current) return;
-    isDraggingRef.current = false;
-
-    const deltaY = currentYRef.current - startYRef.current;
-    const elapsedTime = Math.max(Date.now() - startTimeRef.current, 1);
-    const velocityY = deltaY / elapsedTime;
-
-    // Se arrastou mais de 70px para baixo ou deu um puxão rápido (> 0.35 px/ms)
-    // CORREÇÃO DO SNAP-BACK GLITCH:
-    // Em vez de zerar o transform inline (que teletransportava a folha de volta para o topo antes do exit),
-    // anima suavemente o trajeto restante para baixo (translateY(100%)) com fade do backdrop.
-    if (deltaY > 70 || (deltaY > 25 && velocityY > 0.35)) {
-      isClosingRef.current = true;
-      if (document.activeElement && document.activeElement.blur) {
-        document.activeElement.blur();
-      }
-      if (sheetRef.current) {
-        sheetRef.current.style.transformOrigin = 'bottom center';
-        sheetRef.current.style.transition = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease';
-        sheetRef.current.style.transform = 'translateY(100%)';
-        sheetRef.current.style.opacity = '0';
-      }
-      if (backdropRef.current) {
-        backdropRef.current.style.transition = 'opacity 0.2s ease';
-        backdropRef.current.style.opacity = '0';
-      }
-
-      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = setTimeout(() => {
-        if (sheetRef.current) {
-          sheetRef.current.style.display = 'none';
-        }
-        if (backdropRef.current) {
-          backdropRef.current.style.display = 'none';
-        }
-        setItemSelecionado(null);
-        isClosingRef.current = false;
-      }, 220);
-    } else {
-      // Retorna com efeito de mola elástica suave
-      if (sheetRef.current) {
-        sheetRef.current.style.transformOrigin = 'bottom center';
-        sheetRef.current.style.transition = 'transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.15)';
-        sheetRef.current.style.transform = 'translateY(0) scaleY(1)';
-        setTimeout(() => {
-          if (sheetRef.current && !isClosingRef.current) {
-            sheetRef.current.style.transform = 'none';
-            sheetRef.current.style.transition = '';
-          }
-        }, 290);
-      }
-      if (backdropRef.current) {
-        backdropRef.current.style.transition = 'opacity 0.2s ease';
-        backdropRef.current.style.opacity = '1';
-      }
-    }
-  };
-
-  // Suporte a Touch Events (Mobile Touchscreen)
-  const handleTouchStart = (e) => {
-    if (isClosingRef.current) return;
-    if (e.touches && e.touches.length === 1) {
-      onDragStart(e.touches[0].clientY);
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (isClosingRef.current) return;
-    if (e.touches && e.touches.length === 1) {
-      if (e.cancelable) {
-        e.preventDefault(); // Impede o navegador de rolar a página em background durante o arrasto
-      }
-      onDragMove(e.touches[0].clientY);
-    }
-  };
-
-  const handleTouchEnd = (e) => {
-    if (hasDraggedRef.current && e && e.cancelable) {
-      e.preventDefault(); // Suprime clique fantasma residual do touch
-    }
-    onDragEnd();
-  };
-
-  // Suporte a Pointer / Mouse Events (Desktop devtools / mouse)
-  const handlePointerDown = (e) => {
-    if (isClosingRef.current) return;
-    if (e.pointerType === 'touch') return;
-    if (e.button !== undefined && e.button !== 0) return;
-    onDragStart(e.clientY);
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
-  };
-
-  const handlePointerMove = (e) => {
-    if (isClosingRef.current) return;
-    if (e.pointerType === 'touch') return;
-    onDragMove(e.clientY);
-  };
-
-  const handlePointerUp = (e) => {
-    if (e.pointerType === 'touch') return;
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {}
-    onDragEnd();
-  };
-
-  const handleHandleClick = (e) => {
-    if (e) e.stopPropagation();
-    if (!hasDraggedRef.current && !isClosingRef.current) {
-      handleCloseModal();
-    }
-  };
-
-  const handleIncrement = () => {
-    setQuantidade(prev => (typeof prev === 'number' ? prev + 1 : 2));
-    setErroQtd('');
-  };
-
-  const handleDecrement = () => {
-    setQuantidade(prev => (typeof prev === 'number' && prev > 1 ? prev - 1 : 1));
-    setErroQtd('');
-  };
-
-  const handleQuantityChange = (e) => {
-    const text = e.target.value.replace(/\D/g, '');
-    if (text === '') {
-      setQuantidade('');
-      setErroQtd('Informe a quantidade desejada.');
-      return;
-    }
-    const val = parseInt(text, 10);
-    if (isNaN(val) || val < 1) {
-      setQuantidade('');
-      setErroQtd('A quantidade deve ser no mínimo 1.');
-    } else {
-      setQuantidade(val);
-      setErroQtd('');
-    }
-  };
-
-  const handleQuantityBlur = () => {
-    if (quantidade === '' || quantidade < 1) {
-      setQuantidade(1);
-      setErroQtd('');
-    }
-  };
 
   // Adiciona ou atualiza o material na Caderneta de Pedidos
   const handleSalvarItemCaderneta = (e) => {
@@ -1013,7 +724,6 @@ const UsuarioEstoque = ({
         ) : (
           <div className="usuario-ticket-list">
             {materiaisExibidos.map((item) => {
-              const intensidadeUso = getIntensidadeUso(item.pedidos);
               const isFavorito = favoritos.includes(item.id);
               const itemCaderneta = itensCaderneta.find(it => it.id === item.id);
 
@@ -1077,16 +787,6 @@ const UsuarioEstoque = ({
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
                     </div>
-
-                    {/* Mini-traço verde que desvanece gradualmente conforme o volume de uso */}
-                    {intensidadeUso > 0 && (
-                      <span
-                        className="ticket-destaque-pill"
-                        style={{ opacity: intensidadeUso }}
-                        title={`Item frequente • ${item.pedidos || 0} solicitações registradas`}
-                        aria-label="Indicador de frequência de uso"
-                      />
-                    )}
                   </div>
                 </div>
               );
@@ -1110,159 +810,97 @@ const UsuarioEstoque = ({
         )}
       </div>
 
-      {/* Modal / Bottom Sheet de Solicitação de Pedido com Motion */}
-      <AnimatePresence>
+      {/* Modal / Bottom Sheet Oficial de Solicitação de Pedido */}
+      <BottomSheetModal
+        isOpen={Boolean(itemSelecionado)}
+        onClose={handleCloseModal}
+        title={itemSelecionado ? displayText(itemSelecionado.nome) : ''}
+        subtitle={
+          itemSelecionado
+            ? (itensCaderneta.some(it => it.id === itemSelecionado.id)
+                ? 'Atualizar na Caderneta'
+                : 'Adicionar à Caderneta')
+            : ''
+        }
+        badge={
+          itemSelecionado ? (
+            <span className="sheet-badge-unit">{itemSelecionado.unidade || 'UN'}</span>
+          ) : null
+        }
+        footer={
+          itemSelecionado ? (
+            <div className="sheet-footer">
+              <button
+                type="button"
+                className="sge-modal-btn sge-modal-btn--cancel"
+                onClick={handleCloseModal}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="sge-modal-btn sge-modal-btn--confirm"
+                onClick={handleSalvarItemCaderneta}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                  <path d="M9 12h6" />
+                  <path d="M9 16h6" />
+                </svg>
+                {itensCaderneta.some(it => it.id === itemSelecionado.id)
+                  ? 'Atualizar na Caderneta'
+                  : 'Adicionar à Caderneta'}
+              </button>
+            </div>
+          ) : null
+        }
+      >
         {itemSelecionado && (
-          <motion.div
-            key="modal-solicitacao-backdrop"
-            ref={backdropRef}
-            className="modal-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { duration: 0.18, ease: "easeOut" } }}
-            exit={{ opacity: 0, transition: { duration: 0.16, ease: "easeOut" } }}
-            onClick={handleCloseModal}
-          >
-            <motion.div
-              key="modal-solicitacao-sheet"
-              ref={sheetRef}
-              className="pedido-sheet"
-              initial={{ opacity: 0, scale: 0.93 }}
-              animate={{ opacity: 1, scale: 1, transition: { type: "spring", damping: 28, stiffness: 380 } }}
-              exit={{ opacity: 0, scale: 0.93, transition: { duration: 0.16, ease: "easeOut" } }}
-              onAnimationComplete={() => {
-                if (sheetRef.current && !isClosingRef.current) {
-                  sheetRef.current.style.transform = 'none';
-                }
-              }}
-              onClick={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-            >
-              {/* Puxador interativo para mobile (centralizado, toque ou arraste para fechar) */}
-              <div
-                className="sheet-handle-wrap"
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onTouchCancel={handleTouchEnd}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
-                onClick={handleHandleClick}
-                role="button"
-                tabIndex={0}
-                aria-label="Arrastar para baixo para fechar"
-                title="Arraste para baixo para fechar"
-              >
-                <div className="sheet-handle" />
-              </div>
+          <div className="pedido-sheet__form">
+            {itemSelecionado.descricao && (
+              <p className="sheet-material-desc">{displayText(itemSelecionado.descricao)}</p>
+            )}
 
-              {/* Cabeçalho do Modal (com suporte a toque/arrasto ergonômico) */}
-              <div
-                className="pedido-sheet__header"
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onTouchCancel={handleTouchEnd}
-              >
-                <div className="pedido-sheet__header-title">
-                  <div className="sheet-subtitle-row">
-                    <span className="sheet-subtitle">
-                      {itensCaderneta.some(it => it.id === itemSelecionado.id)
-                        ? 'Atualizar na Caderneta'
-                        : 'Adicionar à Caderneta'}
-                    </span>
-                    <span className="sheet-badge-unit">{itemSelecionado.unidade || 'UN'}</span>
-                    {itensCaderneta.some(it => it.id === itemSelecionado.id) && (
-                      <span className="sheet-badge-na-caderneta">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        Já na Caderneta
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="sheet-material-nome">{itemSelecionado.nome}</h3>
-                  {itemSelecionado.descricao && (
-                    <p className="sheet-material-desc">{itemSelecionado.descricao}</p>
-                  )}
+            {/* Seletor de Quantidade */}
+            <div className="qty-picker-container">
+              <label className="qty-picker-label">
+                Quantidade a pedir ({itemSelecionado.unidade || 'UN'})
+              </label>
+              <QuantityStepper
+                value={quantidade}
+                onChange={(val) => {
+                  setQuantidade(val);
+                  if (val !== '' && !isNaN(val) && Number(val) >= 1) {
+                    setErroQtd('');
+                  }
+                }}
+                min={1}
+                max={9999}
+                unit={itemSelecionado.unidade || 'UN'}
+                quickPills={[1, 5, 10, 25]}
+                ariaLabel={`Quantidade de ${itemSelecionado.nome}`}
+              />
+              {erroQtd && <span className="sheet-error">{erroQtd}</span>}
+            </div>
+
+            {/* Resumo de conversao de embalagem */}
+            {(() => {
+              const mult = getMultiplicador(itemSelecionado);
+              const qtd = typeof quantidade === 'number' && quantidade >= 1 ? quantidade : (parseInt(quantidade, 10) || 1);
+              if (!mult) return null;
+              const total = qtd * mult.fator;
+              return (
+                <div className="qty-total-bar">
+                  <span className="qty-total-bar__text">
+                    Total da solicitação: <strong>{total.toLocaleString('pt-BR')} {mult.unidadeBase}</strong>
+                  </span>
                 </div>
-              </div>
-
-              {/* Formulário de Adição à Caderneta */}
-              <form onSubmit={handleSalvarItemCaderneta} className="pedido-sheet__form">
-                {/* Seletor de Quantidade a pedir com atalhos rápidos */}
-                <div className="qty-picker-container">
-                  <label className="qty-picker-label">
-                    Quantidade a pedir ({itemSelecionado.unidade || 'UN'})
-                  </label>
-                  <QuantityStepper
-                    value={quantidade}
-                    onChange={(val) => {
-                      setQuantidade(val);
-                      if (val !== '' && !isNaN(val) && Number(val) >= 1) {
-                        setErroQtd('');
-                      }
-                    }}
-                    min={1}
-                    max={9999}
-                    unit={itemSelecionado.unidade || 'UN'}
-                    quickPills={[1, 5, 10, 25]}
-                    ariaLabel={`Quantidade de ${itemSelecionado.nome}`}
-                  />
-                  {erroQtd && <span className="sheet-error">{erroQtd}</span>}
-                </div>
-
-                {/* Linha única de resumo / conversão alinhada abaixo das duas colunas */}
-                {(() => {
-                  const mult = getMultiplicador(itemSelecionado);
-                  const qtd = typeof quantidade === 'number' && quantidade >= 1 ? quantidade : (parseInt(quantidade, 10) || 1);
-                  if (!mult) return null;
-                  const total = qtd * mult.fator;
-                  return (
-                    <div className="qty-total-bar">
-                      <span className="qty-total-bar__text">
-                        Total da solicitação: <strong>{total.toLocaleString('pt-BR')} {mult.unidadeBase}</strong>
-                      </span>
-                    </div>
-                  );
-                })()}
-
-                {/* Botões do Rodapé */}
-                <div className="sheet-footer">
-                  <motion.button
-                    type="button"
-                    className="sheet-btn sheet-btn--cancel"
-                    onClick={handleCloseModal}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    Cancelar
-                  </motion.button>
-                  <motion.button
-                    type="submit"
-                    className="sheet-btn sheet-btn--submit"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-                      <path d="M9 12h6" />
-                      <path d="M9 16h6" />
-                    </svg>
-                    {itensCaderneta.some(it => it.id === itemSelecionado.id)
-                      ? 'Atualizar na Caderneta'
-                      : 'Adicionar à Caderneta'}
-                  </motion.button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
+              );
+            })()}
+          </div>
         )}
-      </AnimatePresence>
+      </BottomSheetModal>
 
       {/* Botão Flutuante (FAB) da Caderneta de Pedidos - Sempre Visível */}
       <motion.button
