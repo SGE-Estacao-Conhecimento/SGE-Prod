@@ -1,19 +1,18 @@
 import React from 'react';
-import { StatCard, AlterarSenhaCard, AtualizarEmailCard } from '../common';
+import { AlterarSenhaCard, AtualizarEmailCard } from '../common';
 import './AdminPerfil.css';
 import '../UsuarioPerfil/UsuarioPerfil.css';
 
 /**
  * AdminPerfil — Visualização de perfil para o módulo Administrativo do SGE.
- * Inclui cartão de identificação, atalhos operacionais rápidos, alteração de senha e logout.
+ * Inclui cartão de identificação, atualização de e-mail, alteração de senha e logout.
  *
  * @param {Object} props
  * @param {Object} props.user - Objeto com os dados do usuário autenticado
  * @param {Function} [props.onLogout] - Manipulador de logout
- * @param {Function} [props.onNavigate] - Manipulador de navegação entre seções administrativas
  * @param {Function} [props.onUserUpdate] - Callback disparado ao atualizar dados da conta
  */
-const AdminPerfil = ({ user, onLogout, onNavigate, onUserUpdate }) => {
+const AdminPerfil = ({ user, onLogout, onUserUpdate }) => {
   const nomeUsuario = user?.nome || user?.identifier || 'Administrador';
   const inicial = nomeUsuario.charAt(0).toUpperCase();
 
@@ -46,34 +45,6 @@ const AdminPerfil = ({ user, onLogout, onNavigate, onUserUpdate }) => {
             )}
           </div>
         </div>
-      </div>
-
-      {/* Atalhos Rápidos Operacionais para o Administrador */}
-      <div className="admin-perfil-stats-grid">
-        <StatCard
-          value="Estoque"
-          label="Materiais"
-          variant="accent"
-          onClick={() => onNavigate && onNavigate('estoque')}
-        />
-        <StatCard
-          value="Usuários"
-          label="Gerenciamento"
-          variant="default"
-          onClick={() => onNavigate && onNavigate('usuarios')}
-        />
-        <StatCard
-          value="Pedidos"
-          label="Requisições"
-          variant="warning"
-          onClick={() => onNavigate && onNavigate('pedidos')}
-        />
-        <StatCard
-          value="Relatórios"
-          label="Métricas"
-          variant="success"
-          onClick={() => onNavigate && onNavigate('relatorios')}
-        />
       </div>
 
       {/* Módulos de Credenciais: E-mail de Acesso e Alterar Senha */}

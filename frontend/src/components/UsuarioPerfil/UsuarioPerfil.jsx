@@ -1,13 +1,8 @@
 import React from 'react';
-import { StatCard, AlterarSenhaCard, AtualizarEmailCard } from '../common';
+import { AlterarSenhaCard, AtualizarEmailCard } from '../common';
 import './UsuarioPerfil.css';
 
-const UsuarioPerfil = ({ user, pedidos = [], onLogout, onNavigate, onUserUpdate }) => {
-  // Estatísticas calculadas dinamicamente
-  const total = pedidos.length;
-  const pendentes = pedidos.filter(p => (p.status || '').toLowerCase() === 'pendente').length;
-  const atendidos = pedidos.filter(p => (p.status || '').toLowerCase() === 'atendido').length;
-
+const UsuarioPerfil = ({ user, onLogout, onUserUpdate }) => {
   const nomeUsuario = user?.nome || user?.identifier || 'Usuário Solicitante';
   const inicial = nomeUsuario.charAt(0).toUpperCase();
 
@@ -22,28 +17,6 @@ const UsuarioPerfil = ({ user, pedidos = [], onLogout, onNavigate, onUserUpdate 
           <span className="perfil-setor">{user?.setor ? `Setor: ${user.setor}` : 'Setor não informado'}</span>
           {user?.email && user.email !== nomeUsuario && <span className="perfil-setor">{user.email}</span>}
         </div>
-      </div>
-
-      {/* Resumo Rápido de Atividades (Atalhos) */}
-      <div className="perfil-stats-grid">
-        <StatCard
-          value={total}
-          label="Total de Pedidos"
-          variant="default"
-          onClick={() => onNavigate && onNavigate('pedidos')}
-        />
-        <StatCard
-          value={pendentes}
-          label="Pendentes"
-          variant="warning"
-          onClick={() => onNavigate && onNavigate('pedidos')}
-        />
-        <StatCard
-          value={atendidos}
-          label="Atendidos"
-          variant="success"
-          onClick={() => onNavigate && onNavigate('pedidos')}
-        />
       </div>
 
       {/* Seção de Segurança e Credenciais */}

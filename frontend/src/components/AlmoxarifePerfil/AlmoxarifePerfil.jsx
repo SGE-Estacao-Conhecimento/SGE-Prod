@@ -1,8 +1,8 @@
 import React from 'react';
-import { StatCard, AlterarSenhaCard, AtualizarEmailCard } from '../common';
+import { AlterarSenhaCard, AtualizarEmailCard } from '../common';
 import '../UsuarioPerfil/UsuarioPerfil.css';
 
-const AlmoxarifePerfil = ({ user, onLogout, onNavigate, onUserUpdate }) => {
+const AlmoxarifePerfil = ({ user, onLogout, onUserUpdate }) => {
   const nomeUsuario = user?.nome || user?.identifier || 'Almoxarife';
   const inicial = nomeUsuario.charAt(0).toUpperCase();
 
@@ -19,30 +19,6 @@ const AlmoxarifePerfil = ({ user, onLogout, onNavigate, onUserUpdate }) => {
           <span className="perfil-setor">{user?.setor ? `Setor: ${user.setor}` : 'Setor não informado'}</span>
           {user?.email && user.email !== nomeUsuario && <span className="perfil-setor">{user.email}</span>}
         </div>
-      </div>
-
-      {/* Atalhos Rápidos Operacionais */}
-      <div className="perfil-stats-grid">
-        <StatCard
-          value="Estoque"
-          label="Materiais"
-          variant="accent"
-          onClick={() => onNavigate && onNavigate('estoque')}
-        />
-
-        <StatCard
-          value="Pedidos"
-          label="Atendimento"
-          variant="warning"
-          onClick={() => onNavigate && onNavigate('pedidos')}
-        />
-
-        <StatCard
-          value="Métricas"
-          label="Relatórios"
-          variant="success"
-          onClick={() => onNavigate && onNavigate('relatorios')}
-        />
       </div>
 
       {/* Seção de Segurança e Credenciais */}
