@@ -225,15 +225,11 @@ const BottomSheetModal = ({
   const handleTouchMove = (e) => {
     if (isClosingRef.current) return;
     if (e.touches && e.touches.length === 1) {
-      if (e.cancelable) e.preventDefault();
       onDragMove(e.touches[0].clientY);
     }
   };
 
-  const handleTouchEnd = (e) => {
-    if (hasDraggedRef.current && e && e.cancelable) {
-      e.preventDefault();
-    }
+  const handleTouchEnd = () => {
     onDragEnd();
   };
 
