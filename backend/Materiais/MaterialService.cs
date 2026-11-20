@@ -1,13 +1,21 @@
 using System.Security.Claims;
 using Sge.Api.Auth;
+using Sge.Api.Dashboard;
 using Sge.Api.Estoque;
 using Sge.Api.Infrastructure;
 
 namespace Sge.Api.Materiais;
 
 /// <summary>Cadastro e edição de materiais pela equipe.</summary>
-public sealed class MaterialService(DbConnectionFactory db, MaterialRepository materiais, EstoqueRepository estoque)
+public sealed class MaterialService(
+    DbConnectionFactory db,
+    MaterialRepository materiais,
+    EstoqueRepository estoque,
+    IFilaRecalculoRepository filaRepo)
 {
+    public MaterialService(DbConnectionFactory db, MaterialRepository materiais, EstoqueRepository estoque)
+        : this(db, materiais, estoque, new FilaRecalculoRepository(db)) { }
+
     /// <summary>
     /// Cadastra o material. O saldo inicial informado é registrado como ajuste de entrada
     /// ("Saldo inicial cadastrado"), na mesma transação do cadastro.
@@ -36,6 +44,10 @@ public sealed class MaterialService(DbConnectionFactory db, MaterialRepository m
                 id, TipoMovimentacao.Ajuste, "entrada", saldoInicial, saldo, usuario.UsuarioId(),
                 TipoMovimentacao.MotivoSaldoInicial));
         }
+        else
+        {
+            await filaRepo.EnfileirarAsync(t, id);
+        }
 
         var criado = await materiais.ObterAsync(t, id);
         await t.ConfirmarAsync();
@@ -43,16 +55,17 @@ public sealed class MaterialService(DbConnectionFactory db, MaterialRepository m
     }
 
     /// <summary>Edita os dados cadastrais. O saldo só muda por movimentação (entrada, entrega ou balanço).</summary>
-    public async Task<MaterialDto> EditarAsync(int produtoId, SalvarMaterialRequest req)
+    public async Task<MaterialDto> EditarAsync(int produtoId, SalvarMaterialRequest req, CancellationToken ct = default)
     {
-        await using var t = await Transacao.IniciarAsync(db);
+        await using var t = await Transacao.IniciarAsync(db, ct);
         var atual = await materiais.ObterAsync(t, produtoId) ?? throw ApiException.NotFound("Material não encontrado.");
 
         var dados = Validar(req, atual.Codigo, atual.Complexo, atual.BemDuravel, atual.PermiteFracao);
         await materiais.AtualizarAsync(t, produtoId, dados);
+        await filaRepo.EnfileirarAsync(t, produtoId, ct);
 
         var editado = await materiais.ObterAsync(t, produtoId);
-        await t.ConfirmarAsync();
+        await t.ConfirmarAsync(ct);
         return editado!;
     }
 
@@ -60,13 +73,14 @@ public sealed class MaterialService(DbConnectionFactory db, MaterialRepository m
     /// "Excluir material" da administração: retira do catálogo (desativa). Pedidos, recebimentos e
     /// movimentações continuam no histórico (decisão de 07/11/2026; o banco não permite apagá-los).
     /// </summary>
-    public async Task<MaterialDto> RemoverAsync(int produtoId)
+    public async Task<MaterialDto> RemoverAsync(int produtoId, CancellationToken ct = default)
     {
-        await using var t = await Transacao.IniciarAsync(db);
+        await using var t = await Transacao.IniciarAsync(db, ct);
         if (!await materiais.DesativarAsync(t, produtoId))
             throw ApiException.NotFound("Material não encontrado.");
+        await filaRepo.EnfileirarAsync(t, produtoId, ct);
         var removido = await materiais.ObterAsync(t, produtoId);
-        await t.ConfirmarAsync();
+        await t.ConfirmarAsync(ct);
         return removido!;
     }
 

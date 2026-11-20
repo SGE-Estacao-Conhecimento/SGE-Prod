@@ -1,12 +1,14 @@
 using Dapper;
+using Sge.Api.Dashboard;
 using Sge.Api.Infrastructure;
 using Sge.Api.Remessas;
 
 namespace Sge.Api.Estoque;
 
 /// <summary>Saldo dos materiais (produtos.quantidade) e histórico (movimentacoes_estoque).</summary>
-public sealed class EstoqueRepository(DbConnectionFactory db) : RepositorioBase(db)
+public sealed class EstoqueRepository(DbConnectionFactory db, IFilaRecalculoRepository filaRepo) : RepositorioBase(db)
 {
+    public EstoqueRepository(DbConnectionFactory db) : this(db, new FilaRecalculoRepository(db)) { }
     public sealed class ProdutoSaldo
     {
         public int ProdutoId { get; set; }
@@ -79,14 +81,20 @@ public sealed class EstoqueRepository(DbConnectionFactory db) : RepositorioBase(
         t.Conexao.ExecuteAsync("UPDATE produtos SET quantidade = @saldo WHERE produto_id = @produtoId",
             new { produtoId, saldo }, t.Tx);
 
-    public async Task<long> RegistrarAsync(Transacao t, NovaMovimentacao m) =>
-        await t.Conexao.ExecuteScalarAsync<long>("""
+    public async Task<long> RegistrarAsync(Transacao t, NovaMovimentacao m)
+    {
+        var id = await t.Conexao.ExecuteScalarAsync<long>("""
             INSERT INTO movimentacoes_estoque (produto_id, tipo, sentido, quantidade, saldo_apos,
                                                recebimento_item_id, pedido_item_id, usuario_id, motivo)
             VALUES (@ProdutoId, @Tipo, @Sentido, @Quantidade, @SaldoApos,
                     @RecebimentoItemId, @PedidoItemId, @UsuarioId, @Motivo);
             SELECT LAST_INSERT_ID();
             """, m, t.Tx);
+
+        await filaRepo.EnfileirarAsync(t, m.ProdutoId);
+
+        return id;
+    }
 
     public async Task<IReadOnlyList<MovimentacaoDto>> ListarAsync(string? tipoFront, int? produtoId, int limite)
     {

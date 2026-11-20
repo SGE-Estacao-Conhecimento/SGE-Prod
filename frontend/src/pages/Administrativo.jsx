@@ -1,12 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Sidebar from '../components/Sidebar/Sidebar';
 import Topbar from '../components/Topbar/Topbar';
-import KpiCards from '../components/KpiCards/KpiCards';
-import PedidosTable from '../components/PedidosTable/PedidosTable';
-import Relatorios from '../components/Relatorios/Relatorios';
-import ConsultaEstoque from '../components/ConsultaEstoque/ConsultaEstoque';
-import GerenciarUsuarios from '../components/GerenciarUsuarios/GerenciarUsuarios';
-import NovoPedido from '../components/NovoPedido/NovoPedido';
+import AdminDashboardView from '../components/AdminDashboard/AdminDashboardView';
 import EstoqueView from '../components/Estoque/EstoqueView';
 import PatrimonioView from '../components/Patrimonio/PatrimonioView';
 import AmbientesView from '../components/Ambientes/AmbientesView';
@@ -17,7 +12,6 @@ import './Administrativo.css';
 import { materialService } from '../services/materiais/materialService';
 import { ambienteService } from '../services/ambientes/ambienteService';
 import { patrimonioService } from '../services/patrimonios/patrimonioService';
-import { dashboardService } from '../services/dashboard/dashboardService';
 import { pedidoService } from '../services/pedidos/pedidoService';
 import { usuarioService } from '../services/usuarios/usuarioService';
 import { setorService } from '../services/setores/setorService';
@@ -58,9 +52,8 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
   const [materiais, setMateriais] = useState([]);
   const [materiaisLoading, setMateriaisLoading] = useState(true);
   const [materiaisError, setMateriaisError] = useState(null);
-  const [dashboard, setDashboard] = useState(null);
-  const [dashboardLoading, setDashboardLoading] = useState(true);
-  const [dashboardError, setDashboardError] = useState(null);
+  const [drilldownFiltro, setDrilldownFiltro] = useState(null);
+  const [drilldownKey, setDrilldownKey] = useState(0);
   const [usuarios, setUsuarios] = useState([]);
   const [usuariosLoading, setUsuariosLoading] = useState(true);
   const [usuariosError, setUsuariosError] = useState(null);
@@ -84,12 +77,19 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
   const [isNovoMaterialModalOpen, setIsNovoMaterialModalOpen] = useState(false);
   const [isNovoUsuarioModalOpen, setIsNovoUsuarioModalOpen] = useState(false);
 
+  const handleDrillDown = useCallback((produtoId, nome) => {
+    setDrilldownFiltro({ produtoId, nome });
+    setDrilldownKey((k) => k + 1);
+    setActiveNav('estoque');
+  }, [setActiveNav]);
+
   useEffect(() => {
     if (activeNav !== 'usuarios') {
       setUsuarioSelecionado(null);
     }
-    if (activeNav !== 'estoque') {
+    if (activeNav !== 'estoque' && activeNav !== 'consumo') {
       setEstoqueStatusInicial('');
+      setDrilldownFiltro(null);
     }
   }, [activeNav]);
 
@@ -140,25 +140,6 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     }
   }, []);
 
-  const carregarDashboard = useCallback(async (silencioso = false) => {
-    if (!silencioso) {
-      setDashboardLoading(true);
-      setDashboardError(null);
-    }
-    try {
-      const data = await dashboardService.obter();
-      setDashboard(data);
-      setDashboardError(null);
-    } catch (err) {
-      if (!silencioso) {
-        setDashboard((prev) => prev);
-        setDashboardError(formatarErroApi(err, 'Não foi possível carregar os indicadores do painel.'));
-      }
-    } finally {
-      if (!silencioso) setDashboardLoading(false);
-    }
-  }, []);
-
   const carregarUsuarios = useCallback(async (silencioso = false) => {
     if (!silencioso) setUsuariosLoading(true);
     try {
@@ -202,10 +183,9 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     carregarMateriais();
     carregarPedidos();
     carregarBaixas();
-    carregarDashboard();
     carregarUsuarios();
     carregarPatrimonios();
-  }, [carregarMateriais, carregarPedidos, carregarBaixas, carregarDashboard, carregarUsuarios, carregarPatrimonios]);
+  }, [carregarMateriais, carregarPedidos, carregarBaixas, carregarUsuarios, carregarPatrimonios]);
 
   // Revalidação silenciosa ao navegar entre seções (SPA)
   useEffect(() => {
@@ -218,18 +198,13 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
       carregarPatrimonios(true);
     } else if (activeNav === 'usuarios') {
       carregarUsuarios(true);
-    } else if (activeNav === 'dashboard') {
-      carregarDashboard(true);
     }
-  }, [activeNav, carregarPedidos, carregarBaixas, carregarMateriais, carregarPatrimonios, carregarUsuarios, carregarDashboard]);
+  }, [activeNav, carregarPedidos, carregarBaixas, carregarMateriais, carregarPatrimonios, carregarUsuarios]);
 
   // Sincronização passiva em segundo plano e ao focar a janela
   useAutoRefresh(() => {
     carregarPedidos(true);
     carregarBaixas();
-    if (activeNav === 'dashboard') {
-      carregarDashboard(true);
-    }
   }, { intervalMs: 20000, enabled: true });
 
   useEffect(() => {
@@ -388,11 +363,6 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     const totalUsuarios = usuarios.length;
     return { pedidosPendentes, estoqueCritico, totalUsuarios };
   }, [pedidos, materiais, usuarios]);
-
-  // Lista de materiais com estoque totalmente esgotado
-  const materiaisZerados = useMemo(() => {
-    return materiais.filter(m => Number(m.quantidade ?? 0) === 0);
-  }, [materiais]);
 
   // Autorização de solicitação de patrimônio pelo Administrador.
   // Transiciona de pendente para em_separacao, liberando para a esteira do almoxarifado.
@@ -589,12 +559,15 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
             )}
             {!materiaisLoading && (!materiaisError || materiais.length > 0) && (
               <EstoqueView
+                key={drilldownKey}
                 materiais={materiais.filter((m) => !m?.bemDuravel)}
                 movimentacoes={movimentacoes}
                 remessas={remessas}
                 onSave={handleSaveMaterial}
                 onDelete={handleDeleteMaterial}
                 initialStatus={estoqueStatusInicial}
+                initialProdutoId={drilldownFiltro?.produtoId ?? null}
+                initialProdutoNome={drilldownFiltro?.nome ?? ''}
               />
             )}
           </div>
@@ -735,95 +708,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
         );
       case 'dashboard':
       default:
-        return (
-          <div className="dashboard-body">
-            {/* Esquerda / Centro */}
-            <div className="dashboard-content">
-              {/* Banner de Alerta de Estoque Crítico (quando há itens zerados) */}
-              {materiaisZerados.length > 0 && (
-                <div className="alerta-estoque-critico">
-                  <div className="alerta-estoque-critico__icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                      <line x1="12" y1="9" x2="12" y2="13"/>
-                      <line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                  </div>
-                  <div className="alerta-estoque-critico__content">
-                    <strong>Atenção: {materiaisZerados.length} materiais com estoque esgotado!</strong>
-                    <p>
-                      Os itens {materiaisZerados.slice(0, 2).map(m => `"${m.nome}"`).join(', ')}
-                      {materiaisZerados.length > 2 ? ` e mais ${materiaisZerados.length - 2} itens` : ''} precisam de reposição emergencial.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="alerta-estoque-critico__btn"
-                    onClick={() => {
-                      setEstoqueStatusInicial('critico');
-                      setActiveNav('consumo');
-                    }}
-                  >
-                    Ver no Estoque &rarr;
-                  </button>
-                </div>
-              )}
-
-              {dashboardError && (
-                <div className="sge-feedback-banner sge-feedback-banner--error" role="alert">
-                  <svg className="sge-feedback-banner__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  <span>{dashboardError}</span>
-                </div>
-              )}
-              <section className="dashboard-section">
-                <KpiCards
-                  data={{
-                    usuarios: dashboardLoading ? '...' : dashboard?.totalUsuarios,
-                    pedidosPendentes: counts.pedidosPendentes
-                  }}
-                  onNavigate={setActiveNav}
-                />
-              </section>
-
-              <section className="dashboard-section">
-                <PedidosTable
-                  pedidos={pedidos}
-                  onVerTodos={() => setActiveNav('pedidos')}
-                />
-              </section>
-
-              <section className="dashboard-section">
-                <Relatorios onVisualizar={() => setActiveNav('relatorios')} />
-              </section>
-            </div>
-
-            {/* Painel Lateral Direito */}
-            <aside className="dashboard-panel">
-              <ConsultaEstoque
-                itens={materiais.filter((m) => !m?.bemDuravel).map((material) => ({
-                  id: material.id,
-                  nome: material.nome,
-                  qtd: material.quantidade,
-                  status: material.quantidade === 0 ? 'critico' : material.quantidade <= material.estoqueMinimo ? 'baixo' : 'ok'
-                }))}
-                onNavigate={setActiveNav}
-              />
-              <GerenciarUsuarios
-                usuarios={usuarios}
-                onNavigate={setActiveNav}
-                onSelectUsuario={(usuario) => {
-                  setUsuarioSelecionado({ ...usuario });
-                  setActiveNav('usuarios');
-                }}
-              />
-              <NovoPedido materiais={materiais.filter((m) => !m?.bemDuravel)} onSubmit={handleNovoPedido} />
-            </aside>
-          </div>
-        );
+        return <AdminDashboardView onDrillDown={handleDrillDown} />;
     }
   };
 

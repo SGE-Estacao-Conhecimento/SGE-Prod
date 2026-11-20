@@ -1,0 +1,386 @@
+/* ==========================================================================
+   PrevisaoMaterialModal.css — Detalhamento Preditivo de Estoque (SGE-Prod)
+   Padronizado via tokens de design system, layout responsivo e zero emojis
+   ========================================================================== */
+
+.sge-previsao-material-modal {
+  max-width: 780px !important;
+}
+
+/* Badge de Recalculo Pendente no Cabecalho */
+.sge-previsao-modal__badge-recalculo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background-color: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sge-previsao-modal__conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.sge-previsao-modal__secao {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Grade Superior de KPIs (4 Cards)
+   -------------------------------------------------------------------------- */
+.sge-previsao-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .sge-previsao-kpis-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.sge-previsao-kpi-card {
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border, #E5E7EB);
+  border-radius: var(--radius-md, 10px);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.sge-previsao-kpi-rotulo {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #6B7280);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.sge-previsao-kpi-valor {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary, #1A1D2E);
+  line-height: 1.2;
+}
+
+.sge-previsao-kpi-valor small {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary, #6B7280);
+}
+
+.sge-previsao-kpi-status {
+  font-size: 10.5px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.sge-previsao-kpi-status--critico {
+  color: #DC2626;
+}
+
+.sge-previsao-kpi-status--alerta {
+  color: #D97706;
+}
+
+.sge-previsao-kpi-status--regular {
+  color: #059669;
+}
+
+.sge-previsao-kpi-descricao {
+  font-size: 10.5px;
+  color: var(--text-muted, #9CA3AF);
+}
+
+/* --------------------------------------------------------------------------
+   Painel Preditivo: Marcos Temporais & Tags
+   -------------------------------------------------------------------------- */
+.sge-previsao-milestones-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 580px) {
+  .sge-previsao-milestones-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.sge-previsao-milestone-card {
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border, #E5E7EB);
+  border-radius: var(--radius-md, 10px);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sge-previsao-milestone-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sge-previsao-milestone-ponto {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.sge-previsao-milestone-ponto--minimo {
+  background-color: #F59E0B;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+.sge-previsao-milestone-ponto--ruptura {
+  background-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.sge-previsao-milestone-titulo {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #6B7280);
+}
+
+.sge-previsao-milestone-data {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary, #1A1D2E);
+}
+
+.sge-previsao-milestone-alerta {
+  color: #D97706;
+  font-size: 0.95rem;
+}
+
+.sge-previsao-milestone-critico {
+  color: #DC2626;
+  font-size: 0.95rem;
+}
+
+.sge-previsao-milestone-vazio {
+  color: var(--text-muted, #9CA3AF);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.sge-previsao-milestone-subtexto {
+  font-size: 11px;
+  color: var(--text-secondary, #6B7280);
+}
+
+.sge-previsao-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sge-previsao-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Cards de Graficos SVG
+   -------------------------------------------------------------------------- */
+.sge-previsao-modal__grafico-card {
+  background: var(--card-bg, #FFFFFF);
+  border: 1px solid var(--border, #E5E7EB);
+  border-radius: var(--radius-md, 10px);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.sge-previsao-modal__grafico-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.sge-previsao-modal__grafico-titulo {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary, #1A1D2E);
+}
+
+.sge-previsao-modal__grafico-descricao {
+  margin: 2px 0 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6B7280);
+}
+
+.sge-previsao-modal__grafico-corpo {
+  width: 100%;
+}
+
+.sge-previsao-modal__grafico-rodape {
+  border-top: 1px dashed var(--border-light, #F1F5F9);
+  padding-top: 8px;
+  font-size: 10.5px;
+  color: var(--text-muted, #9CA3AF);
+  line-height: 1.35;
+}
+
+/* --------------------------------------------------------------------------
+   Rodape do Modal
+   -------------------------------------------------------------------------- */
+.sge-previsao-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sge-previsao-modal__footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted, #9CA3AF);
+}
+
+.sge-previsao-modal__footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------------------------
+   Feedback de Erro
+   -------------------------------------------------------------------------- */
+.sge-previsao-modal__erro {
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: var(--radius-md, 10px);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sge-previsao-modal__erro-corpo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sge-previsao-modal__erro-texto strong {
+  color: #991B1B;
+  font-size: 0.875rem;
+}
+
+.sge-previsao-modal__erro-texto p {
+  margin: 2px 0 0 0;
+  color: #B91C1C;
+  font-size: 0.8125rem;
+}
+
+.sge-previsao-modal__btn-repetir {
+  background: #DC2626;
+  color: #FFFFFF;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.sge-previsao-modal__btn-repetir:hover {
+  background: #B91C1C;
+}
+
+/* --------------------------------------------------------------------------
+   Esqueleto de Carregamento (Skeleton Shimmer)
+   -------------------------------------------------------------------------- */
+.sge-previsao-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.sge-previsao-skeleton__kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .sge-previsao-skeleton__kpis-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.sge-previsao-skeleton__milestones-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 580px) {
+  .sge-previsao-skeleton__milestones-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.sge-previsao-skeleton__card {
+  background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+  background-size: 200% 100%;
+  animation: sge-shimmer 1.5s infinite;
+  border-radius: var(--radius-md, 10px);
+  height: 72px;
+}
+
+.sge-previsao-skeleton__card--milestone {
+  height: 80px;
+}
+
+.sge-previsao-skeleton__card--grafico {
+  height: 220px;
+}
+
+@keyframes sge-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

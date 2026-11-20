@@ -1,0 +1,562 @@
+/* ==========================================================================
+   AdminDashboardView.css - Dashboard Analitico & Preditivo (SGE-Prod)
+   Estilos padronizados via tokens do Design System, suporte mobile e dark mode
+   ========================================================================== */
+
+.admin-dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 32px 48px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Cabecalho Executivo & Controles
+   -------------------------------------------------------------------------- */
+.admin-dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 8px;
+}
+
+.admin-dashboard-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-dashboard-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1d2e);
+  letter-spacing: -0.02em;
+}
+
+.admin-dashboard-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.admin-dashboard-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-dashboard-atualizado {
+  font-size: 0.8125rem;
+  color: var(--text-muted, #9ca3af);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Seletor de Janela */
+.janela-seletor {
+  display: inline-flex;
+  background-color: var(--border-light, #f3f4f6);
+  border-radius: 8px;
+  padding: 3px;
+  border: 1px solid var(--border, #e5e7eb);
+}
+
+.btn-janela {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-janela:hover:not(:disabled) {
+  color: var(--text-primary, #1a1d2e);
+}
+
+.btn-janela:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-janela--ativo {
+  background-color: var(--card-bg, #ffffff);
+  color: var(--accent, #017f7b);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Botao de Recarga */
+.btn-recarregar-dashboard {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent, #017f7b);
+  background-color: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.btn-recarregar-dashboard:hover:not(:disabled) {
+  background-color: var(--accent-light, #f0fdfa);
+  border-color: var(--accent, #017f7b);
+}
+
+.btn-recarregar-dashboard:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--border-light, #f3f4f6);
+}
+
+.icone-recarregar--girando {
+  animation: girar 1s linear infinite;
+}
+
+@keyframes girar {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --------------------------------------------------------------------------
+   Banner de Estoque Critico
+   -------------------------------------------------------------------------- */
+.estoque-critico-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 4px solid #ef4444;
+  border-radius: 8px;
+  color: #991b1b;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.estoque-critico-banner-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.estoque-critico-banner-conteudo {
+  flex: 1;
+}
+
+.estoque-critico-banner-titulo {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.estoque-critico-banner-descricao {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #b91c1c;
+}
+
+.estoque-critico-banner-acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-banner-acao {
+  background-color: #dc2626;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-banner-acao:hover {
+  background-color: #b91c1c;
+}
+
+.btn-banner-fechar {
+  background: transparent;
+  border: none;
+  color: #991b1b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.btn-banner-fechar:hover {
+  background-color: #fee2e2;
+}
+
+/* --------------------------------------------------------------------------
+   Linha de KPIs Analiticos
+   -------------------------------------------------------------------------- */
+.kpi-analiticos-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.kpi-analitico-card {
+  background-color: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
+  transition: box-shadow 0.15s ease;
+}
+
+.kpi-analitico-card:hover {
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.08));
+}
+
+.kpi-analitico-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kpi-analitico-rotulo {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.kpi-analitico-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.kpi-icone--info {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.kpi-icone--alerta {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.kpi-icone--ok {
+  background-color: #ecfdf5;
+  color: #10b981;
+}
+
+.kpi-icone--primario {
+  background-color: var(--accent-light, #f0fdfa);
+  color: var(--accent, #017f7b);
+}
+
+.kpi-icone--sucesso {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.kpi-card--alerta {
+  border-color: #fecaca;
+}
+
+.kpi-analitico-valor {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1d2e);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.kpi-analitico-subtitulo {
+  font-size: 0.75rem;
+  color: var(--text-muted, #9ca3af);
+}
+
+/* --------------------------------------------------------------------------
+   Conteudo & Cards do Dashboard
+   -------------------------------------------------------------------------- */
+.admin-dashboard-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-dashboard-secao {
+  width: 100%;
+}
+
+.admin-dashboard-grid-graficos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
+.admin-dashboard-card {
+  background-color: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
+  box-sizing: border-box;
+}
+
+.admin-dashboard-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.admin-dashboard-card-titulo {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1d2e);
+}
+
+.admin-dashboard-card-descricao {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.admin-dashboard-card-corpo {
+  width: 100%;
+  min-height: 200px;
+}
+
+.admin-dashboard-card-rodape {
+  margin-top: -4px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #9ca3af);
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   Feedback de Erro
+   -------------------------------------------------------------------------- */
+.admin-dashboard-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  border-radius: 8px;
+}
+
+.admin-dashboard-feedback-texto {
+  font-size: 0.875rem;
+}
+
+.btn-feedback-repetir {
+  background-color: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-feedback-repetir:hover {
+  background-color: #dc2626;
+}
+
+/* --------------------------------------------------------------------------
+   Estado Vazio
+   -------------------------------------------------------------------------- */
+.admin-dashboard-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--text-muted, #9ca3af);
+  background-color: var(--card-bg, #ffffff);
+  border: 1px dashed var(--border, #e5e7eb);
+  border-radius: 10px;
+}
+
+.admin-dashboard-vazio-texto {
+  margin: 16px 0 4px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary, #1a1d2e);
+}
+
+.admin-dashboard-vazio-subtexto {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6b7280);
+  max-width: 420px;
+}
+
+/* --------------------------------------------------------------------------
+   Skeleton Loading Shimmer
+   -------------------------------------------------------------------------- */
+.admin-dashboard-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.skeleton-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.skeleton-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.skeleton-card {
+  background: linear-gradient(90deg, #f0f2f5 25%, #e4e7eb 50%, #f0f2f5 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+  border-radius: 10px;
+}
+
+.skeleton-card--kpi {
+  height: 100px;
+}
+
+.skeleton-card--grafico {
+  height: 280px;
+}
+
+.skeleton-card--tabela {
+  height: 320px;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* --------------------------------------------------------------------------
+   Responsividade: Tablet e Mobile (< 768px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .kpi-analiticos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-dashboard-container {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .admin-dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-dashboard-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .kpi-analiticos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-dashboard-grid-graficos {
+    grid-template-columns: 1fr;
+  }
+
+  .skeleton-kpis-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .skeleton-charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .estoque-critico-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .estoque-critico-banner-acoes {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Suporte a Dark Mode (tokens nativos)
+   -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  .admin-dashboard-title {
+    color: var(--text-primary, #f9fafb);
+  }
+
+  .admin-dashboard-card {
+    background-color: var(--card-bg, #1e2433);
+    border-color: var(--border, #2d3748);
+  }
+
+  .kpi-analitico-card {
+    background-color: var(--card-bg, #1e2433);
+    border-color: var(--border, #2d3748);
+  }
+
+  .btn-janela--ativo {
+    background-color: #2d3748;
+    color: #38bdf8;
+  }
+
+  .btn-recarregar-dashboard {
+    background-color: #1e2433;
+    border-color: #2d3748;
+    color: #38bdf8;
+  }
+
+  .skeleton-card {
+    background: linear-gradient(90deg, #1e2433 25%, #2d3748 50%, #1e2433 75%);
+    background-size: 200% 100%;
+  }
+}

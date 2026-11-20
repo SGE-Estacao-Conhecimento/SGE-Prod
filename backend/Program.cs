@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Sge.Api.Ambientes;
 using Sge.Api.Auth;
+using Sge.Api.Common;
 using Sge.Api.Dashboard;
 using Sge.Api.DevSeed;
 using Sge.Api.Estoque;
@@ -45,6 +46,7 @@ var armazenamento = isCliSeedCommand ? null : ArmazenamentoOpcoes.Ler(builder.Co
 DefaultTypeMap.MatchNamesWithUnderscores = true;
 
 // ---------- Serviços ----------
+builder.Services.AddMemoryCache();
 builder.Services.AddSingleton(jwt);
 builder.Services.AddSingleton(new DbConnectionFactory(connectionString));
 builder.Services.AddSingleton(new AppClock(fusoHorario));
@@ -69,7 +71,11 @@ builder.Services.AddScoped<AmbienteRepository>();
 builder.Services.AddScoped<AmbienteService>();
 builder.Services.AddScoped<PatrimonioRepository>();
 builder.Services.AddScoped<PatrimonioService>();
-builder.Services.AddScoped<DashboardRepository>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<IPrevisoesEstoqueRepository, PrevisoesEstoqueRepository>();
+builder.Services.AddScoped<IFilaRecalculoRepository, FilaRecalculoRepository>();
+builder.Services.AddScoped<IPrevisaoEstoqueService, PrevisaoEstoqueService>();
+builder.Services.AddHostedService<FilaRecalculoBackgroundWorker>();
 builder.Services.AddScoped<RemessaRepository>();
 if (armazenamento is not null)
 {
@@ -83,7 +89,7 @@ builder.Services.AddScoped<DevSeeder>();
 
 builder.Services
     .AddControllers()
-    .AddJsonOptions(o => o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)
+    .AddJsonOptions(o => JsonDefaults.Configure(o.JsonSerializerOptions))
     .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = ctx =>
     {
         var erros = ctx.ModelState
@@ -140,6 +146,8 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
                 return false;
             if (uri.Scheme != Uri.UriSchemeHttp || (uri.Port != 5173 && uri.Port != 5174))
                 return false;
+            if (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+                return true;
             if (!System.Net.IPAddress.TryParse(uri.Host, out var ip) ||
                 ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
                 return false;
@@ -229,3 +237,5 @@ app.MapControllers();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.Run();
+
+public partial class Program { }

@@ -21,7 +21,9 @@ const EstoqueView = ({
   onSave,
   onDelete,
   onAdicionarItemNF,
-  initialStatus = ''
+  initialStatus = '',
+  initialProdutoId = null,
+  initialProdutoNome = ''
 }) => {
   // Sub-abas: Consumo, Patrimônio ou Histórico
   const [abaEstoque, setAbaEstoque] = useState('consumo'); // 'consumo' | 'patrimonio' | 'historico'
@@ -31,6 +33,7 @@ const EstoqueView = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoria, setSelectedCategoria] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(initialStatus);
+  const [filtroProdutoId, setFiltroProdutoId] = useState(initialProdutoId);
 
   // Controle do Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,6 +58,10 @@ const EstoqueView = ({
     return materiais
       .filter((item) => !item.bemDuravel)
       .filter((item) => {
+        if (filtroProdutoId != null && Number(item.id) !== Number(filtroProdutoId)) {
+          return false;
+        }
+
         const matchSearch =
           item.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,7 +79,7 @@ const EstoqueView = ({
 
         return matchSearch && matchCategoria && matchStatus;
       });
-  }, [materiais, searchTerm, selectedCategoria, selectedStatus]);
+  }, [materiais, filtroProdutoId, searchTerm, selectedCategoria, selectedStatus]);
 
   const handleOpenNewModal = () => {
     setEditingMaterial({ bemDuravel: false });
@@ -226,6 +233,53 @@ const EstoqueView = ({
               </button>
             </div>
           </div>
+
+          {/* Chip de Filtro por Drill-Down */}
+          {filtroProdutoId != null && (
+            <div className="estoque-drilldown-bar" style={{ marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: 'var(--accent-light, #f0fdfa)',
+                  color: 'var(--accent, #017f7b)',
+                  border: '1px solid var(--accent, #017f7b)',
+                  borderRadius: '16px',
+                  padding: '4px 12px',
+                  fontSize: '0.8125rem',
+                  fontWeight: '600'
+                }}
+              >
+                <span>Filtrando por: {initialProdutoNome || `#${filtroProdutoId}`}</span>
+                <button
+                  type="button"
+                  onClick={() => setFiltroProdutoId(null)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--accent, #017f7b)',
+                    cursor: 'pointer',
+                    padding: '2px 4px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    lineHeight: 1
+                  }}
+                  aria-label="Limpar filtro"
+                  title="Limpar filtro"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                  <span>Limpar</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Tabela de Materiais */}
           <div className="estoque-table-card">
