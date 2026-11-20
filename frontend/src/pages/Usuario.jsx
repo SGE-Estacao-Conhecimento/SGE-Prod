@@ -119,11 +119,7 @@ const Usuario = ({ onLogout, user, onUserUpdate }) => {
     const carregarNotificacoes = () => notificacaoService.listar()
       .then((data) => {
         if (!active) return;
-        setNotificacoes((data || []).map((item) => ({
-          ...item,
-          lida: false,
-          tempo: item.data ? new Date(item.data).toLocaleString('pt-BR') : ''
-        })));
+        setNotificacoes(Array.isArray(data) ? data : []);
       })
       .catch(() => {
         if (active) setNotificacoes([]);
@@ -139,12 +135,31 @@ const Usuario = ({ onLogout, user, onUserUpdate }) => {
     setIsSidebarOpen(false);
   };
 
-  const handleMarcarNotifLida = (id) => {
+  const handleMarcarNotifLida = async (id) => {
     setNotificacoes(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n));
+    try {
+      await notificacaoService.marcarLida(id);
+    } catch {
+      // Falha silenciosa em offline/simulado
+    }
   };
 
-  const handleLimparNotificacoes = () => {
+  const handleLimparNotificacoes = async () => {
     setNotificacoes(prev => prev.map(n => ({ ...n, lida: true })));
+    try {
+      await notificacaoService.marcarTodasLidas(notificacoes.map(n => n.id));
+    } catch {
+      // Falha silenciosa em offline/simulado
+    }
+  };
+
+  const handleExcluirNotificacao = async (id) => {
+    setNotificacoes(prev => prev.filter(n => n.id !== id));
+    try {
+      await notificacaoService.excluir(id);
+    } catch {
+      // Falha silenciosa em offline/simulado
+    }
   };
 
   const handleNavigateToPedido = useCallback((pedidoId) => {
@@ -357,6 +372,7 @@ const Usuario = ({ onLogout, user, onUserUpdate }) => {
           notificacoes={notificacoes}
           onMarcarLida={handleMarcarNotifLida}
           onLimparNotificacoes={handleLimparNotificacoes}
+          onExcluirNotificacao={handleExcluirNotificacao}
           onNavigateToPedido={handleNavigateToPedido}
         />
 

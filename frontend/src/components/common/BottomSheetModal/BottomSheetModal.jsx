@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import './BottomSheetModal.css';
 
@@ -32,6 +33,7 @@ const BottomSheetModal = ({
   footer,
   maxWidth = '520px',
   className = '',
+  backdropClassName = '',
   zIndex = 10000,
   variant = 'sheet'
 }) => {
@@ -263,13 +265,13 @@ const BottomSheetModal = ({
     }
   };
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           key="sge-modal-backdrop"
           ref={backdropRef}
-          className={`sge-modal-backdrop ${isDialog ? 'sge-modal-backdrop--dialog' : ''}`}
+          className={`sge-modal-backdrop ${isDialog ? 'sge-modal-backdrop--dialog' : ''} ${backdropClassName}`}
           style={{ zIndex }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, pointerEvents: 'auto', transition: { duration: 0.16, ease: "easeOut" } }}
@@ -357,6 +359,8 @@ const BottomSheetModal = ({
       )}
     </AnimatePresence>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 };
 
 export default BottomSheetModal;

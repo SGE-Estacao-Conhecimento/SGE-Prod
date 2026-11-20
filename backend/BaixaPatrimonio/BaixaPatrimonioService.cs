@@ -2,13 +2,15 @@ using System.Security.Claims;
 using Sge.Api.Auth;
 using Sge.Api.Infrastructure;
 using Sge.Api.Infrastructure.Armazenamento;
+using Sge.Api.Notificacoes;
 
 namespace Sge.Api.BaixaPatrimonio;
 
 public sealed class BaixaPatrimonioService(
     DbConnectionFactory db,
     BaixaPatrimonioRepository repo,
-    ArmazenamentoArquivosBase armazenamento)
+    ArmazenamentoArquivosBase armazenamento,
+    NotificacaoService notificacoes)
 {
     private static readonly HashSet<string> MotivosValidos = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -86,7 +88,25 @@ public sealed class BaixaPatrimonioService(
                 usuario.UsuarioId()));
         }
 
-        return (await repo.ObterPorIdAsync(pedidoId))!;
+        var criado = (await repo.ObterPorIdAsync(pedidoId))!;
+
+        try
+        {
+            var solicitanteNome = usuario.FindFirst("name")?.Value ?? "Almoxarife";
+            await notificacoes.NotificarSolicitacaoBaixaAdminAsync(
+                pedidoId,
+                criado.NumeroPatrimonio,
+                criado.NomePatrimonio,
+                solicitanteNome,
+                criado.Motivo
+            );
+        }
+        catch
+        {
+            // Falha na notificação não reverte a solicitação gravada
+        }
+
+        return criado;
     }
 
     // ---------- Aprovação ----------
@@ -105,7 +125,24 @@ public sealed class BaixaPatrimonioService(
         await repo.BaixarItemAsync(t, itemId);
         await t.ConfirmarAsync();
 
-        return (await repo.ObterPorIdAsync(pedidoBaixaId))!;
+        var deliberado = (await repo.ObterPorIdAsync(pedidoBaixaId))!;
+
+        try
+        {
+            await notificacoes.NotificarParecerBaixaAsync(
+                deliberado.SolicitanteId,
+                deliberado.NumeroPatrimonio,
+                deliberado.NomePatrimonio,
+                true,
+                parecerLimpo
+            );
+        }
+        catch
+        {
+            // Falha na notificação não desfaz a aprovação
+        }
+
+        return deliberado;
     }
 
     // ---------- Recusa ----------
@@ -127,7 +164,24 @@ public sealed class BaixaPatrimonioService(
         await repo.RestaurarItemAtivoAsync(t, itemId);
         await t.ConfirmarAsync();
 
-        return (await repo.ObterPorIdAsync(pedidoBaixaId))!;
+        var deliberado = (await repo.ObterPorIdAsync(pedidoBaixaId))!;
+
+        try
+        {
+            await notificacoes.NotificarParecerBaixaAsync(
+                deliberado.SolicitanteId,
+                deliberado.NumeroPatrimonio,
+                deliberado.NomePatrimonio,
+                false,
+                parecerLimpo
+            );
+        }
+        catch
+        {
+            // Falha na notificação não desfaz a recusa
+        }
+
+        return deliberado;
     }
 
     // ---------- Foto (stream) ----------

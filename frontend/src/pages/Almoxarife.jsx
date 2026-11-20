@@ -365,16 +365,41 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
     }
   };
 
-  const handleMarcarNotifLida = (id) => {
+  const handleMarcarNotifLida = async (id) => {
     setNotificacoes(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n));
+    try {
+      await notificacaoService.marcarLida(id);
+    } catch {
+      // Falha silenciosa
+    }
   };
 
-  const handleLimparNotificacoes = () => {
+  const handleLimparNotificacoes = async () => {
     setNotificacoes(prev => prev.map(n => ({ ...n, lida: true })));
+    try {
+      await notificacaoService.marcarTodasLidas(notificacoes.map(n => n.id));
+    } catch {
+      // Falha silenciosa
+    }
   };
 
-  const handleNavigateToPedido = () => {
-    setActiveNav('pedidos');
+  const handleExcluirNotificacao = async (id) => {
+    setNotificacoes(prev => prev.filter(n => n.id !== id));
+    try {
+      await notificacaoService.excluir(id);
+    } catch {
+      // Falha silenciosa
+    }
+  };
+
+  const handleNavigateToPedido = (_pedidoId, linkAcao) => {
+    if (linkAcao && linkAcao.includes('patrimonio')) {
+      setActiveNav('patrimonio');
+    } else if (linkAcao && linkAcao.includes('estoque')) {
+      setActiveNav('estoque');
+    } else {
+      setActiveNav('pedidos');
+    }
   };
 
   const handleNavClick = (id) => {
@@ -574,6 +599,7 @@ const Almoxarife = ({ onLogout, user, onUserUpdate }) => {
           notificacoes={notificacoes}
           onMarcarLida={handleMarcarNotifLida}
           onLimparNotificacoes={handleLimparNotificacoes}
+          onExcluirNotificacao={handleExcluirNotificacao}
           onNavigateToPedido={handleNavigateToPedido}
         />
         <AnimatePresence mode="wait">

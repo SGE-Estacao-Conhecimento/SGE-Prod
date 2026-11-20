@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Sge.Api.Auth;
 using Sge.Api.Estoque;
 using Sge.Api.Infrastructure;
+using Sge.Api.Notificacoes;
 
 namespace Sge.Api.Pedidos;
 
@@ -10,7 +11,11 @@ namespace Sge.Api.Pedidos;
 /// Novos (pendente) -> Separação -> Prontos (retirada) -> Entregue, com volta de etapa e recusa.
 /// A baixa de estoque da entrega acontece aqui, na mesma transação da mudança de situação.
 /// </summary>
-public sealed class AtendimentoPedidoService(DbConnectionFactory db, PedidoRepository pedidos, EstoqueRepository estoque)
+public sealed class AtendimentoPedidoService(
+    DbConnectionFactory db,
+    PedidoRepository pedidos,
+    EstoqueRepository estoque,
+    NotificacaoService notificacoes)
 {
     private const int MaxDescricao = 500;
 
@@ -81,6 +86,21 @@ public sealed class AtendimentoPedidoService(DbConnectionFactory db, PedidoRepos
 
         var atualizado = await pedidos.ObterAsync(t, pedidoId);
         await t.ConfirmarAsync();
+
+        try
+        {
+            await notificacoes.NotificarStatusPedidoSolicitanteAsync(
+                pedidoId,
+                pedido.FuncionarioSolicitanteId,
+                novo,
+                novo == StatusPedido.ProntoRetirada ? req.MensagemAlmoxarife : (req.MotivoCancelamento ?? null)
+            );
+        }
+        catch
+        {
+            // Falha no disparo de notificação não afeta a transação do pedido
+        }
+
         return atualizado!;
     }
 

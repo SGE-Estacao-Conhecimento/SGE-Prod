@@ -315,6 +315,25 @@ CREATE TABLE pedido_baixa_anexos (
     INDEX idx_baixa_anexos_chave (r2_chave)
 ) ENGINE=InnoDB;
 
+-- Central de notificacoes persistidas por usuario com vinculo de acoes operacionais.
+CREATE TABLE notificacoes (
+    notificacao_id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    perfil_destino ENUM('admin', 'almoxarifado', 'funcionario') NOT NULL,
+    categoria ENUM('pedido', 'estoque', 'patrimonio', 'sistema') NOT NULL DEFAULT 'pedido',
+    tipo ENUM('info', 'sucesso', 'alerta', 'urgente') NOT NULL DEFAULT 'info',
+    titulo VARCHAR(140) NOT NULL,
+    mensagem VARCHAR(300) NOT NULL,
+    link_acao VARCHAR(180) NULL,
+    texto_acao VARCHAR(50) NULL,
+    lida BOOLEAN NOT NULL DEFAULT FALSE,
+    criada_em TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    lida_em TIMESTAMP(6) NULL,
+    CONSTRAINT fk_notificacoes_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(usuario_id) ON DELETE CASCADE,
+    INDEX idx_notificacoes_usuario_lida (usuario_id, lida, criada_em),
+    INDEX idx_notificacoes_criada_em (criada_em)
+) ENGINE=InnoDB;
+
 DELIMITER $$
 
 -- Recebimento só nasce em preparação e só é confirmado com pelo menos uma foto do material já enviada ao R2.

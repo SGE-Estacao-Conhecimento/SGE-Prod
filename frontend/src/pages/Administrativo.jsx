@@ -236,7 +236,7 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     let active = true;
     const carregarNotificacoes = () => notificacaoService.listar()
       .then((data) => {
-        if (active) setNotificacoes((data || []).map(item => ({ ...item, lida: false, tempo: item.data ? new Date(item.data).toLocaleString('pt-BR') : '' })));
+        if (active) setNotificacoes(Array.isArray(data) ? data : []);
       })
       .catch(() => {});
     carregarNotificacoes();
@@ -244,8 +244,32 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
     return () => { active = false; window.clearInterval(intervalo); };
   }, []);
 
-  const handleMarcarNotifLida = (id) => setNotificacoes(prev => prev.map(item => item.id === id ? { ...item, lida: true } : item));
-  const handleLimparNotificacoes = () => setNotificacoes(prev => prev.map(item => ({ ...item, lida: true })));
+  const handleMarcarNotifLida = async (id) => {
+    setNotificacoes(prev => prev.map(item => item.id === id ? { ...item, lida: true } : item));
+    try {
+      await notificacaoService.marcarLida(id);
+    } catch {
+      // Falha silenciosa
+    }
+  };
+
+  const handleLimparNotificacoes = async () => {
+    setNotificacoes(prev => prev.map(item => ({ ...item, lida: true })));
+    try {
+      await notificacaoService.marcarTodasLidas(notificacoes.map(item => item.id));
+    } catch {
+      // Falha silenciosa
+    }
+  };
+
+  const handleExcluirNotificacao = async (id) => {
+    setNotificacoes(prev => prev.filter(item => item.id !== id));
+    try {
+      await notificacaoService.excluir(id);
+    } catch {
+      // Falha silenciosa
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -822,6 +846,16 @@ const Administrativo = ({ onLogout, user, onUserUpdate }) => {
           notificacoes={notificacoes}
           onMarcarLida={handleMarcarNotifLida}
           onLimparNotificacoes={handleLimparNotificacoes}
+          onExcluirNotificacao={handleExcluirNotificacao}
+          onNavigateToPedido={(_pedidoId, linkAcao) => {
+            if (linkAcao && linkAcao.includes('patrimonio')) {
+              setActiveNav('patrimonio');
+            } else if (linkAcao && linkAcao.includes('estoque')) {
+              setActiveNav('estoque');
+            } else {
+              setActiveNav('pedidos');
+            }
+          }}
         />
         {renderContent()}
       </div>

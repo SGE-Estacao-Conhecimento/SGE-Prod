@@ -218,12 +218,12 @@
   }
 }
 
-/* Popover Flutuante de Notificações */
+/* Popover Flutuante de Notificações (Desktop) */
 .topbar__notif-popover {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 340px;
+  width: 380px;
   max-width: calc(100vw - 24px);
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
@@ -266,10 +266,10 @@
   background: none;
   border: none;
   color: #64748B;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
-  padding: 4px 6px;
+  padding: 4px 8px;
   border-radius: 6px;
   transition: all 0.15s ease;
 }
@@ -280,42 +280,94 @@
 }
 
 .topbar__notif-body {
-  max-height: 360px;
+  max-height: 440px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 
-/* Item de Notificação */
-.notif-item {
+/* Central de Notificações - Estrutura Comum (Desktop e Mobile) */
+.notif-center-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.notif-filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #F1F5F9;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.notif-filter-tab {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #64748B;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.notif-filter-tab:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.notif-filter-tab--active {
+  background: var(--accent, #017F7B);
+  border-color: var(--accent, #017F7B);
+  color: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(1, 127, 123, 0.25);
+}
+
+.notif-list-container {
+  display: flex;
+  flex-direction: column;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+/* Card de Notificação Estilo Caixa de Entrada Tradicional */
+.notif-card {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 12px 16px;
   border-bottom: 1px solid #F1F5F9;
-  cursor: pointer;
   transition: background 0.15s ease;
   position: relative;
   text-align: left;
+  cursor: pointer;
+  user-select: none;
 }
 
-.notif-item:last-child {
+.notif-card:last-child {
   border-bottom: none;
 }
 
-.notif-item:hover {
+.notif-card:hover {
   background: #F8FAFC;
 }
 
-.notif-item--unread {
-  background: #F0FDF4;
+.notif-card--unread {
+  background: #F8FCFC;
 }
 
-.notif-item--unread:hover {
-  background: #DCFCE7;
+.notif-card--unread:hover {
+  background: #F0F9F8;
 }
 
-.notif-item__icon {
+.notif-card__icon {
   width: 32px;
   height: 32px;
   border-radius: 10px;
@@ -326,67 +378,104 @@
   margin-top: 2px;
 }
 
-.notif-item__icon--urgente {
-  background: #FFF7ED;
-  color: #EA580C;
-  border: 1px solid #FFEDD5;
+.notif-card__icon--urgente {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FEE2E2;
 }
 
-.notif-item__icon--sucesso,
-.notif-item__icon--pronto {
-  background: #DCFCE7;
-  color: #166534;
-  border: 1px solid #BBF7D0;
+.notif-card__icon--sucesso {
+  background: #ECFDF5;
+  color: #059669;
+  border: 1px solid #D1FAE5;
 }
 
-.notif-item__icon--info {
-  background: #EEF2FF;
-  color: #4F46E5;
-  border: 1px solid #E0E7FF;
+.notif-card__icon--alerta {
+  background: #FFFBEB;
+  color: #D97706;
+  border: 1px solid #FEF3C7;
 }
 
-.notif-item__content {
+.notif-card__icon--info {
+  background: #F0F9F8;
+  color: #017F7B;
+  border: 1px solid #CCECEB;
+}
+
+.notif-card__content {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
-.notif-item__top {
+.notif-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.notif-item__title {
+.notif-card__time {
+  font-size: 10.5px;
+  color: #94A3B8;
+  white-space: nowrap;
+}
+
+.notif-card__title {
   font-size: 13px;
   font-weight: 700;
   color: #0F172A;
   line-height: 1.25;
 }
 
-.notif-item__time {
-  font-size: 10.5px;
-  color: #94A3B8;
-  white-space: nowrap;
-}
-
-.notif-item__desc {
+.notif-card__desc {
   font-size: 12px;
   color: #475569;
   line-height: 1.35;
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notif-card__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notif-card__btn-delete {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.notif-card__btn-delete:hover {
+  background: #FEE2E2;
+  color: #DC2626;
 }
 
 .notif-unread-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #2563EB;
+  background: var(--accent, #017F7B);
+  box-shadow: 0 0 0 2px rgba(1, 127, 123, 0.2);
   flex-shrink: 0;
-  margin-top: 6px;
 }
 
 .notif-empty {
@@ -394,11 +483,76 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 16px;
+  padding: 36px 16px;
   color: #94A3B8;
-  gap: 8px;
+  gap: 6px;
   text-align: center;
-  font-size: 13px;
+}
+
+.notif-empty__title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #475569;
+  margin: 0;
+}
+
+.notif-empty__desc {
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+/* Área interna quando aberto em BottomSheetModal (Mobile) */
+.notif-bottom-sheet-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.notif-bottom-sheet-content .notif-list-container {
+  max-height: 60vh;
+}
+
+/* ===================================================
+   CENTRAL DE NOTIFICAÇÕES MOBILE (LIMITE INFERIOR = BOTTOM NAV)
+   =================================================== */
+@media (max-width: 768px) {
+  /* O backdrop cobre a tela do topo até exatamente o topo do BottomNav (64px) */
+  .sge-modal-backdrop.notif-modal-backdrop {
+    z-index: 998 !important;
+    bottom: 64px !important;
+    height: calc(100% - 64px) !important;
+    height: calc(100dvh - 64px) !important;
+    align-items: flex-end !important;
+  }
+
+  /* O container da sheet descansa perfeitamente colado no topo do BottomNav */
+  .sge-bottom-sheet.notif-bottom-sheet {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    margin-bottom: 0 !important;
+    max-height: calc(85dvh - 64px) !important;
+    border-bottom: 1px solid var(--border, #E2E8F0) !important;
+  }
+
+  /* O limite inferior da lista é a barra de navegação */
+  .notif-bottom-sheet-content .notif-list-container {
+    max-height: calc(75dvh - 140px);
+    overflow-y: auto;
+    padding-bottom: 8px;
+  }
+}
+
+/* Oculta o FAB da caderneta e botões flutuantes enquanto a central de notificações estiver aberta */
+body:has(.notif-modal-backdrop) .fab-caderneta,
+body:has(.notif-modal-backdrop) .speed-dial-fab {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: scale(0.8) !important;
+  transition: opacity 0.15s ease, transform 0.15s ease !important;
+}
+
+.topbar--notif-open {
+  z-index: 998 !important;
 }
 
 /* Estilo refinado para o botão de notificações */

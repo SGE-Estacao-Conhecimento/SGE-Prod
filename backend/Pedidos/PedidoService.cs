@@ -2,11 +2,16 @@ using System.Security.Claims;
 using Sge.Api.Auth;
 using Sge.Api.Estoque;
 using Sge.Api.Infrastructure;
+using Sge.Api.Notificacoes;
 
 namespace Sge.Api.Pedidos;
 
 /// <summary>Regras de criação e cancelamento de pedidos.</summary>
-public sealed class PedidoService(DbConnectionFactory db, PedidoRepository repo, EstoqueRepository estoque)
+public sealed class PedidoService(
+    DbConnectionFactory db,
+    PedidoRepository repo,
+    EstoqueRepository estoque,
+    NotificacaoService notificacoes)
 {
     private const int MaxItens = 100;
     private const int MaxJustificativa = 2000;
@@ -126,6 +131,29 @@ public sealed class PedidoService(DbConnectionFactory db, PedidoRepository repo,
 
         var criado = await repo.ObterAsync(t, pedidoId);
         await t.ConfirmarAsync();
+
+        try
+        {
+            var resumoItens = PedidoRepository.Resumo(criado?.Itens ?? []);
+            var solicitanteNome = criado?.Usuario ?? "Solicitante";
+            var setorNome = criado?.Setor ?? "Geral";
+            var ehAdmin = usuario.Perfil() == Perfis.Admin;
+            if (temPatrimonio && !ehAdmin)
+            {
+                await notificacoes.NotificarNovoPedidoPatrimonioAdminAsync(
+                    pedidoId, solicitanteNome, setorNome, resumoItens);
+            }
+            else if (!entregaImediata)
+            {
+                await notificacoes.NotificarNovoPedidoAlmoxarifadoAsync(
+                    pedidoId, solicitanteNome, setorNome, urgencia, resumoItens);
+            }
+        }
+        catch
+        {
+            // Falhas no envio de notificações não invalidam a transação de criação do pedido.
+        }
+
         return criado!;
     }
 
@@ -158,6 +186,17 @@ public sealed class PedidoService(DbConnectionFactory db, PedidoRepository repo,
 
         var atualizado = await repo.ObterAsync(t, pedidoId);
         await t.ConfirmarAsync();
+
+        try
+        {
+            await notificacoes.NotificarStatusPedidoSolicitanteAsync(
+                pedidoId, pedido.FuncionarioSolicitanteId, StatusPedido.Cancelado, descricao);
+        }
+        catch
+        {
+            // Falhas no envio de notificações não invalidam a transação de cancelamento.
+        }
+
         return atualizado!;
     }
 

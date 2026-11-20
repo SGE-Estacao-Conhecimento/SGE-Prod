@@ -56,6 +56,7 @@ builder.Services.AddScoped<MaterialRepository>();
 builder.Services.AddScoped<FavoritoRepository>();
 builder.Services.AddScoped<PedidoRepository>();
 builder.Services.AddScoped<PedidoService>();
+builder.Services.AddScoped<NotificacaoRepository>();
 builder.Services.AddScoped<NotificacaoService>();
 builder.Services.AddScoped<MaterialService>();
 builder.Services.AddScoped<EstoqueRepository>();
